@@ -1,7 +1,8 @@
 {
-  "name": "react-example",
+  "name": "logstream-ui",
   "private": true,
   "version": "0.0.0",
+  "homepage": "http://guilherme.stracini.com.br/logstream-ui/",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
