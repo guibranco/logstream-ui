@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { LogServiceConfig, getConfig, saveConfig, clearConfig, isConfigComplete } from '../store/configStore';
+import { LogStreamConfig, getConfig, saveConfig, clearConfig, isConfigComplete } from '../store/configStore';
 
 interface AuthContextValue {
-  config: LogServiceConfig | null;
+  config: LogStreamConfig | null;
   openSettings: () => void;
   signOut: () => void;
   isConfigured: boolean;
   isSettingsOpen: boolean;
   closeSettings: () => void;
-  updateConfig: (newConfig: LogServiceConfig) => void;
+  updateConfig: (newConfig: LogStreamConfig) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfig] = useState<LogServiceConfig | null>(getConfig());
+  const [config, setConfig] = useState<LogStreamConfig | null>(getConfig());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const isConfigured = isConfigComplete(config);
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateConfig = useCallback((newConfig: LogServiceConfig) => {
+  const updateConfig = useCallback((newConfig: LogStreamConfig) => {
     saveConfig(newConfig);
     setConfig(newConfig);
     setIsSettingsOpen(false);

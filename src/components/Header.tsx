@@ -38,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-50 bg-gray-950 border-b border-gray-800 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold tracking-tight text-gray-100">LogService</h1>
+          <h1 className="text-xl font-bold tracking-tight text-gray-100">LogStream</h1>
           <div className={cn("w-2 h-2 rounded-full animate-pulse", statusColor)} />
         </div>
         

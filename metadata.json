@@ -1,5 +1,5 @@
 {
-  "name": "LogService UI",
+  "name": "LogStream",
   "description": "Real-time log viewer and search dashboard with WebSocket support and advanced filtering.",
   "requestFramePermissions": []
 }

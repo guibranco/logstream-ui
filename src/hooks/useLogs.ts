@@ -9,7 +9,7 @@ export function useLogs(filters: SearchFilters, limit: number, offset: number) {
     queryKey: ['logs', filters, limit, offset, config?.apiUrl],
     queryFn: async () => {
       if (!config?.apiUrl || !config?.uiSecret) {
-        throw new Error('LogService not configured');
+        throw new Error('LogStream not configured');
       }
 
       const params = new URLSearchParams();

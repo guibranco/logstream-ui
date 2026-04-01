@@ -14,7 +14,7 @@ const queryClient = new QueryClient();
 
 const STORAGE_KEY = 'logservice:filters';
 
-function LogServiceApp() {
+function LogStreamApp() {
   const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
   
   const [filters, setFilters] = useState<SearchFilters>(() => {
@@ -127,7 +127,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LogServiceApp />
+        <LogStreamApp />
       </AuthProvider>
     </QueryClientProvider>
   );

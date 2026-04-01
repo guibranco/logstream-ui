@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Lock, Eye, EyeOff, Settings, Globe, Zap, Trash2 } from 'lucide-react';
-import { LogServiceConfig } from '../store/configStore';
+import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 
 export function SettingsScreen() {
@@ -71,7 +71,7 @@ export function SettingsScreen() {
               <Settings className="w-6 h-6 text-blue-400" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              LogService Settings
+              LogStream Settings
             </h1>
           </div>
           <p className="text-gray-400 text-sm mb-8">

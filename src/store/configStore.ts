@@ -1,4 +1,4 @@
-export interface LogServiceConfig {
+export interface LogStreamConfig {
   apiUrl: string;
   wsUrl: string;
   uiSecret: string;
@@ -6,7 +6,7 @@ export interface LogServiceConfig {
 
 const STORAGE_KEY = 'logservice:config';
 
-export function getConfig(): LogServiceConfig | null {
+export function getConfig(): LogStreamConfig | null {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return null;
   try {
@@ -17,7 +17,7 @@ export function getConfig(): LogServiceConfig | null {
   }
 }
 
-export function saveConfig(config: LogServiceConfig): void {
+export function saveConfig(config: LogStreamConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 
@@ -25,7 +25,7 @@ export function clearConfig(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-export function isConfigComplete(config: LogServiceConfig | null): boolean {
+export function isConfigComplete(config: LogStreamConfig | null): boolean {
   if (!config) return false;
   return (
     typeof config.apiUrl === 'string' && config.apiUrl.trim().length > 0 &&
