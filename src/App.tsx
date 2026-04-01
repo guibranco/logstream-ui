@@ -4,17 +4,19 @@ import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { LogTable } from './components/LogTable';
 import { StatsDrawer } from './components/StatsDrawer';
+import { SettingsScreen } from './components/SettingsScreen';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
 
 const queryClient = new QueryClient();
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
-
 const STORAGE_KEY = 'logservice:filters';
 
 function LogServiceApp() {
+  const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
+  
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : {};
@@ -33,7 +35,7 @@ function LogServiceApp() {
     setIsLive,
     flushBuffer,
     clearLogs
-  } = useWebSocket(WS_URL);
+  } = useWebSocket();
 
   const {
     data: searchResult,
@@ -70,6 +72,10 @@ function LogServiceApp() {
   const activeLogs = isLive ? liveLogs : (searchResult?.entries || []);
   const total = isLive ? liveLogs.length : (searchResult?.total || 0);
 
+  if (isSettingsOpen || !isConfigured) {
+    return <SettingsScreen />;
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-sans overflow-hidden">
       <Header
@@ -81,6 +87,8 @@ function LogServiceApp() {
         onFlush={flushBuffer}
         onClear={clearLogs}
         onOpenStats={() => setIsStatsOpen(true)}
+        onOpenSettings={openSettings}
+        onDisconnect={signOut}
       />
       
       <FilterBar
@@ -118,7 +126,9 @@ function LogServiceApp() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <LogServiceApp />
+      <AuthProvider>
+        <LogServiceApp />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

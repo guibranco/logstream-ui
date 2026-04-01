@@ -38,7 +38,8 @@ export interface SearchFilters {
 export type WSStatus = 'connected' | 'reconnecting' | 'disconnected';
 
 export interface WSMessage {
-  type: 'connected' | 'log' | 'pong' | 'stats';
+  type: 'connected' | 'log' | 'pong' | 'stats' | 'error';
   connections?: number;
   data?: any;
+  message?: string;
 }

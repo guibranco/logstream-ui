@@ -1,7 +1,7 @@
 import React from 'react';
 import { WSStatus } from '../types';
 import { cn } from '../lib/utils';
-import { Activity, Trash2, Zap, ZapOff } from 'lucide-react';
+import { Activity, Trash2, Zap, ZapOff, Settings, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   status: WSStatus;
@@ -12,6 +12,8 @@ interface HeaderProps {
   onFlush: () => void;
   onClear: () => void;
   onOpenStats: () => void;
+  onOpenSettings: () => void;
+  onDisconnect: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,7 +24,9 @@ export const Header: React.FC<HeaderProps> = ({
   bufferCount,
   onFlush,
   onClear,
-  onOpenStats
+  onOpenStats,
+  onOpenSettings,
+  onDisconnect
 }) => {
   const statusColor = {
     connected: 'bg-green-500',
@@ -90,6 +94,24 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-1 text-xs font-medium bg-gray-900 border border-gray-800 px-3 py-1.5 rounded hover:bg-gray-800 transition-colors"
         >
           Stats <span className="text-gray-500">▸</span>
+        </button>
+
+        <div className="w-px h-4 bg-gray-800 mx-1" />
+
+        <button
+          onClick={onOpenSettings}
+          className="p-2 text-gray-500 hover:text-blue-400 hover:bg-gray-900 rounded transition-all"
+          title="Settings"
+        >
+          <Settings size={18} />
+        </button>
+
+        <button
+          onClick={onDisconnect}
+          className="p-2 text-gray-500 hover:text-red-400 hover:bg-gray-900 rounded transition-all"
+          title="Disconnect"
+        >
+          <LogOut size={18} />
         </button>
       </div>
     </header>
