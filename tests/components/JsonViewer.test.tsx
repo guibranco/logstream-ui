@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { JsonViewer } from './JsonViewer';
+import { JsonViewer } from '@/src/components/JsonViewer';
 
 describe('JsonViewer', () => {
   it('renders null correctly', () => {

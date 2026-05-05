@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { LevelBadge } from './LevelBadge';
-import { LogLevel } from '../types';
+import { LevelBadge } from '@/src/components/LevelBadge';
+import { LogLevel } from '@/src/types';
 
 describe('LevelBadge', () => {
   it('renders the level text correctly', () => {
