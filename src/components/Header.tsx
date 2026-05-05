@@ -1,7 +1,8 @@
 import React from 'react';
 import { WSStatus } from '../types';
 import { cn } from '../lib/utils';
-import { Activity, Trash2, Zap, ZapOff, Settings, LogOut, Clock } from 'lucide-react';
+import { Activity, Trash2, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
+import { useServerInfo } from '../hooks/useServerInfo';
 
 interface HeaderProps {
   status: WSStatus;
@@ -9,8 +10,8 @@ interface HeaderProps {
   isLive: boolean;
   setIsLive: (live: boolean) => void;
   bufferCount: number;
-  currentView: 'dashboard' | 'retention';
-  setCurrentView: (view: 'dashboard' | 'retention') => void;
+  currentView: 'dashboard' | 'retention' | 'applications';
+  setCurrentView: (view: 'dashboard' | 'retention' | 'applications') => void;
   onFlush: () => void;
   onClear: () => void;
   onOpenStats: () => void;
@@ -38,6 +39,8 @@ export const Header: React.FC<HeaderProps> = ({
     disconnected: 'bg-red-500'
   }[status];
 
+  const { data: serverInfo } = useServerInfo();
+
   return (
     <header className="sticky top-0 z-50 bg-gray-950 border-b border-gray-800 px-4 py-3 flex items-center justify-between shadow-md">
       <div className="flex items-center gap-8">
@@ -64,6 +67,20 @@ export const Header: React.FC<HeaderProps> = ({
           >
             Dashboard
           </button>
+
+          {serverInfo?.features.client_management && (
+            <button
+              onClick={() => setCurrentView('applications')}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2",
+                currentView === 'applications' ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              )}
+            >
+              <ServerIcon size={14} />
+              Applications
+            </button>
+          )}
+
           <button
             onClick={() => setCurrentView('retention')}
             className={cn(

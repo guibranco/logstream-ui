@@ -11,6 +11,7 @@ import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
 
 import { RetentionScreen } from './screens/RetentionScreen';
+import { ApplicationsScreen } from './screens/ApplicationsScreen';
 
 const queryClient = new QueryClient();
 
@@ -20,9 +21,9 @@ const VIEW_STORAGE_KEY = 'logservice:view';
 function LogStreamApp() {
   const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
   
-  const [currentView, setCurrentView] = useState<'dashboard' | 'retention'>(() => {
+  const [currentView, setCurrentView] = useState<'dashboard' | 'retention' | 'applications'>(() => {
     const saved = localStorage.getItem(VIEW_STORAGE_KEY);
-    return (saved === 'retention') ? 'retention' : 'dashboard';
+    return (saved === 'retention' || saved === 'applications') ? saved : 'dashboard';
   });
 
   const [filters, setFilters] = useState<SearchFilters>(() => {
@@ -88,6 +89,48 @@ function LogStreamApp() {
     return <SettingsScreen />;
   }
 
+  const renderScreen = () => {
+    switch (currentView) {
+      case 'retention':
+        return <RetentionScreen />;
+      case 'applications':
+        return <ApplicationsScreen />;
+      default:
+        return (
+          <>
+            <FilterBar
+              filters={filters}
+              onSearch={handleSearch}
+            />
+
+            <main className="flex-1 flex flex-col min-h-0">
+              <LogTable
+                logs={activeLogs}
+                isLoading={isLoading && !isLive}
+                isError={isError && !isLive}
+                error={error as Error}
+                total={total}
+                limit={limit}
+                offset={offset}
+                onPageChange={setOffset}
+                onLimitChange={setLimit}
+                onFilterBatch={handleFilterBatch}
+                onFilterTrace={handleFilterTrace}
+                isLiveMode={isLive}
+                onRetry={() => refetch()}
+              />
+            </main>
+
+            <StatsDrawer
+              isOpen={isStatsOpen}
+              onClose={() => setIsStatsOpen(false)}
+              logs={liveLogs}
+            />
+          </>
+        );
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-sans overflow-hidden">
       <Header
@@ -105,40 +148,7 @@ function LogStreamApp() {
         onDisconnect={signOut}
       />
       
-      {currentView === 'dashboard' ? (
-        <>
-          <FilterBar
-            filters={filters}
-            onSearch={handleSearch}
-          />
-
-          <main className="flex-1 flex flex-col min-h-0">
-            <LogTable
-              logs={activeLogs}
-              isLoading={isLoading && !isLive}
-              isError={isError && !isLive}
-              error={error as Error}
-              total={total}
-              limit={limit}
-              offset={offset}
-              onPageChange={setOffset}
-              onLimitChange={setLimit}
-              onFilterBatch={handleFilterBatch}
-              onFilterTrace={handleFilterTrace}
-              isLiveMode={isLive}
-              onRetry={() => refetch()}
-            />
-          </main>
-
-          <StatsDrawer
-            isOpen={isStatsOpen}
-            onClose={() => setIsStatsOpen(false)}
-            logs={liveLogs}
-          />
-        </>
-      ) : (
-        <RetentionScreen />
-      )}
+      {renderScreen()}
     </div>
   );
 }

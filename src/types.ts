@@ -73,3 +73,21 @@ export interface RetentionRunResponse {
   total_deleted: number;
   results: RetentionRunResult[];
 }
+
+export interface Client {
+  name: string;
+  app_key: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  api_token?: string; // Only returned on Create or Rotate
+}
+
+export interface ClientListResponse {
+  clients: Client[];
+}
+
+export interface DeleteClientResponse {
+  deleted: string;
+  logs_deleted: number;
+}
