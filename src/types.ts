@@ -43,3 +43,33 @@ export interface WSMessage {
   data?: any;
   message?: string;
 }
+
+export interface RetentionPolicy {
+  name: string;
+  older_than_days: number;
+  cutoff_date: string;
+  app_key?: string;
+  app_id?: string;
+  level?: LogLevel;
+  category?: string;
+  message_regex?: string;
+  message_glob?: string;
+}
+
+export interface RetentionRunResult {
+  policy: string;
+  deleted: number;
+  files_removed: number;
+  files_rewritten: number;
+  dry_run: boolean;
+  duration_ms: number;
+  summary: string;
+  warnings: string[];
+}
+
+export interface RetentionRunResponse {
+  dry_run: boolean;
+  policies_run: number;
+  total_deleted: number;
+  results: RetentionRunResult[];
+}

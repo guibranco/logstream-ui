@@ -10,13 +10,21 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
 
+import { RetentionScreen } from './screens/RetentionScreen';
+
 const queryClient = new QueryClient();
 
 const STORAGE_KEY = 'logservice:filters';
+const VIEW_STORAGE_KEY = 'logservice:view';
 
 function LogStreamApp() {
   const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
   
+  const [currentView, setCurrentView] = useState<'dashboard' | 'retention'>(() => {
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+    return (saved === 'retention') ? 'retention' : 'dashboard';
+  });
+
   const [filters, setFilters] = useState<SearchFilters>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved ? JSON.parse(saved) : {};
@@ -48,6 +56,10 @@ function LogStreamApp() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
   }, [filters]);
+
+  useEffect(() => {
+    localStorage.setItem(VIEW_STORAGE_KEY, currentView);
+  }, [currentView]);
 
   const handleSearch = useCallback((newFilters: SearchFilters) => {
     setFilters(newFilters);
@@ -84,6 +96,8 @@ function LogStreamApp() {
         isLive={isLive}
         setIsLive={setIsLive}
         bufferCount={buffer.length}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
         onFlush={flushBuffer}
         onClear={clearLogs}
         onOpenStats={() => setIsStatsOpen(true)}
@@ -91,34 +105,40 @@ function LogStreamApp() {
         onDisconnect={signOut}
       />
       
-      <FilterBar
-        filters={filters}
-        onSearch={handleSearch}
-      />
+      {currentView === 'dashboard' ? (
+        <>
+          <FilterBar
+            filters={filters}
+            onSearch={handleSearch}
+          />
 
-      <main className="flex-1 flex flex-col min-h-0">
-        <LogTable
-          logs={activeLogs}
-          isLoading={isLoading && !isLive}
-          isError={isError && !isLive}
-          error={error as Error}
-          total={total}
-          limit={limit}
-          offset={offset}
-          onPageChange={setOffset}
-          onLimitChange={setLimit}
-          onFilterBatch={handleFilterBatch}
-          onFilterTrace={handleFilterTrace}
-          isLiveMode={isLive}
-          onRetry={() => refetch()}
-        />
-      </main>
+          <main className="flex-1 flex flex-col min-h-0">
+            <LogTable
+              logs={activeLogs}
+              isLoading={isLoading && !isLive}
+              isError={isError && !isLive}
+              error={error as Error}
+              total={total}
+              limit={limit}
+              offset={offset}
+              onPageChange={setOffset}
+              onLimitChange={setLimit}
+              onFilterBatch={handleFilterBatch}
+              onFilterTrace={handleFilterTrace}
+              isLiveMode={isLive}
+              onRetry={() => refetch()}
+            />
+          </main>
 
-      <StatsDrawer
-        isOpen={isStatsOpen}
-        onClose={() => setIsStatsOpen(false)}
-        logs={liveLogs}
-      />
+          <StatsDrawer
+            isOpen={isStatsOpen}
+            onClose={() => setIsStatsOpen(false)}
+            logs={liveLogs}
+          />
+        </>
+      ) : (
+        <RetentionScreen />
+      )}
     </div>
   );
 }
