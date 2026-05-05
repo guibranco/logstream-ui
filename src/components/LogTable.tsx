@@ -57,19 +57,27 @@ export const LogTable: React.FC<LogTableProps> = ({
     setScrollTop(e.currentTarget.scrollTop);
   };
 
-  const virtualizedLogs = useMemo(() => {
-    if (logs.length <= 200) return logs.map((log, index) => ({ log, index }));
+  const { virtualizedLogs, paddingTop, paddingBottom } = useMemo(() => {
+    if (logs.length <= 100) {
+      return {
+        virtualizedLogs: logs.map((log, index) => ({ log, index })),
+        paddingTop: 0,
+        paddingBottom: 0
+      };
+    }
 
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 5);
-    const endIndex = Math.min(logs.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + 5);
+    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 10);
+    const endIndex = Math.min(logs.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + 10);
 
-    return logs.slice(startIndex, endIndex + 1).map((log, index) => ({
-      log,
-      index: startIndex + index
-    }));
+    return {
+      virtualizedLogs: logs.slice(startIndex, endIndex + 1).map((log, index) => ({
+        log,
+        index: startIndex + index
+      })),
+      paddingTop: startIndex * ROW_HEIGHT,
+      paddingBottom: (logs.length - endIndex - 1) * ROW_HEIGHT
+    };
   }, [logs, scrollTop, containerHeight]);
-
-  const totalHeight = logs.length * ROW_HEIGHT;
 
   if (isError) {
     return (
@@ -117,7 +125,7 @@ export const LogTable: React.FC<LogTableProps> = ({
       <div 
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto relative"
+        className="flex-1 overflow-y-auto relative scroll-smooth"
       >
         {isLoading && logs.length === 0 ? (
           <div className="divide-y divide-gray-900">
@@ -126,25 +134,15 @@ export const LogTable: React.FC<LogTableProps> = ({
             <Skeleton />
           </div>
         ) : (
-          <div style={{ height: totalHeight, position: 'relative' }}>
-            {virtualizedLogs.map(({ log, index }) => (
-              <div
-                key={log.id}
-                style={{
-                  position: 'absolute',
-                  top: index * ROW_HEIGHT,
-                  left: 0,
-                  right: 0,
-                  height: ROW_HEIGHT
-                }}
-              >
-                <LogRow 
-                  log={log} 
-                  isLive={isLiveMode}
-                  onFilterBatch={onFilterBatch}
-                  onFilterTrace={onFilterTrace}
-                />
-              </div>
+          <div style={{ paddingTop, paddingBottom }}>
+            {virtualizedLogs.map(({ log }) => (
+              <LogRow 
+                key={`${log.id}-${log.timestamp}`}
+                log={log} 
+                isLive={isLiveMode}
+                onFilterBatch={onFilterBatch}
+                onFilterTrace={onFilterTrace}
+              />
             ))}
           </div>
         )}
