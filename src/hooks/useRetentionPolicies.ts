@@ -19,7 +19,7 @@ export function useRetentionPolicies() {
         }
       });
 
-      if (response.status === 503) {
+      if (response.status === 404 || response.status === 503) {
         throw new Error('SERVICE_UNAVAILABLE');
       }
 
@@ -156,7 +156,11 @@ export function useDeletePolicy() {
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
+      if (response.status === 204) {
+        return { success: true };
+      }
+
+      return await response.json().catch(() => ({ success: true }));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });

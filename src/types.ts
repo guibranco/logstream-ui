@@ -46,8 +46,8 @@ export interface WSMessage {
 
 export interface RetentionPolicy {
   name: string;
-  older_than_days: number;
-  cutoff_date: string;
+  older_than_days?: number;
+  cutoff_date?: string;
   app_key?: string;
   app_id?: string;
   level?: LogLevel;
@@ -58,20 +58,25 @@ export interface RetentionPolicy {
 
 export interface RetentionRunResult {
   policy: string;
-  deleted: number;
+  pruned?: number;
+  deleted?: number; // legacy support
   files_removed: number;
   files_rewritten: number;
   dry_run: boolean;
   duration_ms: number;
   summary: string;
-  warnings: string[];
+  warnings?: string[];
+  error?: string | null;
 }
 
 export interface RetentionRunResponse {
-  dry_run: boolean;
-  policies_run: number;
-  total_deleted: number;
-  results: RetentionRunResult[];
+  ran_at?: string;
+  policies?: RetentionRunResult[];
+  total_pruned?: number;
+  dry_run?: boolean; // legacy support
+  policies_run?: number; // legacy support
+  total_deleted?: number; // legacy support
+  results?: RetentionRunResult[]; // legacy support
 }
 
 export interface Client {

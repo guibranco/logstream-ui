@@ -10,7 +10,11 @@ export function getConfig(): LogStreamConfig | null {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (!saved) return null;
   try {
-    return JSON.parse(saved);
+    const config = JSON.parse(saved) as LogStreamConfig;
+    if (config && typeof config.apiUrl === 'string') {
+      config.apiUrl = config.apiUrl.trim().replace(/\/+$/, '');
+    }
+    return config;
   } catch (e) {
     console.error('Failed to parse config', e);
     return null;
@@ -18,6 +22,9 @@ export function getConfig(): LogStreamConfig | null {
 }
 
 export function saveConfig(config: LogStreamConfig): void {
+  if (config && typeof config.apiUrl === 'string') {
+    config.apiUrl = config.apiUrl.trim().replace(/\/+$/, '');
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 

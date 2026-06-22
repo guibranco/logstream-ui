@@ -39,7 +39,7 @@ export function SettingsScreen() {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
-    const trimmedApiUrl = apiUrl.trim();
+    const trimmedApiUrl = apiUrl.trim().replace(/\/+$/, '');
     const trimmedWsUrl = wsUrl.trim();
     const trimmedUiSecret = uiSecret.trim();
 

@@ -15,6 +15,26 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
   const deleteMutation = useDeletePolicy();
   const [deletingName, setDeletingName] = useState<string | null>(null);
 
+  const getCutoffDateString = (policy: RetentionPolicy) => {
+    if (policy.cutoff_date) {
+      try {
+        return format(parseISO(policy.cutoff_date), 'MMM d, yyyy');
+      } catch (e) {
+        // ignore and fallback
+      }
+    }
+    if (policy.older_than_days) {
+      try {
+        const d = new Date();
+        d.setDate(d.getDate() - policy.older_than_days);
+        return format(d, 'MMM d, yyyy');
+      } catch (e) {
+        // ignore and fallback
+      }
+    }
+    return 'N/A';
+  };
+
   if (isLoading) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
@@ -85,10 +105,12 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
                 <span className="font-mono text-sm font-bold text-blue-400">{policy.name}</span>
               </td>
               <td className="px-4 py-4">
-                <span className="text-sm text-gray-200">{policy.older_than_days} days</span>
+                <span className="text-sm text-gray-200">
+                  {policy.older_than_days ? `${policy.older_than_days} days` : 'Any age'}
+                </span>
               </td>
               <td className="px-4 py-4 text-sm text-gray-400">
-                {format(parseISO(policy.cutoff_date), 'MMM d, yyyy')}
+                {getCutoffDateString(policy)}
               </td>
               <td className="px-4 py-4">
                 <div className="flex flex-wrap gap-1.5">
