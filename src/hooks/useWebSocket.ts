@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { LogEntry, WSMessage, WSStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useServerInfo } from './useServerInfo';
 
 const RECONNECT_INTERVALS = [1000, 2000, 5000, 10000, 30000];
 const PING_INTERVAL = 30000;
 
 export function useWebSocket() {
   const { config, openSettings } = useAuth();
+  const { data: serverInfo } = useServerInfo();
+  const isWebsocketEnabled = serverInfo?.features?.websocket !== false;
+
   const [status, setStatus] = useState<WSStatus>('disconnected');
   const [connections, setConnections] = useState(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -18,6 +22,10 @@ export function useWebSocket() {
   const pingTimer = useRef<number | null>(null);
 
   const connect = useCallback(() => {
+    if (!isWebsocketEnabled) {
+      setStatus('disconnected');
+      return;
+    }
     if (!config?.wsUrl || !config?.uiSecret) return;
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
@@ -89,7 +97,7 @@ export function useWebSocket() {
     socket.onerror = () => {
       socket.close();
     };
-  }, [config, isLive, openSettings]);
+  }, [config, isLive, openSettings, isWebsocketEnabled]);
 
   useEffect(() => {
     connect();
@@ -101,6 +109,16 @@ export function useWebSocket() {
     };
   }, [connect]);
 
+  useEffect(() => {
+    if (!isWebsocketEnabled) {
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
+      setIsLive(false);
+    }
+  }, [isWebsocketEnabled]);
+
   const flushBuffer = useCallback(() => {
     setLogs(prev => [...buffer, ...prev].slice(0, 500));
     setBuffer([]);
@@ -111,13 +129,20 @@ export function useWebSocket() {
     setBuffer([]);
   }, []);
 
+  const handleSetIsLive = useCallback((live: boolean) => {
+    if (!isWebsocketEnabled && live) {
+      return;
+    }
+    setIsLive(live);
+  }, [isWebsocketEnabled]);
+
   return {
     status,
     connections,
     logs,
     buffer,
     isLive,
-    setIsLive,
+    setIsLive: handleSetIsLive,
     flushBuffer,
     clearLogs
   };

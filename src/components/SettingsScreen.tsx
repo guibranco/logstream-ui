@@ -132,14 +132,14 @@ export function SettingsScreen() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[95vh]">
-        <div className="p-8">
+      <div className="w-full max-w-3xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[95vh]">
+        <div className="p-6 md:p-8">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
                 <Settings className="w-6 h-6 text-blue-400" />
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-white tracking-tight animate-in fade-in">
                 LogStream Settings
               </h1>
             </div>
@@ -147,7 +147,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 onClick={closeSettings}
-                className="px-3 py-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
+                className="px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
                 title="Close settings"
               >
                 Close
@@ -159,107 +159,120 @@ export function SettingsScreen() {
           </p>
 
           <form onSubmit={handleSave} className="space-y-6">
-            {/* API URL */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <Globe className="w-4 h-4 text-gray-500" />
-                API Base URL
-              </label>
-              <input
-                type="url"
-                value={apiUrl}
-                onChange={handleApiUrlChange}
-                placeholder="https://logs.yourdomain.com"
-                className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-              />
-              <p className="text-xs text-gray-500">The HTTP server address (no trailing slash)</p>
-              {errors.apiUrl && <p className="text-xs text-red-400 mt-1">{errors.apiUrl}</p>}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {/* Left Column: Connection Setup */}
+              <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
+                  <Globe className="w-4 h-4 text-blue-400" />
+                  <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                    Connection Config
+                  </h2>
+                </div>
 
-            {/* WebSocket URL */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <Zap className="w-4 h-4 text-gray-500" />
-                WebSocket URL
-              </label>
-              <input
-                type="url"
-                value={wsUrl}
-                onChange={(e) => setWsUrl(e.target.value)}
-                placeholder="wss://logs.yourdomain.com/ws"
-                className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-              />
-              {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
-                <button
-                  type="button"
-                  onClick={() => setWsUrl(suggestedWsUrl)}
-                  className="mt-1 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/10 px-2 py-1 rounded-md"
-                >
-                  Use {suggestedWsUrl} ↗
-                </button>
-              )}
-              <p className="text-xs text-gray-500">Must start with ws:// or wss://</p>
-              {errors.wsUrl && <p className="text-xs text-red-400 mt-1">{errors.wsUrl}</p>}
-            </div>
+                {/* API URL */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    API Base URL
+                  </label>
+                  <input
+                    type="url"
+                    value={apiUrl}
+                    onChange={handleApiUrlChange}
+                    placeholder="https://logs.yourdomain.com"
+                    className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                  />
+                  <p className="text-[11px] text-gray-500 leading-normal">The HTTP server address (no trailing slash)</p>
+                  {errors.apiUrl && <p className="text-xs text-red-400 mt-1">{errors.apiUrl}</p>}
+                </div>
 
-            {/* UI Secret */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                <Lock className="w-4 h-4 text-gray-500" />
-                UI Secret (read key)
-              </label>
-              <div className="relative">
-                <input
-                  type={showSecret ? 'text' : 'password'}
-                  value={uiSecret}
-                  onChange={(e) => setUiSecret(e.target.value)}
-                  placeholder="Paste your UI_SECRET here"
-                  className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSecret(!showSecret)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showSecret ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                {/* WebSocket URL */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    WebSocket URL
+                  </label>
+                  <input
+                    type="url"
+                    value={wsUrl}
+                    onChange={(e) => setWsUrl(e.target.value)}
+                    placeholder="wss://logs.yourdomain.com/ws"
+                    className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                  />
+                  {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setWsUrl(suggestedWsUrl)}
+                      className="mt-1 flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/10 px-2 py-0.5 rounded"
+                    >
+                      Use {suggestedWsUrl} ↗
+                    </button>
+                  )}
+                  <p className="text-[11px] text-gray-500 leading-normal">Must start with ws:// or wss://</p>
+                  {errors.wsUrl && <p className="text-xs text-red-400 mt-1">{errors.wsUrl}</p>}
+                </div>
+
+                {/* UI Secret */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    UI Secret (read key)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showSecret ? 'text' : 'password'}
+                      value={uiSecret}
+                      onChange={(e) => setUiSecret(e.target.value)}
+                      placeholder="Paste your UI_SECRET here"
+                      className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+                    >
+                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-relaxed">Required to view & search logs. Never sent over the API query parameters.</p>
+                  {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
+                </div>
               </div>
-              <p className="text-xs text-gray-500">Required to view and search logs. Never shared with the server over the URL.</p>
-              {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
+
+              {/* Right Column: Feature Flag Overrides */}
+              <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
+                  <Lock className="w-4 h-4 text-blue-400" />
+                  <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                    Overrides (For Testing)
+                  </h2>
+                </div>
+
+                <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
+                  {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
+                  {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
+                  {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
+                </div>
+              </div>
             </div>
 
-            {/* Feature Flag Overrides */}
-            <div className="pt-5 border-t border-gray-800 space-y-4">
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-blue-400" />
-                <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wider">Feature Overrides (For Testing)</h3>
-              </div>
-              <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
-                {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
-                {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
-                {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
-              </div>
-            </div>
+            {/* Centered Bottom Actions Row */}
+            <div className="pt-6 border-t border-gray-800 flex flex-col items-center justify-center gap-4 max-w-sm mx-auto w-full">
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
+              >
+                Validate and Connect
+              </button>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
-            >
-              Validate and Connect
-            </button>
-
-            {isConfigured && (
-              <div className="pt-4 border-t border-gray-800 flex justify-center">
+              {isConfigured && (
                 <button
                   type="button"
                   onClick={signOut}
-                  className="flex items-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  className="flex items-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors py-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Clear all saved settings and disconnect
+                  Clear saved settings and disconnect
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </form>
         </div>
       </div>
