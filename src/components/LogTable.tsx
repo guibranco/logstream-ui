@@ -135,9 +135,9 @@ export const LogTable: React.FC<LogTableProps> = ({
           </div>
         ) : (
           <div style={{ paddingTop, paddingBottom }}>
-            {virtualizedLogs.map(({ log }) => (
+            {virtualizedLogs.map(({ log, index }) => (
               <LogRow 
-                key={`${log.id}-${log.timestamp}`}
+                key={`${log.id}-${log.timestamp}-${index}`}
                 log={log} 
                 isLive={isLiveMode}
                 onFilterBatch={onFilterBatch}
