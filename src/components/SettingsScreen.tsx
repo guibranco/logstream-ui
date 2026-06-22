@@ -1,16 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, Settings, Globe, Zap, Trash2 } from 'lucide-react';
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 
 export function SettingsScreen() {
-  const { config, updateConfig, signOut, isConfigured } = useAuth();
+  const { config, updateConfig, signOut, isConfigured, closeSettings } = useAuth();
   
   const [apiUrl, setApiUrl] = useState(config?.apiUrl || '');
   const [wsUrl, setWsUrl] = useState(config?.wsUrl || '');
   const [uiSecret, setUiSecret] = useState(config?.uiSecret || '');
   const [showSecret, setShowSecret] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const getInitialOverrideState = (val: boolean | undefined): 'default' | 'enabled' | 'disabled' => {
+    if (val === true) return 'enabled';
+    if (val === false) return 'disabled';
+    return 'default';
+  };
+
+  const [clientMgmtOverride, setClientMgmtOverride] = useState<'default' | 'enabled' | 'disabled'>(
+    getInitialOverrideState(config?.featureOverrides?.client_management)
+  );
+  const [retentionOverride, setRetentionOverride] = useState<'default' | 'enabled' | 'disabled'>(
+    getInitialOverrideState(config?.featureOverrides?.retention)
+  );
+  const [websocketOverride, setWebsocketOverride] = useState<'default' | 'enabled' | 'disabled'>(
+    getInitialOverrideState(config?.featureOverrides?.websocket)
+  );
 
   const deriveWsUrl = (url: string) => {
     try {
@@ -27,12 +43,6 @@ export function SettingsScreen() {
   const handleApiUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setApiUrl(value);
-    // Auto-fill behavior: only if WS URL is empty or matches previous derivation
-    const currentDerivation = deriveWsUrl(apiUrl);
-    if (!wsUrl || wsUrl === currentDerivation) {
-      // We don't auto-fill immediately to avoid overwriting user intent, 
-      // but we show the chip.
-    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -55,26 +65,96 @@ export function SettingsScreen() {
       return;
     }
 
+    const featureOverrides: Record<string, boolean> = {};
+    if (clientMgmtOverride === 'enabled') featureOverrides.client_management = true;
+    if (clientMgmtOverride === 'disabled') featureOverrides.client_management = false;
+    
+    if (retentionOverride === 'enabled') featureOverrides.retention = true;
+    if (retentionOverride === 'disabled') featureOverrides.retention = false;
+
+    if (websocketOverride === 'enabled') featureOverrides.websocket = true;
+    if (websocketOverride === 'disabled') featureOverrides.websocket = false;
+
     updateConfig({
       apiUrl: trimmedApiUrl,
       wsUrl: trimmedWsUrl,
-      uiSecret: trimmedUiSecret
+      uiSecret: trimmedUiSecret,
+      featureOverrides
     });
+  };
+
+  const renderSegmentedControl = (
+    label: string,
+    value: 'default' | 'enabled' | 'disabled',
+    onChange: (val: 'default' | 'enabled' | 'disabled') => void
+  ) => {
+    return (
+      <div className="flex flex-col gap-1.5" id={`override-control-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+        <span className="text-xs text-gray-300 font-medium">{label}</span>
+        <div className="grid grid-cols-3 bg-gray-950 border border-gray-850 p-1 rounded-xl">
+          <button
+            type="button"
+            onClick={() => onChange('default')}
+            className={`py-1 text-[11px] font-medium rounded-lg transition-all ${
+              value === 'default'
+                ? 'bg-gray-800 text-white shadow-sm font-bold'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Default
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange('enabled')}
+            className={`py-1 text-[11px] font-medium rounded-lg transition-all ${
+              value === 'enabled'
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-sm font-bold animate-pulse'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Force En
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange('disabled')}
+            className={`py-1 text-[11px] font-medium rounded-lg transition-all ${
+              value === 'disabled'
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm font-bold'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Force Dis
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[95vh]">
         <div className="p-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Settings className="w-6 h-6 text-blue-400" />
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Settings className="w-6 h-6 text-blue-400" />
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">
+                LogStream Settings
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              LogStream Settings
-            </h1>
+            {isConfigured && (
+              <button
+                type="button"
+                onClick={closeSettings}
+                className="px-3 py-1.5 text-xs font-semibold text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
+                title="Close settings"
+              >
+                Close
+              </button>
+            )}
           </div>
-          <p className="text-gray-400 text-sm mb-8">
+          <p className="text-gray-400 text-sm mb-6">
             These settings are stored in your browser only.
           </p>
 
@@ -146,6 +226,19 @@ export function SettingsScreen() {
               </div>
               <p className="text-xs text-gray-500">Required to view and search logs. Never shared with the server over the URL.</p>
               {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
+            </div>
+
+            {/* Feature Flag Overrides */}
+            <div className="pt-5 border-t border-gray-800 space-y-4">
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wider">Feature Overrides (For Testing)</h3>
+              </div>
+              <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
+                {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
+                {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
+                {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
+              </div>
             </div>
 
             <button

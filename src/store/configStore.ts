@@ -2,6 +2,11 @@ export interface LogStreamConfig {
   apiUrl: string;
   wsUrl: string;
   uiSecret: string;
+  featureOverrides?: {
+    client_management?: boolean;
+    retention?: boolean;
+    websocket?: boolean;
+  };
 }
 
 const STORAGE_KEY = 'logservice:config';

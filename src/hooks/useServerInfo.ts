@@ -15,8 +15,8 @@ export function useServerInfo() {
   const config = getConfig();
   const apiUrl = config?.apiUrl;
 
-  return useQuery({
-    queryKey: ['server', 'info'],
+  const query = useQuery({
+    queryKey: ['server', 'info', config?.featureOverrides],
     queryFn: async () => {
       if (!apiUrl) return undefined;
       const response = await fetch(`${apiUrl}/api/info`);
@@ -29,4 +29,28 @@ export function useServerInfo() {
     staleTime: 50000,
     enabled: !!apiUrl,
   });
+
+  if (query.data) {
+    const features = { ...query.data.features };
+    if (config?.featureOverrides) {
+      if (config.featureOverrides.client_management !== undefined) {
+        features.client_management = config.featureOverrides.client_management;
+      }
+      if (config.featureOverrides.retention !== undefined) {
+        features.retention = config.featureOverrides.retention;
+      }
+      if (config.featureOverrides.websocket !== undefined) {
+        features.websocket = config.featureOverrides.websocket;
+      }
+    }
+    return {
+      ...query,
+      data: {
+        ...query.data,
+        features,
+      },
+    };
+  }
+
+  return query;
 }

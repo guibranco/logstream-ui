@@ -93,4 +93,27 @@ describe('configStore', () => {
     };
     expect(isConfigComplete(complete)).toBe(true);
   });
+
+  it('saveConfig and getConfig persist featureOverrides accurately', () => {
+    const config: LogStreamConfig = {
+      apiUrl: 'https://logs.straccini.com',
+      wsUrl: 'wss://logs.straccini.com/ws',
+      uiSecret: 'secret',
+      featureOverrides: {
+        client_management: true,
+        retention: false,
+        websocket: true
+      }
+    };
+
+    saveConfig(config);
+
+    const retrieved = getConfig();
+    expect(retrieved).not.toBeNull();
+    expect(retrieved!.featureOverrides).toEqual({
+      client_management: true,
+      retention: false,
+      websocket: true
+    });
+  });
 });
