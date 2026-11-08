@@ -7,6 +7,7 @@ export interface LogEntry {
   app_key: string;
   app_id: string;
   user_agent: string | null;
+  sender_ip?: string | null; // optional: older servers don't send it
   level: LogLevel;
   category: string;
   message: string;
