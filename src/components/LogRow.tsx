@@ -117,6 +117,23 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
                       </p>
                     </div>
                     <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Sender IP</h4>
+                      <div className="flex items-center gap-2 group">
+                        <span className="text-xs font-mono text-gray-300 truncate" data-testid="sender-ip">
+                          {log.sender_ip || 'N/A'}
+                        </span>
+                        {log.sender_ip && (
+                          <button
+                            onClick={() => handleCopy(log.sender_ip!, 'ip')}
+                            className="p-1 hover:bg-gray-800 rounded transition-all"
+                            aria-label="Copy sender IP"
+                          >
+                            {copied === 'ip' ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Batch ID</h4>
                       <div className="flex items-center gap-2 group">
                         <span className="text-xs font-mono text-amber-400 truncate">
