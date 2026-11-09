@@ -96,7 +96,7 @@ export const LogTable: React.FC<LogTableProps> = ({
 
   const showPending = () => {
     onShowPending();
-    containerRef.current?.scrollTo({ top: 0 });
+    if (containerRef.current) containerRef.current.scrollTop = 0;
   };
 
   if (error && logs.length === 0) {
