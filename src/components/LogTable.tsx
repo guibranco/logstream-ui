@@ -16,6 +16,7 @@ interface LogTableProps {
   onLimitChange: (limit: number) => void;
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
+  onFilterContext: (path: string, value: string, exclude: boolean) => void;
   isLiveMode: boolean;
   onRetry: () => void;
 }
@@ -34,6 +35,7 @@ export const LogTable: React.FC<LogTableProps> = ({
   onLimitChange,
   onFilterBatch,
   onFilterTrace,
+  onFilterContext,
   isLiveMode,
   onRetry
 }) => {
@@ -142,6 +144,7 @@ export const LogTable: React.FC<LogTableProps> = ({
                 isLive={isLiveMode}
                 onFilterBatch={onFilterBatch}
                 onFilterTrace={onFilterTrace}
+                onFilterContext={onFilterContext}
               />
             ))}
           </div>

@@ -18,8 +18,10 @@ const baseLog: LogEntry = {
   created_at: new Date().toISOString(),
 };
 
-const renderRow = (log: LogEntry) => {
-  render(<LogRow log={log} onFilterBatch={vi.fn()} onFilterTrace={vi.fn()} />);
+const renderRow = (log: LogEntry, onFilterContext = vi.fn()) => {
+  render(
+    <LogRow log={log} onFilterBatch={vi.fn()} onFilterTrace={vi.fn()} onFilterContext={onFilterContext} />,
+  );
   fireEvent.click(screen.getAllByText('Request handled')[0]);
 };
 
@@ -35,5 +37,16 @@ describe('LogRow', () => {
     renderRow(baseLog);
     expect(screen.getByTestId('sender-ip')).toHaveTextContent('N/A');
     expect(screen.queryByLabelText('Copy sender IP')).not.toBeInTheDocument();
+  });
+
+  it('turns context Find / Exclude clicks into context filters', () => {
+    const onFilterContext = vi.fn();
+    renderRow({ ...baseLog, context: { order: { id: 42 } } }, onFilterContext);
+
+    fireEvent.click(screen.getByLabelText('Find order.id'));
+    fireEvent.click(screen.getByLabelText('Exclude order.id'));
+
+    expect(onFilterContext).toHaveBeenNthCalledWith(1, 'order.id', '42', false);
+    expect(onFilterContext).toHaveBeenNthCalledWith(2, 'order.id', '42', true);
   });
 });

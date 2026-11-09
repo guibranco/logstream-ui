@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
+import { withContextFilter } from './lib/contextProperties';
 
 import { RetentionScreen } from './screens/RetentionScreen';
 import { ApplicationsScreen } from './screens/ApplicationsScreen';
@@ -82,6 +83,12 @@ function LogStreamApp() {
     setIsLive(false);
   }, [filters, setIsLive]);
 
+  const handleFilterContext = useCallback((path: string, value: string, exclude: boolean) => {
+    setFilters(withContextFilter(filters, path, value, exclude));
+    setOffset(0);
+    setIsLive(false);
+  }, [filters, setIsLive]);
+
   const activeLogs = isLive ? liveLogs : (searchResult?.entries || []);
   const total = isLive ? liveLogs.length : (searchResult?.total || 0);
 
@@ -116,6 +123,7 @@ function LogStreamApp() {
                 onLimitChange={setLimit}
                 onFilterBatch={handleFilterBatch}
                 onFilterTrace={handleFilterTrace}
+                onFilterContext={handleFilterContext}
                 isLiveMode={isLive}
                 onRetry={() => refetch()}
               />

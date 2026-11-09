@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LogEntry, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
-import { JsonViewer } from './JsonViewer';
+import { ContextProperties } from './ContextProperties';
 import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -12,9 +12,10 @@ interface LogRowProps {
   isLive?: boolean;
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
+  onFilterContext: (path: string, value: string, exclude: boolean) => void;
 }
 
-export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFilterTrace }) => {
+export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFilterTrace, onFilterContext }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -173,8 +174,12 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
 
                 <div>
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Context</h4>
-                  <div className="bg-gray-900/50 p-4 rounded border border-gray-800 max-h-[400px] overflow-auto">
-                    <JsonViewer data={log.context} />
+                  <div className="bg-gray-900/50 p-3 rounded border border-gray-800 max-h-[400px] overflow-auto">
+                    <ContextProperties
+                      context={log.context}
+                      onFind={(path, value) => onFilterContext(path, value, false)}
+                      onExclude={(path, value) => onFilterContext(path, value, true)}
+                    />
                   </div>
                 </div>
               </div>

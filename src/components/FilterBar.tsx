@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SearchFilters, LogLevel } from '../types';
 import { Search, RotateCcw, X } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { withoutContextFilter } from '../lib/contextProperties';
 
 interface FilterBarProps {
   filters: SearchFilters;
@@ -34,6 +35,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
     setLocalFilters(resetFilters);
     onSearch(resetFilters);
   };
+
+  const contextChips = [
+    ...Object.entries(localFilters.context ?? {}).map(([path, value]) => ({ path, value, exclude: false })),
+    ...Object.entries(localFilters.context_not ?? {}).map(([path, value]) => ({ path, value, exclude: true })),
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +169,33 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             />
           </div>
         </div>
+
+        {contextChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2" data-testid="context-filters">
+            <span className="text-xs text-gray-500 font-medium">Context:</span>
+            {contextChips.map(({ path, value, exclude }) => (
+              <span
+                key={`${exclude ? '!' : ''}${path}`}
+                className={cn(
+                  "flex items-center gap-1 pl-2 pr-1 py-0.5 rounded border text-xs font-mono",
+                  exclude
+                    ? "bg-rose-950/40 border-rose-900 text-rose-300"
+                    : "bg-sky-950/40 border-sky-900 text-sky-300"
+                )}
+              >
+                {path} {exclude ? '≠' : '='} {value}
+                <button
+                  type="button"
+                  onClick={() => onSearch(withoutContextFilter(localFilters, path, exclude))}
+                  className="p-0.5 rounded hover:bg-gray-800"
+                  aria-label={`Remove context filter ${path}`}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </form>
     </div>
   );
