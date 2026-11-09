@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { SearchFilters, SearchResult } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { appendContextParams } from '../lib/contextProperties';
 
 export function useLogs(filters: SearchFilters, limit: number, offset: number) {
   const { config, openSettings } = useAuth();
@@ -14,8 +15,9 @@ export function useLogs(filters: SearchFilters, limit: number, offset: number) {
 
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (typeof value === 'string' && value) params.append(key, value);
       });
+      appendContextParams(params, filters);
       params.append('limit', limit.toString());
       params.append('offset', offset.toString());
 

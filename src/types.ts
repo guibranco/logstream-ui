@@ -34,6 +34,10 @@ export interface SearchFilters {
   date_from?: string;
   date_to?: string;
   search?: string;
+  /** Context property path → value that must match (Find). */
+  context?: Record<string, string>;
+  /** Context property path → value that must not match (Exclude). */
+  context_not?: Record<string, string>;
 }
 
 export type WSStatus = 'connected' | 'reconnecting' | 'disconnected';

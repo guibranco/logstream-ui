@@ -10,7 +10,7 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 
 - **Real-time log stream** — new entries appear instantly via WebSocket, with a live/buffered toggle and slide-in animation
 - **Full-text search and filters** — filter by application, environment, level, category, trace ID, batch ID, date range, or message substring, all persisted across page refreshes
-- **Expandable rows** — click any entry to reveal the full message, structured JSON context with syntax highlighting, user agent, and one-click batch/trace navigation
+- **Expandable rows** — click any entry to reveal the full message, context as a searchable property list (Find / Exclude per value), user agent, sender IP, and one-click batch/trace navigation
 - **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
@@ -149,7 +149,13 @@ Click any row to reveal:
 - Full message text
 - `batch_id` — click to auto-fill the Batch ID filter
 - `user_agent`
-- `context` — pretty-printed JSON with syntax highlighting (recursive component, no library)
+- `sender_ip` — the client IP recorded by the server, with a copy button
+- `context` — a property list, one row per value, with nested objects flattened to dotted paths (`order.id`). Each row has:
+  - **Find** — show only entries where the property equals this value (`context[order.id]=42`)
+  - **Exclude** — hide entries where the property equals this value (`context_not[order.id]=42`)
+  - **Copy** — copy the value
+
+  Active context filters appear as chips under the filter bar; click × to remove one. Arrays are shown as JSON and can't be filtered. Requires a logstream-server version with context filters.
 - **View all in batch** — sets the batch_id filter and re-runs the search
 - **View trace** — sets the trace_id filter and re-runs the search
 
@@ -197,7 +203,7 @@ src/
 │   ├── LogDetail.tsx            Expanded row detail panel
 │   ├── LevelBadge.tsx           Colour-coded level pill
 │   ├── StatsDrawer.tsx          Session stats slide-in panel
-│   ├── JsonViewer.tsx           Recursive JSON syntax highlighter
+│   ├── ContextProperties.tsx    Context as a searchable property list
 │   ├── Skeleton.tsx             Loading placeholder rows
 │   └── AuthErrorBanner.tsx      Persistent auth failure banner
 ├── App.tsx
