@@ -73,7 +73,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     <div className="flex flex-col">
                       <button
                         onClick={() => onEdit(client)}
-                        className="text-gray-100 font-semibold hover:text-blue-400 text-left transition-colors"
+                        className="text-gray-100 font-semibold hover:text-primary-400 text-left transition-colors"
                       >
                         {client.name}
                       </button>
@@ -110,7 +110,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => onEdit(client)}
-                        className="p-2 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-all"
+                        className="p-2 text-gray-500 hover:text-gray-50 hover:bg-gray-800 rounded-lg transition-all"
                         title="Edit application"
                       >
                         <Pencil size={16} />

@@ -53,7 +53,7 @@ export const ApplicationsScreen: React.FC = () => {
           </div>
           <button
             onClick={handleCreate}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/20"
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-primary-900/20"
           >
             <Plus size={18} />
             Register App

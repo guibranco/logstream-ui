@@ -87,7 +87,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               placeholder="Search message text..."
               value={localFilters.search || ''}
               onChange={handleChange}
-              className="w-full bg-gray-950 border border-gray-800 rounded px-10 py-2 text-sm focus:outline-none focus:border-sky-500 transition-colors"
+              className="w-full bg-gray-950 border border-gray-800 rounded px-10 py-2 text-sm focus:outline-none focus:border-secondary-500 transition-colors"
             />
           </div>
 
@@ -97,7 +97,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             placeholder="App Key"
             value={localFilters.app_key || ''}
             onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
           />
 
           <input
@@ -106,7 +106,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             placeholder="App ID"
             value={localFilters.app_id || ''}
             onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
           />
 
           <input
@@ -115,7 +115,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             placeholder="Category"
             value={localFilters.category || ''}
             onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-sky-500"
+            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
           />
 
           <div className="flex gap-2">
@@ -123,7 +123,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               type="submit"
               disabled={errors.length > 0}
               title={errors.length > 0 ? errors.join('\n') : undefined}
-              className="flex-1 bg-sky-600 hover:bg-sky-500 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium py-2 rounded transition-colors flex items-center justify-center gap-2"
+              className="flex-1 bg-secondary-600 hover:bg-secondary-500 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium py-2 rounded transition-colors flex items-center justify-center gap-2"
             >
               <Search size={16} />
               Search
@@ -149,7 +149,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
                 className={cn(
                   "px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border transition-all",
                   localFilters.level === level
-                    ? "bg-sky-900 border-sky-500 text-sky-400"
+                    ? "bg-secondary-900 border-secondary-500 text-secondary-400"
                     : "bg-gray-950 border-gray-800 text-gray-500 hover:border-gray-700"
                 )}
               >
@@ -167,7 +167,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               name="date_from"
               value={localFilters.date_from || ''}
               onChange={handleChange}
-              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-sky-500 text-gray-300"
+              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-secondary-500 text-gray-300"
             />
             <span className="text-xs text-gray-500 font-medium">To:</span>
             <input
@@ -175,7 +175,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               name="date_to"
               value={localFilters.date_to || ''}
               onChange={handleChange}
-              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-sky-500 text-gray-300"
+              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-secondary-500 text-gray-300"
             />
           </div>
 
@@ -188,7 +188,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               placeholder="Trace ID"
               value={localFilters.trace_id || ''}
               onChange={handleChange}
-              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-sky-500"
+              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
             />
             <input
               type="text"
@@ -196,7 +196,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
               placeholder="Batch ID"
               value={localFilters.batch_id || ''}
               onChange={handleChange}
-              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-sky-500"
+              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
             />
           </div>
         </div>
@@ -212,7 +212,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             <SlidersHorizontal size={14} />
             Advanced filters
             {activeAdvanced > 0 && (
-              <span className="px-1.5 rounded-full bg-sky-900 text-sky-300 text-[10px] font-bold">
+              <span className="px-1.5 rounded-full bg-secondary-900 text-secondary-300 text-[10px] font-bold">
                 {activeAdvanced}
               </span>
             )}
@@ -260,7 +260,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
                   "flex items-center gap-1 pl-2 pr-1 py-0.5 rounded border text-xs font-mono",
                   exclude
                     ? "bg-rose-950/40 border-rose-900 text-rose-300"
-                    : "bg-sky-950/40 border-sky-900 text-sky-300"
+                    : "bg-secondary-950/40 border-secondary-900 text-secondary-300"
                 )}
               >
                 {path} {exclude ? '≠' : '='} {value}

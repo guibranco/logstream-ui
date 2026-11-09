@@ -29,7 +29,7 @@ export const ContextSearchInput: React.FC<ContextSearchInputProps> = ({ value, o
         maxLength={MAX_CONTEXT_SEARCH_LEN}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-gray-950 border border-gray-800 rounded pl-9 pr-3 py-1.5 text-xs font-mono focus:outline-none focus:border-sky-500"
+        className="w-full bg-gray-950 border border-gray-800 rounded pl-9 pr-3 py-1.5 text-xs font-mono focus:outline-none focus:border-secondary-500"
       />
     </div>
     <p className="text-[11px] text-gray-500">

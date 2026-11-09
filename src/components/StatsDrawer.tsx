@@ -58,7 +58,7 @@ export const StatsDrawer: React.FC<StatsDrawerProps> = ({ isOpen, onClose, logs 
           >
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-2 text-gray-100">
-                <BarChart3 size={20} className="text-sky-400" />
+                <BarChart3 size={20} className="text-secondary-400" />
                 <h2 className="text-lg font-bold">Live Statistics</h2>
               </div>
               <button
@@ -100,7 +100,7 @@ export const StatsDrawer: React.FC<StatsDrawerProps> = ({ isOpen, onClose, logs 
                 <div className="space-y-3">
                   {stats.topAppKeys.map(([key, count]) => (
                     <div key={key} className="flex items-center justify-between bg-gray-900/50 p-2 rounded border border-gray-900">
-                      <span className="text-xs font-mono text-sky-400 truncate flex-1 mr-2">{key}</span>
+                      <span className="text-xs font-mono text-secondary-400 truncate flex-1 mr-2">{key}</span>
                       <span className="text-xs font-bold text-gray-500">{count}</span>
                     </div>
                   ))}

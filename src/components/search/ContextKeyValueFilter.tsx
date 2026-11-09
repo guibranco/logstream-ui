@@ -14,7 +14,7 @@ interface ContextKeyValueFilterProps {
 }
 
 const inputClass =
-  'bg-gray-950 border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-sky-500 min-w-0';
+  'bg-gray-950 border rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-secondary-500 min-w-0';
 
 /** Editable list of `path = value` / `path ≠ value` conditions on the entry context. */
 export const ContextKeyValueFilter: React.FC<ContextKeyValueFilterProps> = ({ rows, onChange }) => {
@@ -43,7 +43,7 @@ export const ContextKeyValueFilter: React.FC<ContextKeyValueFilterProps> = ({ ro
               aria-label={`Context filter ${i + 1} operator`}
               value={row.exclude ? 'ne' : 'eq'}
               onChange={e => update(row.id, { exclude: e.target.value === 'ne' })}
-              className="bg-gray-950 border border-gray-800 rounded px-1 py-1.5 text-xs focus:outline-none focus:border-sky-500"
+              className="bg-gray-950 border border-gray-800 rounded px-1 py-1.5 text-xs focus:outline-none focus:border-secondary-500"
             >
               <option value="eq">=</option>
               <option value="ne">≠</option>
@@ -72,7 +72,7 @@ export const ContextKeyValueFilter: React.FC<ContextKeyValueFilterProps> = ({ ro
         type="button"
         onClick={() => onChange([...rows, newContextRow()])}
         disabled={rows.length >= MAX_CONTEXT_FILTERS}
-        className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 disabled:text-gray-600 disabled:cursor-not-allowed"
+        className="flex items-center gap-1 text-xs text-secondary-400 hover:text-secondary-300 disabled:text-gray-600 disabled:cursor-not-allowed"
       >
         <Plus size={14} />
         Add context filter

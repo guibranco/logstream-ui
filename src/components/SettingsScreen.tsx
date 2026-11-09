@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, Settings, Globe, Zap, Trash2 } from 'lucide-react';
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
+import { ThemePicker } from './ThemePicker';
 
 export function SettingsScreen() {
   const { config, updateConfig, signOut, isConfigured, closeSettings } = useAuth();
@@ -91,13 +92,13 @@ export function SettingsScreen() {
     return (
       <div className="flex flex-col gap-1.5" id={`override-control-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
         <span className="text-xs text-gray-300 font-medium">{label}</span>
-        <div className="grid grid-cols-3 bg-gray-950 border border-gray-850 p-1 rounded-xl">
+        <div className="grid grid-cols-3 bg-gray-950 border border-gray-800 p-1 rounded-xl">
           <button
             type="button"
             onClick={() => onChange('default')}
             className={`py-1 text-[11px] font-medium rounded-lg transition-all ${
               value === 'default'
-                ? 'bg-gray-800 text-white shadow-sm font-bold'
+                ? 'bg-gray-800 text-gray-50 shadow-sm font-bold'
                 : 'text-gray-500 hover:text-gray-300'
             }`}
           >
@@ -136,23 +137,26 @@ export function SettingsScreen() {
         <div className="p-6 md:p-8">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Settings className="w-6 h-6 text-blue-400" />
+              <div className="p-2 bg-primary-500/10 rounded-lg">
+                <Settings className="w-6 h-6 text-primary-400" />
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight animate-in fade-in">
+              <h1 className="text-2xl font-bold text-gray-50 tracking-tight animate-in fade-in">
                 LogStream Settings
               </h1>
             </div>
-            {isConfigured && (
-              <button
-                type="button"
-                onClick={closeSettings}
-                className="px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
-                title="Close settings"
-              >
-                Close
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              <ThemePicker />
+              {isConfigured && (
+                <button
+                  type="button"
+                  onClick={closeSettings}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-300 hover:text-gray-50 bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
+                  title="Close settings"
+                >
+                  Close
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-gray-400 text-sm mb-6">
             These settings are stored in your browser only.
@@ -163,7 +167,7 @@ export function SettingsScreen() {
               {/* Left Column: Connection Setup */}
               <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
                 <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
-                  <Globe className="w-4 h-4 text-blue-400" />
+                  <Globe className="w-4 h-4 text-primary-400" />
                   <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
                     Connection Config
                   </h2>
@@ -179,7 +183,7 @@ export function SettingsScreen() {
                     value={apiUrl}
                     onChange={handleApiUrlChange}
                     placeholder="https://logs.yourdomain.com"
-                    className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
                   />
                   <p className="text-[11px] text-gray-500 leading-normal">The HTTP server address (no trailing slash)</p>
                   {errors.apiUrl && <p className="text-xs text-red-400 mt-1">{errors.apiUrl}</p>}
@@ -195,13 +199,13 @@ export function SettingsScreen() {
                     value={wsUrl}
                     onChange={(e) => setWsUrl(e.target.value)}
                     placeholder="wss://logs.yourdomain.com/ws"
-                    className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
                   />
                   {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
                     <button
                       type="button"
                       onClick={() => setWsUrl(suggestedWsUrl)}
-                      className="mt-1 flex items-center gap-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/10 px-2 py-0.5 rounded"
+                      className="mt-1 flex items-center gap-1.5 text-[10px] text-primary-400 hover:text-primary-300 transition-colors bg-primary-400/10 px-2 py-0.5 rounded"
                     >
                       Use {suggestedWsUrl} ↗
                     </button>
@@ -221,7 +225,7 @@ export function SettingsScreen() {
                       value={uiSecret}
                       onChange={(e) => setUiSecret(e.target.value)}
                       placeholder="Paste your UI_SECRET here"
-                      className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                      className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
                     />
                     <button
                       type="button"
@@ -239,7 +243,7 @@ export function SettingsScreen() {
               {/* Right Column: Feature Flag Overrides */}
               <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
                 <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
-                  <Lock className="w-4 h-4 text-blue-400" />
+                  <Lock className="w-4 h-4 text-primary-400" />
                   <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
                     Overrides (For Testing)
                   </h2>
@@ -257,7 +261,7 @@ export function SettingsScreen() {
             <div className="pt-6 border-t border-gray-800 flex flex-col items-center justify-center gap-4 max-w-sm mx-auto w-full">
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]"
+                className="w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-primary-600/20 transition-all active:scale-[0.98]"
               >
                 Validate and Connect
               </button>

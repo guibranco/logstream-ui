@@ -32,7 +32,7 @@ export const RotateConfirmModal: React.FC<RotateConfirmModalProps> = ({ client, 
             <RefreshCw size={20} />
             <h3 className="text-lg font-bold">Rotate Token</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-50 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -41,9 +41,9 @@ export const RotateConfirmModal: React.FC<RotateConfirmModalProps> = ({ client, 
           <div className="bg-amber-900/20 border border-amber-900/50 rounded-lg p-4 mb-6 flex gap-3">
             <AlertTriangle size={24} className="text-amber-500 shrink-0" />
             <div className="text-sm text-amber-200 leading-relaxed">
-              Rotate token for <span className="font-bold text-white">"{client.app_key}"</span>?
+              Rotate token for <span className="font-bold text-gray-50">"{client.app_key}"</span>?
               <p className="mt-2">
-                This will immediately <span className="font-bold text-white underline decoration-amber-500/50">invalidate</span> the current token.
+                This will immediately <span className="font-bold text-gray-50 underline decoration-amber-500/50">invalidate</span> the current token.
                 Any applications using it will stop sending logs until they are updated with the new token.
               </p>
             </div>
@@ -53,7 +53,7 @@ export const RotateConfirmModal: React.FC<RotateConfirmModalProps> = ({ client, 
             <button
               disabled={isLoading}
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-800 text-gray-400 rounded-lg font-medium hover:bg-gray-800 hover:text-white transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 border border-gray-800 text-gray-400 rounded-lg font-medium hover:bg-gray-800 hover:text-gray-50 transition-all disabled:opacity-50"
             >
               Cancel
             </button>

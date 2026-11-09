@@ -86,7 +86,7 @@ export const ContextProperties: React.FC<ContextPropertiesProps> = ({ context, o
                 </button>
               </div>
             </td>
-            <td className="py-1.5 pr-4 text-sky-400 whitespace-nowrap">{path}</td>
+            <td className="py-1.5 pr-4 text-secondary-400 whitespace-nowrap">{path}</td>
             <td className="py-1.5 break-all">{renderValue(value)}</td>
           </tr>
         ))}

@@ -165,7 +165,7 @@ export const LogTable: React.FC<LogTableProps> = ({
               <select
                 value={limit}
                 onChange={(e) => onLimitChange(Number(e.target.value))}
-                className="bg-gray-900 border border-gray-800 rounded px-2 py-1 focus:outline-none focus:border-sky-500 text-gray-300"
+                className="bg-gray-900 border border-gray-800 rounded px-2 py-1 focus:outline-none focus:border-secondary-500 text-gray-300"
               >
                 <option value={25}>25</option>
                 <option value={50}>50</option>
