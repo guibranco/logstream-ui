@@ -4,7 +4,7 @@ import { SHADES } from '@/src/themes/types';
 
 describe('theme registry', () => {
   it('picks up every preset, ordered', () => {
-    expect(themes.map((t) => t.id).slice(0, 2)).toEqual(['blue', 'green']);
+    expect(themes.map((t) => t.id).slice(0, 5)).toEqual(['blue', 'green', 'red', 'orange', 'pink']);
   });
 
   it('has unique ids', () => {

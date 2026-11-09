@@ -15,7 +15,7 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
 - **Auth-aware** — separate read key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
-- **Themes** — Blue and Green themes, each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
+- **Themes** — Blue, Green, Red, Orange and Pink themes, each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
 
 ---
 
@@ -112,7 +112,10 @@ The 🎨 button in the header (also on the settings screen) picks the theme and 
 | Theme | Neutral | Primary (buttons, links, focus) | Secondary (filters, highlights) |
 |-------|---------|----------------------------------|----------------------------------|
 | Blue | `gray` | `blue` | `sky` |
-| Green | `zinc` | `emerald` | `green` |
+| Green (default) | `zinc` | `emerald` | `green` |
+| Red | `stone` | `red` | `rose` |
+| Orange | `stone` | `orange` | `amber` |
+| Pink | `mauve` | `pink` | `fuchsia` |
 
 ### How it works
 
@@ -139,7 +142,7 @@ export default defineTheme({
   id: 'violet',             // stored in preferences; keep it stable
   name: 'Violet',
   description: 'Slate with violet and fuchsia accents',
-  order: 2,                 // position in the picker (optional)
+  order: 5,                 // position in the picker (optional)
   dark: {
     neutral: colors.slate,
     primary: colors.violet,
@@ -256,7 +259,7 @@ src/
 │   ├── engine.ts                Theme → CSS variables (light flips the scales)
 │   ├── registry.ts              Loads every file in presets/
 │   ├── themeStore.ts            Theme preference in localStorage
-│   └── presets/                 One file per theme (blue.ts, green.ts)
+│   └── presets/                 One file per theme (blue, green, red, orange, pink)
 ├── hooks/
 │   ├── useWebSocket.ts          Auto-reconnecting WS hook with backoff
 │   └── useLogs.ts               TanStack Query wrapper for GET /api/logs
