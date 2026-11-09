@@ -49,30 +49,31 @@ const containsCI = (haystack: string | null | undefined, needle: string) =>
 
 const time = (iso: string) => new Date(iso).getTime();
 
-export function matchesFilters(entry: LogEntry, filters: SearchFilters): boolean {
-  for (const field of EXACT_FIELDS) {
-    const wanted = filters[field];
-    if (wanted && entry[field] !== wanted) return false;
-  }
+function fieldsMatch(entry: LogEntry, filters: SearchFilters): boolean {
+  const exact = EXACT_FIELDS.every(field => !filters[field] || entry[field] === filters[field]);
+  return exact
+    && (!filters.user_agent || containsCI(entry.user_agent, filters.user_agent))
+    && (!filters.category || containsCI(entry.category, filters.category))
+    && (!filters.search || containsCI(entry.message, filters.search));
+}
 
-  if (filters.user_agent && !containsCI(entry.user_agent, filters.user_agent)) return false;
-  if (filters.category && !containsCI(entry.category, filters.category)) return false;
-  if (filters.search && !containsCI(entry.message, filters.search)) return false;
-
+function contextFiltersMatch(entry: LogEntry, filters: SearchFilters): boolean {
   const context = isPlainObject(entry.context) ? entry.context : null;
-  for (const [path, value] of Object.entries(filters.context ?? {})) {
-    if (!contextMatches(context, path, value, false)) return false;
-  }
-  for (const [path, value] of Object.entries(filters.context_not ?? {})) {
-    if (!contextMatches(context, path, value, true)) return false;
-  }
-  if (filters.context_search && (context === null || !nodeContains(context, filters.context_search.toLowerCase()))) {
-    return false;
-  }
+  const finds = Object.entries(filters.context ?? {})
+    .every(([path, value]) => contextMatches(context, path, value, false));
+  const excludes = Object.entries(filters.context_not ?? {})
+    .every(([path, value]) => contextMatches(context, path, value, true));
+  const search = !filters.context_search
+    || (context !== null && nodeContains(context, filters.context_search.toLowerCase()));
+  return finds && excludes && search;
+}
 
+function dateRangeMatches(entry: LogEntry, filters: SearchFilters): boolean {
   const ts = time(entry.timestamp);
-  if (filters.date_from && !(ts >= time(filters.date_from))) return false;
-  if (filters.date_to && !(ts <= time(filters.date_to))) return false;
+  if (filters.date_from && ts < time(filters.date_from)) return false;
+  return !(filters.date_to && ts > time(filters.date_to));
+}
 
-  return true;
+export function matchesFilters(entry: LogEntry, filters: SearchFilters): boolean {
+  return fieldsMatch(entry, filters) && contextFiltersMatch(entry, filters) && dateRangeMatches(entry, filters);
 }

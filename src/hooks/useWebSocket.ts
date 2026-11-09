@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { LogEntry, WSMessage, WSStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useServerInfo } from './useServerInfo';
+import { streamEndpoint } from '../lib/serverUrl';
 
 const RECONNECT_INTERVALS = [1000, 2000, 5000, 10000, 30000];
 const PING_INTERVAL = 30000;
@@ -43,8 +44,17 @@ export function useWebSocket(onLog: (entry: LogEntry) => void, onOpen?: () => vo
 
     const connect = () => {
       if (disposed) return;
+      let endpoint: string;
+      try {
+        endpoint = streamEndpoint(wsUrl, uiSecret);
+      } catch (e) {
+        // A malformed URL won't fix itself by retrying: the settings need changing.
+        console.error(e);
+        setStatus('disconnected');
+        return;
+      }
       setStatus('reconnecting');
-      socket = new WebSocket(`${wsUrl}?token=${uiSecret}`);
+      socket = new WebSocket(endpoint);
       const current = socket;
 
       current.onopen = () => {

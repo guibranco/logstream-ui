@@ -1,5 +1,6 @@
 import { SearchFilters, SearchResult } from '../types';
 import { appendContextParams } from './contextProperties';
+import { apiEndpoint } from './serverUrl';
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -25,7 +26,7 @@ export async function fetchLogs(
   params.append('limit', limit.toString());
   params.append('offset', offset.toString());
 
-  const response = await fetch(`${apiUrl}/api/logs?${params.toString()}`, {
+  const response = await fetch(apiEndpoint(apiUrl, '/api/logs', params), {
     headers: { Authorization: `Bearer ${uiSecret}` },
     signal,
   });

@@ -78,85 +78,99 @@ function trim(state: FeedState): FeedState {
   };
 }
 
+type PageAction = Extract<FeedAction, { type: 'page' }>;
+type LiveAction = Extract<FeedAction, { type: 'live' }>;
+type CatchUpAction = Extract<FeedAction, { type: 'catchup' }>;
+
+/** First page: live events that arrived while it was loading stay on top. */
+function firstPage(state: FeedState, action: PageAction): FeedState {
+  const pageIds = new Set(action.entries.map(e => e.id));
+  const early = state.entries.filter(e => !pageIds.has(e.id));
+  return {
+    entries: [...early, ...action.entries],
+    pending: state.pending.filter(e => !pageIds.has(e.id)),
+    cursor: early.length + action.entries.length,
+    total: Math.max(action.total, early.length + action.entries.length),
+    hasMore: action.entries.length >= action.limit,
+    loaded: true,
+    pendingOverflow: false,
+  };
+}
+
+/** Older page: continue right after the oldest event on screen when the page contains it. */
+function olderPage(state: FeedState, action: PageAction): FeedState {
+  const anchor = state.entries.at(-1);
+  const anchorAt = anchor ? action.entries.findIndex(e => e.id === anchor.id) : -1;
+  const candidates = action.entries.slice(anchorAt + 1);
+  const known = new Set(state.entries.map(e => e.id));
+  const older = candidates.filter(e => !known.has(e.id));
+  const requestedAt = action.offset ?? state.cursor;
+  const liveDuringRequest = Math.max(0, state.cursor - (action.cursorAtRequest ?? state.cursor));
+  return {
+    ...state,
+    entries: [...state.entries, ...older],
+    cursor: requestedAt + action.entries.length + liveDuringRequest,
+    total: Math.max(state.total, action.total),
+    hasMore: action.entries.length >= action.limit,
+  };
+}
+
+function liveEvent(state: FeedState, action: LiveAction): FeedState {
+  const { entry } = action;
+  const isKnown = (e: LogEntry) => e.id === entry.id;
+  if (state.entries.some(isKnown) || state.pending.some(isKnown)) return state;
+
+  const moved = { ...state, cursor: state.cursor + 1, total: state.total + 1 };
+  if (!action.hold) return trim({ ...moved, entries: [entry, ...state.entries] });
+
+  const pending = [entry, ...state.pending];
+  if (pending.length <= MAX_PENDING) return { ...moved, pending };
+  // Too many held events: keep the newest and remember the gap, so showing them reloads the feed.
+  return { ...moved, pending: pending.slice(0, MAX_PENDING), pendingOverflow: true };
+}
+
+/**
+ * Newest page fetched after the live stream (re)connected: events that reached
+ * the server while it was down are the ones above the first known id.
+ */
+function catchUp(state: FeedState, action: CatchUpAction): FeedState {
+  const known = new Set([...state.entries, ...state.pending].map(e => e.id));
+  const firstKnown = action.entries.findIndex(e => known.has(e.id));
+  if (firstKnown === 0) return state;
+
+  const missed = firstKnown === -1 ? action.entries : action.entries.slice(0, firstKnown);
+  // Nothing on a full page is known while we do hold events: more were missed than one page.
+  const gap = firstKnown === -1 && action.entries.length >= action.limit && state.entries.length > 0;
+  const moved = {
+    ...state,
+    cursor: state.cursor + missed.length,
+    total: state.total + missed.length,
+    pendingOverflow: state.pendingOverflow || gap,
+  };
+  if (action.hold || gap) {
+    return { ...moved, pending: [...missed, ...state.pending].slice(0, MAX_PENDING) };
+  }
+  return trim({ ...moved, entries: [...missed, ...state.entries] });
+}
+
+function flushPending(state: FeedState): FeedState {
+  if (state.pending.length === 0) return state;
+  const known = new Set(state.entries.map(e => e.id));
+  const fresh = state.pending.filter(e => !known.has(e.id));
+  return trim({ ...state, entries: [...fresh, ...state.entries], pending: [] });
+}
+
 export function feedReducer(state: FeedState, action: FeedAction): FeedState {
   switch (action.type) {
     case 'reset':
       return initialFeedState;
-
-    case 'page': {
-      if (action.initial) {
-        // Live events that arrived while the first page was loading stay on top.
-        const pageIds = new Set(action.entries.map(e => e.id));
-        const early = state.entries.filter(e => !pageIds.has(e.id));
-        return {
-          entries: [...early, ...action.entries],
-          pending: state.pending.filter(e => !pageIds.has(e.id)),
-          cursor: early.length + action.entries.length,
-          total: Math.max(action.total, early.length + action.entries.length),
-          hasMore: action.entries.length >= action.limit,
-          loaded: true,
-          pendingOverflow: false,
-        };
-      }
-
-      // Continue right after the oldest event on screen when the page contains it.
-      const anchor = state.entries[state.entries.length - 1];
-      const anchorAt = anchor ? action.entries.findIndex(e => e.id === anchor.id) : -1;
-      const candidates = anchorAt >= 0 ? action.entries.slice(anchorAt + 1) : action.entries;
-      const known = new Set(state.entries.map(e => e.id));
-      const older = candidates.filter(e => !known.has(e.id));
-      const requestedAt = action.offset ?? state.cursor;
-      const liveDuringRequest = Math.max(0, state.cursor - (action.cursorAtRequest ?? state.cursor));
-      return {
-        ...state,
-        entries: [...state.entries, ...older],
-        cursor: requestedAt + action.entries.length + liveDuringRequest,
-        total: Math.max(state.total, action.total),
-        hasMore: action.entries.length >= action.limit,
-      };
-    }
-
-    case 'live': {
-      const { entry } = action;
-      if (state.entries.some(e => e.id === entry.id) || state.pending.some(e => e.id === entry.id)) {
-        return state;
-      }
-      const moved = { ...state, cursor: state.cursor + 1, total: state.total + 1 };
-      if (action.hold) {
-        const pending = [entry, ...state.pending];
-        if (pending.length <= MAX_PENDING) return { ...moved, pending };
-        // Too many held events: keep the newest and remember the gap, so showing them reloads the feed.
-        return { ...moved, pending: pending.slice(0, MAX_PENDING), pendingOverflow: true };
-      }
-      return trim({ ...moved, entries: [entry, ...state.entries] });
-    }
-
-    case 'catchup': {
-      // Newest page fetched after the live stream (re)connected: events that
-      // reached the server while it was down are the ones above the first known id.
-      const known = new Set([...state.entries, ...state.pending].map(e => e.id));
-      const firstKnown = action.entries.findIndex(e => known.has(e.id));
-      if (firstKnown === 0) return state;
-      const missed = firstKnown === -1 ? action.entries : action.entries.slice(0, firstKnown);
-      // Nothing on a full page is known while we do hold events: more were missed than one page.
-      const gap = firstKnown === -1 && action.entries.length >= action.limit && state.entries.length > 0;
-      const moved = {
-        ...state,
-        cursor: state.cursor + missed.length,
-        total: state.total + missed.length,
-        pendingOverflow: state.pendingOverflow || gap,
-      };
-      if (action.hold || gap) {
-        return { ...moved, pending: [...missed, ...state.pending].slice(0, MAX_PENDING) };
-      }
-      return trim({ ...moved, entries: [...missed, ...state.entries] });
-    }
-
-    case 'flush': {
-      if (state.pending.length === 0) return state;
-      const known = new Set(state.entries.map(e => e.id));
-      const fresh = state.pending.filter(e => !known.has(e.id));
-      return trim({ ...state, entries: [...fresh, ...state.entries], pending: [] });
-    }
+    case 'page':
+      return action.initial ? firstPage(state, action) : olderPage(state, action);
+    case 'live':
+      return liveEvent(state, action);
+    case 'catchup':
+      return catchUp(state, action);
+    case 'flush':
+      return flushPending(state);
   }
 }

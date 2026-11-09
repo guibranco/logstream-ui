@@ -19,6 +19,11 @@ interface HeaderProps {
   onDisconnect: () => void;
 }
 
+function liveLabel(isLive: boolean, pendingCount: number): string {
+  if (isLive) return 'Live';
+  return pendingCount > 0 ? `Paused · ${pendingCount} new` : 'Paused';
+}
+
 export const Header: React.FC<HeaderProps> = ({
   status,
   connections,
@@ -111,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               >
                 {isLive ? <Zap size={14} /> : <ZapOff size={14} />}
-                {isLive ? 'Live' : pendingCount > 0 ? `Paused · ${pendingCount} new` : 'Paused'}
+                {liveLabel(isLive, pendingCount)}
               </button>
             ) : (
               <div className="flex items-center bg-gray-900/40 rounded px-3 py-1.5 border border-gray-800 text-xs font-semibold text-amber-500 gap-1.5 cursor-not-allowed select-none">

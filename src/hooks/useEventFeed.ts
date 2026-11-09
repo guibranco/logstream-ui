@@ -49,14 +49,17 @@ export function useEventFeed(filters: SearchFilters) {
 
     const controller = new AbortController();
     setIsLoadingInitial(true);
-    fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, 0, controller.signal)
-      .then(result => dispatch({
-        type: 'page', entries: result.entries, total: result.total, limit: PAGE_SIZE, initial: true,
-      }))
-      .catch(handleError)
-      .finally(() => {
+    const loadFirstPage = async () => {
+      try {
+        const result = await fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, 0, controller.signal);
+        dispatch({ type: 'page', entries: result.entries, total: result.total, limit: PAGE_SIZE, initial: true });
+      } catch (e) {
+        handleError(e);
+      } finally {
         if (!controller.signal.aborted) setIsLoadingInitial(false);
-      });
+      }
+    };
+    void loadFirstPage();
 
     return () => controller.abort();
     // filtersKey stands for filters; the ref carries the value.
@@ -75,20 +78,23 @@ export function useEventFeed(filters: SearchFilters) {
     const offset = olderPageOffset(current);
     const cursorAtRequest = current.cursor;
 
-    fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, offset)
-      .then(result => {
+    const loadPage = async () => {
+      try {
+        const result = await fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, offset);
         // Ignore a page that belongs to filters or a reload that has since been replaced.
         if (startedIn !== generationRef.current || startedFor !== JSON.stringify(filtersRef.current)) return;
         dispatch({
           type: 'page', entries: result.entries, total: result.total, limit: PAGE_SIZE, initial: false,
           offset, cursorAtRequest,
         });
-      })
-      .catch(handleError)
-      .finally(() => {
+      } catch (e) {
+        handleError(e);
+      } finally {
         olderInFlight.current = false;
         setIsLoadingOlder(false);
-      });
+      }
+    };
+    void loadPage();
   }, [apiUrl, uiSecret, handleError]);
 
   const reload = useCallback(() => setGeneration(g => g + 1), []);
@@ -109,12 +115,16 @@ export function useEventFeed(filters: SearchFilters) {
     catchUpWanted.current = false;
     const startedIn = generationRef.current;
     const startedFor = JSON.stringify(filtersRef.current);
-    fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, 0)
-      .then(result => {
+    const loadNewest = async () => {
+      try {
+        const result = await fetchLogs(apiUrl, uiSecret, filtersRef.current, PAGE_SIZE, 0);
         if (startedIn !== generationRef.current || startedFor !== JSON.stringify(filtersRef.current)) return;
         dispatch({ type: 'catchup', entries: result.entries, limit: PAGE_SIZE, hold: holdRef.current });
-      })
-      .catch(handleError);
+      } catch (e) {
+        handleError(e);
+      }
+    };
+    void loadNewest();
   }, [apiUrl, uiSecret, handleError]);
 
   useEffect(() => {

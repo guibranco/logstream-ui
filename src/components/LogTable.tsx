@@ -33,6 +33,101 @@ const TOP_THRESHOLD = 8;
 /** Start fetching older events this far before the bottom. */
 const LOAD_OLDER_THRESHOLD = 600;
 
+/** Why new events are being held, or null while following. */
+function holdReasonOf(isPaused: boolean, hasExpanded: boolean, isAtTop: boolean): string | null {
+  if (isPaused) return 'Paused';
+  if (hasExpanded) return 'Paused while an event is expanded';
+  if (!isAtTop) return 'Paused while scrolled down';
+  return null;
+}
+
+const LoadFailed: React.FC<{ error: Error; onRetry: () => void }> = ({ error, onRetry }) => (
+  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+    <div className="w-16 h-16 bg-rose-900/20 rounded-full flex items-center justify-center mb-4 border border-rose-900/30">
+      <AlertCircle className="text-rose-500" size={32} />
+    </div>
+    <h3 className="text-lg font-bold text-gray-100 mb-2">Failed to load logs</h3>
+    <p className="text-gray-400 mb-6 max-w-md">{error.message || 'An unexpected error occurred while fetching logs.'}</p>
+    <button
+      onClick={onRetry}
+      className="bg-gray-800 hover:bg-gray-700 text-gray-100 px-6 py-2 rounded font-medium transition-colors"
+    >
+      Retry
+    </button>
+  </div>
+);
+
+const NoEvents: React.FC<{ isLiveEnabled: boolean }> = ({ isLiveEnabled }) => (
+  <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+    <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
+      <Inbox className="text-gray-600" size={32} />
+    </div>
+    <h3 className="text-lg font-bold text-gray-100 mb-2">No logs found</h3>
+    <p className="text-gray-500 max-w-md">
+      {isLiveEnabled && 'Waiting for new events. '}
+      Try adjusting your filters or check if the app is sending logs.
+    </p>
+  </div>
+);
+
+/** Last line of the list: loading, retry, more to load, or the end. */
+const FeedEnd: React.FC<{
+  isLoadingOlder: boolean;
+  hasError: boolean;
+  hasMore: boolean;
+  onLoadOlder: () => void;
+}> = ({ isLoadingOlder, hasError, hasMore, onLoadOlder }) => {
+  let content: React.ReactNode = 'No older events';
+  if (isLoadingOlder) {
+    content = (
+      <>
+        <Loader2 size={14} className="animate-spin" />
+        Loading older events…
+      </>
+    );
+  } else if (hasError) {
+    content = (
+      <button onClick={onLoadOlder} className="text-rose-400 hover:text-rose-300">
+        Failed to load older events — retry
+      </button>
+    );
+  } else if (hasMore) {
+    content = (
+      <button onClick={onLoadOlder} className="hover:text-gray-400">
+        Load older events
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center gap-2 py-4 text-xs text-gray-600" data-testid="feed-end">
+      {content}
+    </div>
+  );
+};
+
+const FeedStatus: React.FC<{ isLiveEnabled: boolean; holdReason: string | null }> = ({ isLiveEnabled, holdReason }) => {
+  if (!isLiveEnabled) return <span className="text-gray-600">Live view disabled</span>;
+  if (holdReason) return <span className="text-amber-400">{holdReason}</span>;
+  return <span className="text-green-400">Following new events</span>;
+};
+
+const PendingBanner: React.FC<{
+  count: number;
+  overflow: boolean;
+  holdReason: string | null;
+  onClick: () => void;
+}> = ({ count, overflow, holdReason, onClick }) => (
+  <button
+    onClick={onClick}
+    data-testid="pending-banner"
+    className="flex items-center justify-center gap-2 h-8 text-xs font-medium bg-secondary-900/40 border-b border-secondary-800/50 text-secondary-300 hover:bg-secondary-900/60 transition-colors"
+  >
+    <ArrowUp size={14} />
+    {overflow ? `${count}+` : count} new {count === 1 ? 'event' : 'events'}
+    {holdReason && <span className="text-gray-500">· {holdReason.toLowerCase()} — click to show</span>}
+  </button>
+);
+
 export const LogTable: React.FC<LogTableProps> = ({
   logs,
   pendingCount,
@@ -99,31 +194,40 @@ export const LogTable: React.FC<LogTableProps> = ({
     if (containerRef.current) containerRef.current.scrollTop = 0;
   };
 
-  if (error && logs.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-        <div className="w-16 h-16 bg-rose-900/20 rounded-full flex items-center justify-center mb-4 border border-rose-900/30">
-          <AlertCircle className="text-rose-500" size={32} />
-        </div>
-        <h3 className="text-lg font-bold text-gray-100 mb-2">Failed to load logs</h3>
-        <p className="text-gray-400 mb-6 max-w-md">{error.message || 'An unexpected error occurred while fetching logs.'}</p>
-        <button
-          onClick={onRetry}
-          className="bg-gray-800 hover:bg-gray-700 text-gray-100 px-6 py-2 rounded font-medium transition-colors"
-        >
-          Retry
-        </button>
+  if (error && logs.length === 0) return <LoadFailed error={error} onRetry={onRetry} />;
+
+  const holdReason = holdReasonOf(isPaused, hasExpanded, isAtTop);
+
+  let body: React.ReactNode;
+  if (isLoading && logs.length === 0) {
+    body = (
+      <div className="divide-y divide-gray-900">
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
       </div>
     );
+  } else if (logs.length === 0) {
+    body = <NoEvents isLiveEnabled={isLiveEnabled} />;
+  } else {
+    body = (
+      <>
+        {logs.map(log => (
+          <LogRow
+            key={log.id}
+            log={log}
+            isLive={isLiveEnabled}
+            isExpanded={expandedIds.has(log.id)}
+            onToggle={toggleExpanded}
+            onFilterBatch={onFilterBatch}
+            onFilterTrace={onFilterTrace}
+            onFilterContext={onFilterContext}
+          />
+        ))}
+        <FeedEnd isLoadingOlder={isLoadingOlder} hasError={!!error} hasMore={hasMore} onLoadOlder={onLoadOlder} />
+      </>
+    );
   }
-
-  const holdReason = isPaused
-    ? 'Paused'
-    : hasExpanded
-      ? 'Paused while an event is expanded'
-      : !isAtTop
-        ? 'Paused while scrolled down'
-        : null;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -139,15 +243,7 @@ export const LogTable: React.FC<LogTableProps> = ({
       </div>
 
       {pendingCount > 0 && (
-        <button
-          onClick={showPending}
-          data-testid="pending-banner"
-          className="flex items-center justify-center gap-2 h-8 text-xs font-medium bg-secondary-900/40 border-b border-secondary-800/50 text-secondary-300 hover:bg-secondary-900/60 transition-colors"
-        >
-          <ArrowUp size={14} />
-          {pendingOverflow ? `${pendingCount}+` : pendingCount} new {pendingCount === 1 ? 'event' : 'events'}
-          {holdReason && <span className="text-gray-500">· {holdReason.toLowerCase()} — click to show</span>}
-        </button>
+        <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={showPending} />
       )}
 
       <div
@@ -156,59 +252,7 @@ export const LogTable: React.FC<LogTableProps> = ({
         data-testid="log-scroller"
         className="flex-1 overflow-y-auto relative"
       >
-        {isLoading && logs.length === 0 ? (
-          <div className="divide-y divide-gray-900">
-            <Skeleton />
-            <Skeleton />
-            <Skeleton />
-          </div>
-        ) : logs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-            <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
-              <Inbox className="text-gray-600" size={32} />
-            </div>
-            <h3 className="text-lg font-bold text-gray-100 mb-2">No logs found</h3>
-            <p className="text-gray-500 max-w-md">
-              {isLiveEnabled
-                ? 'Waiting for new events. Try adjusting your filters or check if the app is sending logs.'
-                : 'Try adjusting your filters or check if the app is sending logs.'}
-            </p>
-          </div>
-        ) : (
-          <>
-            {logs.map(log => (
-              <LogRow
-                key={log.id}
-                log={log}
-                isLive={isLiveEnabled}
-                isExpanded={expandedIds.has(log.id)}
-                onToggle={toggleExpanded}
-                onFilterBatch={onFilterBatch}
-                onFilterTrace={onFilterTrace}
-                onFilterContext={onFilterContext}
-              />
-            ))}
-
-            <div className="flex items-center justify-center gap-2 py-4 text-xs text-gray-600" data-testid="feed-end">
-              {isLoadingOlder ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Loading older events…
-                </>
-              ) : error ? (
-                <button onClick={onLoadOlder} className="text-rose-400 hover:text-rose-300">
-                  Failed to load older events — retry
-                </button>
-              ) : hasMore ? (
-                <button onClick={onLoadOlder} className="hover:text-gray-400">
-                  Load older events
-                </button>
-              ) : (
-                'No older events'
-              )}
-            </div>
-          </>
-        )}
+        {body}
       </div>
 
       <div className="bg-gray-950 border-t border-gray-900 px-4 py-2 flex items-center justify-between text-xs text-gray-500">
@@ -219,13 +263,7 @@ export const LogTable: React.FC<LogTableProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {!isLiveEnabled ? (
-            <span className="text-gray-600">Live view disabled</span>
-          ) : holdReason ? (
-            <span className="text-amber-400">{holdReason}</span>
-          ) : (
-            <span className="text-green-400">Following new events</span>
-          )}
+          <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} />
         </div>
       </div>
     </div>
