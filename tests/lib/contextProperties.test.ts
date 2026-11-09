@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  MAX_CONTEXT_FILTERS,
+  contextFilterErrors,
+  filtersToRows,
+  newContextRow,
+  rowsToFilters,
   appendContextParams,
   flattenContext,
   toFilterValue,
@@ -69,5 +74,48 @@ describe('context filter helpers', () => {
   it('removes a filter and drops the empty group', () => {
     const f = withoutContextFilter({ context: { role: 'bot' } }, 'role', false);
     expect(f.context).toBeUndefined();
+  });
+});
+
+describe('context filter builder rows', () => {
+  it('turns filters into rows and back', () => {
+    const filters = { context: { 'order.id': '42' }, context_not: { role: 'bot' } };
+    const rows = filtersToRows(filters);
+
+    expect(rows.map(r => [r.key, r.value, r.exclude])).toEqual([
+      ['order.id', '42', false],
+      ['role', 'bot', true],
+    ]);
+    expect(rowsToFilters(rows)).toEqual(filters);
+  });
+
+  it('ignores draft rows and trims keys', () => {
+    const rows = [newContextRow(' code ', 'x'), newContextRow('', 'y'), newContextRow('k', '')];
+    expect(rowsToFilters(rows)).toEqual({ context: { code: 'x' }, context_not: undefined });
+  });
+
+  it('lets a later row win when the same path appears twice', () => {
+    const rows = [newContextRow('role', 'bot'), newContextRow('role', 'bot', true)];
+    expect(rowsToFilters(rows)).toEqual({ context: undefined, context_not: { role: 'bot' } });
+  });
+});
+
+describe('contextFilterErrors', () => {
+  it('accepts valid input and drafts', () => {
+    expect(contextFilterErrors([newContextRow('order.id', '1'), newContextRow()], 'card')).toEqual([]);
+  });
+
+  it('flags paths with empty segments', () => {
+    expect(contextFilterErrors([newContextRow('order..id', '1')], undefined)).toHaveLength(1);
+    expect(contextFilterErrors([newContextRow('order.', '1')], undefined)).toHaveLength(1);
+  });
+
+  it('flags a search term shorter than 3 characters', () => {
+    expect(contextFilterErrors([], ' ab ')).toEqual(['Context search needs at least 3 characters']);
+  });
+
+  it('flags more conditions than the server accepts', () => {
+    const rows = Array.from({ length: MAX_CONTEXT_FILTERS + 1 }, (_, i) => newContextRow(`k${i}`, 'v'));
+    expect(contextFilterErrors(rows, undefined)).toEqual([`At most ${MAX_CONTEXT_FILTERS} context filters are allowed`]);
   });
 });
