@@ -1,149 +1,127 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LogEntry, WSMessage, WSStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { useServerInfo } from './useServerInfo';
+import { streamEndpoint } from '../lib/serverUrl';
 
 const RECONNECT_INTERVALS = [1000, 2000, 5000, 10000, 30000];
 const PING_INTERVAL = 30000;
 
-export function useWebSocket() {
+/**
+ * Connection to the live stream. Each received event is handed to `onLog`;
+ * what to do with it (show, hold, ignore) is the feed's decision.
+ */
+export function useWebSocket(onLog: (entry: LogEntry) => void, onOpen?: () => void) {
   const { config, openSettings } = useAuth();
   const { data: serverInfo } = useServerInfo();
   const isWebsocketEnabled = serverInfo?.features?.websocket !== false;
 
   const [status, setStatus] = useState<WSStatus>('disconnected');
   const [connections, setConnections] = useState(0);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [buffer, setBuffer] = useState<LogEntry[]>([]);
-  const [isLive, setIsLive] = useState(true);
-  
-  const ws = useRef<WebSocket | null>(null);
-  const reconnectCount = useRef(0);
-  const pingTimer = useRef<number | null>(null);
 
-  const connect = useCallback(() => {
-    if (!isWebsocketEnabled) {
+  // Latest callbacks without reconnecting when they change.
+  const onLogRef = useRef(onLog);
+  onLogRef.current = onLog;
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
+  const openSettingsRef = useRef(openSettings);
+  openSettingsRef.current = openSettings;
+
+  const wsUrl = config?.wsUrl;
+  const uiSecret = config?.uiSecret;
+
+  useEffect(() => {
+    if (!isWebsocketEnabled || !wsUrl || !uiSecret) {
       setStatus('disconnected');
       return;
     }
-    if (!config?.wsUrl || !config?.uiSecret) return;
-    if (ws.current?.readyState === WebSocket.OPEN) return;
 
-    setStatus('reconnecting');
-    const url = `${config.wsUrl}?token=${config.uiSecret}`;
-    const socket = new WebSocket(url);
-    ws.current = socket;
+    let disposed = false;
+    let socket: WebSocket | null = null;
+    let pingTimer: number | null = null;
+    let reconnectTimer: number | null = null;
+    let reconnectCount = 0;
 
-    socket.onopen = () => {
-      setStatus('connected');
-      reconnectCount.current = 0;
-      
-      // Start pinging
-      pingTimer.current = window.setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'ping' }));
-        }
-      }, PING_INTERVAL);
-    };
-
-    socket.onmessage = (event) => {
+    const connect = () => {
+      if (disposed) return;
+      let endpoint: string;
       try {
-        const message: WSMessage = JSON.parse(event.data);
-        
-        switch (message.type) {
-          case 'error':
-            if (message.message?.toLowerCase().includes('auth') || message.message?.toLowerCase().includes('secret')) {
-              openSettings();
-            }
-            break;
-          case 'connected':
-          case 'stats':
-            if (message.connections !== undefined) setConnections(message.connections);
-            if (message.data?.connections !== undefined) setConnections(message.data.connections);
-            break;
-          case 'log':
-            const newLog = message.data as LogEntry;
-            if (isLive) {
-              setLogs(prev => [newLog, ...prev].slice(0, 500));
-            } else {
-              setBuffer(prev => [newLog, ...prev]);
-            }
-            break;
-          case 'pong':
-            // Keep alive confirmed
-            break;
-        }
+        endpoint = streamEndpoint(wsUrl, uiSecret);
       } catch (e) {
-        console.error('Failed to parse WS message', e);
-      }
-    };
-
-    socket.onclose = (event) => {
-      setStatus('disconnected');
-      if (pingTimer.current) clearInterval(pingTimer.current);
-      
-      // If closed with 4001 (custom auth error) or similar, don't auto-reconnect without settings
-      if (event.code === 4001) {
-        openSettings();
+        // A malformed URL won't fix itself by retrying: the settings need changing.
+        console.error(e);
+        setStatus('disconnected');
         return;
       }
+      setStatus('reconnecting');
+      socket = new WebSocket(endpoint);
+      const current = socket;
 
-      // Exponential backoff
-      const delay = RECONNECT_INTERVALS[Math.min(reconnectCount.current, RECONNECT_INTERVALS.length - 1)];
-      setTimeout(connect, delay);
-      reconnectCount.current++;
+      current.onopen = () => {
+        setStatus('connected');
+        reconnectCount = 0;
+        onOpenRef.current?.();
+        pingTimer = window.setInterval(() => {
+          if (current.readyState === WebSocket.OPEN) {
+            current.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, PING_INTERVAL);
+      };
+
+      current.onmessage = (event) => {
+        try {
+          const message: WSMessage = JSON.parse(event.data);
+          switch (message.type) {
+            case 'error': {
+              const text = message.message?.toLowerCase() ?? '';
+              if (text.includes('auth') || text.includes('secret')) openSettingsRef.current();
+              break;
+            }
+            case 'connected':
+            case 'stats':
+              if (message.connections !== undefined) setConnections(message.connections);
+              if (message.data?.connections !== undefined) setConnections(message.data.connections);
+              break;
+            case 'log':
+              onLogRef.current(message.data as LogEntry);
+              break;
+            case 'pong':
+              break;
+          }
+        } catch (e) {
+          console.error('Failed to parse WS message', e);
+        }
+      };
+
+      current.onclose = (event) => {
+        if (pingTimer) clearInterval(pingTimer);
+        pingTimer = null;
+        if (disposed) return;
+        setStatus('disconnected');
+
+        // 4001 is the server's auth rejection: reconnecting won't help until the settings change.
+        if (event.code === 4001) {
+          openSettingsRef.current();
+          return;
+        }
+
+        const delay = RECONNECT_INTERVALS[Math.min(reconnectCount, RECONNECT_INTERVALS.length - 1)];
+        reconnectCount++;
+        reconnectTimer = window.setTimeout(connect, delay);
+      };
+
+      current.onerror = () => current.close();
     };
 
-    socket.onerror = () => {
-      socket.close();
-    };
-  }, [config, isLive, openSettings, isWebsocketEnabled]);
-
-  useEffect(() => {
     connect();
+
     return () => {
-      if (ws.current) {
-        ws.current.close();
-      }
-      if (pingTimer.current) clearInterval(pingTimer.current);
+      disposed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (pingTimer) clearInterval(pingTimer);
+      socket?.close();
     };
-  }, [connect]);
+  }, [isWebsocketEnabled, wsUrl, uiSecret]);
 
-  useEffect(() => {
-    if (!isWebsocketEnabled) {
-      if (ws.current) {
-        ws.current.close();
-        ws.current = null;
-      }
-      setIsLive(false);
-    }
-  }, [isWebsocketEnabled]);
-
-  const flushBuffer = useCallback(() => {
-    setLogs(prev => [...buffer, ...prev].slice(0, 500));
-    setBuffer([]);
-  }, [buffer]);
-
-  const clearLogs = useCallback(() => {
-    setLogs([]);
-    setBuffer([]);
-  }, []);
-
-  const handleSetIsLive = useCallback((live: boolean) => {
-    if (!isWebsocketEnabled && live) {
-      return;
-    }
-    setIsLive(live);
-  }, [isWebsocketEnabled]);
-
-  return {
-    status,
-    connections,
-    logs,
-    buffer,
-    isLive,
-    setIsLive: handleSetIsLive,
-    flushBuffer,
-    clearLogs
-  };
+  return { status, connections, isWebsocketEnabled };
 }

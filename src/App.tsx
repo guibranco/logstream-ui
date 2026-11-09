@@ -8,7 +8,7 @@ import { SettingsScreen } from './components/SettingsScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useWebSocket } from './hooks/useWebSocket';
-import { useLogs } from './hooks/useLogs';
+import { useEventFeed } from './hooks/useEventFeed';
 import { SearchFilters } from './types';
 import { withContextFilter } from './lib/contextProperties';
 import { filtersFromQuery, urlWithFilters } from './lib/filterUrl';
@@ -42,29 +42,12 @@ function LogStreamApp() {
     }
   });
   const { data: serverInfo } = useServerInfo();
-  
-  const [limit, setLimit] = useState(100);
-  const [offset, setOffset] = useState(0);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+  // Pausing holds new events above the list; the screen stays the same.
+  const [isPaused, setIsPaused] = useState(false);
 
-  const {
-    status,
-    connections,
-    logs: liveLogs,
-    buffer,
-    isLive,
-    setIsLive,
-    flushBuffer,
-    clearLogs
-  } = useWebSocket();
-
-  const {
-    data: searchResult,
-    isLoading,
-    isError,
-    error,
-    refetch
-  } = useLogs(filters, limit, offset);
+  const feed = useEventFeed(filters);
+  const { status, connections, isWebsocketEnabled } = useWebSocket(feed.pushLive, feed.catchUp);
 
   useEffect(() => {
     try {
@@ -75,43 +58,28 @@ function LogStreamApp() {
     window.history.replaceState(window.history.state, '', urlWithFilters(window.location, filters));
   }, [filters]);
 
-  // Opening a link that carries filters means "show me these results", not the live tail.
-  useEffect(() => {
-    if (initialUrlFilters) setIsLive(false);
-  }, [initialUrlFilters, setIsLive]);
-
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
   }, [currentView]);
 
   const handleSearch = useCallback((newFilters: SearchFilters) => {
     setFilters(newFilters);
-    setOffset(0);
-    setIsLive(false); // Switch to search mode
-  }, [setIsLive]);
+  }, []);
 
   const handleFilterBatch = useCallback((batchId: string) => {
-    const newFilters = { ...filters, batch_id: batchId, trace_id: undefined, search: undefined };
-    setFilters(newFilters);
-    setOffset(0);
-    setIsLive(false);
-  }, [filters, setIsLive]);
+    setFilters(f => ({ ...f, batch_id: batchId, trace_id: undefined, search: undefined }));
+  }, []);
 
   const handleFilterTrace = useCallback((traceId: string) => {
-    const newFilters = { ...filters, trace_id: traceId, batch_id: undefined, search: undefined };
-    setFilters(newFilters);
-    setOffset(0);
-    setIsLive(false);
-  }, [filters, setIsLive]);
+    setFilters(f => ({ ...f, trace_id: traceId, batch_id: undefined, search: undefined }));
+  }, []);
 
   const handleFilterContext = useCallback((path: string, value: string, exclude: boolean) => {
-    setFilters(withContextFilter(filters, path, value, exclude));
-    setOffset(0);
-    setIsLive(false);
-  }, [filters, setIsLive]);
+    setFilters(f => withContextFilter(f, path, value, exclude));
+  }, []);
 
-  const activeLogs = isLive ? liveLogs : (searchResult?.entries || []);
-  const total = isLive ? liveLogs.length : (searchResult?.total || 0);
+  // Resuming shows the held events as soon as nothing else holds the feed (expanded row, scroll).
+  const handleSetIsLive = useCallback((live: boolean) => setIsPaused(!live), []);
 
   if (isSettingsOpen || !isConfigured) {
     return <SettingsScreen />;
@@ -134,27 +102,31 @@ function LogStreamApp() {
 
             <main className="flex-1 flex flex-col min-h-0">
               <LogTable
-                logs={activeLogs}
-                isLoading={isLoading && !isLive}
-                isError={isError && !isLive}
-                error={error as Error}
-                total={total}
-                limit={limit}
-                offset={offset}
-                onPageChange={setOffset}
-                onLimitChange={setLimit}
+                key={JSON.stringify(filters)}
+                logs={feed.entries}
+                pendingCount={feed.pendingCount}
+                pendingOverflow={feed.pendingOverflow}
+                total={feed.total}
+                hasMore={feed.hasMore}
+                isLoading={feed.isLoadingInitial}
+                isLoadingOlder={feed.isLoadingOlder}
+                error={feed.error}
+                isPaused={isPaused}
+                isLiveEnabled={isWebsocketEnabled}
+                onLoadOlder={feed.loadOlder}
+                onShowPending={feed.flush}
+                onHoldChange={feed.setHold}
                 onFilterBatch={handleFilterBatch}
                 onFilterTrace={handleFilterTrace}
                 onFilterContext={handleFilterContext}
-                isLiveMode={isLive}
-                onRetry={() => refetch()}
+                onRetry={feed.reload}
               />
             </main>
 
             <StatsDrawer
               isOpen={isStatsOpen}
               onClose={() => setIsStatsOpen(false)}
-              logs={liveLogs}
+              logs={feed.entries}
             />
           </>
         );
@@ -166,13 +138,12 @@ function LogStreamApp() {
       <Header
         status={status}
         connections={connections}
-        isLive={isLive}
-        setIsLive={setIsLive}
-        bufferCount={buffer.length}
+        isLive={!isPaused}
+        setIsLive={handleSetIsLive}
+        pendingCount={feed.pendingCount}
         currentView={currentView}
         setCurrentView={setCurrentView}
-        onFlush={flushBuffer}
-        onClear={clearLogs}
+        onReload={feed.reload}
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenSettings={openSettings}
         onDisconnect={signOut}

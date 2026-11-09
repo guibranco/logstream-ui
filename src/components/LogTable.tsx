@@ -1,113 +1,231 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { LogEntry, SearchFilters } from '../types';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { LogEntry } from '../types';
 import { LogRow } from './LogRow';
 import { Skeleton } from './Skeleton';
-import { AlertCircle, Inbox, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, Inbox, ArrowUp, Loader2 } from 'lucide-react';
 
 interface LogTableProps {
   logs: LogEntry[];
-  isLoading: boolean;
-  isError: boolean;
-  error: Error | null;
+  /** Live events waiting above the list while the feed is held. */
+  pendingCount: number;
+  /** More events arrived while held than could be kept; showing them reloads. */
+  pendingOverflow?: boolean;
   total: number;
-  limit: number;
-  offset: number;
-  onPageChange: (offset: number) => void;
-  onLimitChange: (limit: number) => void;
+  hasMore: boolean;
+  isLoading: boolean;
+  isLoadingOlder: boolean;
+  error: Error | null;
+  /** The user paused the live tail from the header. */
+  isPaused: boolean;
+  isLiveEnabled: boolean;
+  onLoadOlder: () => void;
+  onShowPending: () => void;
+  /** Tells the feed whether new events must wait instead of being added on top. */
+  onHoldChange: (hold: boolean) => void;
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
-  isLiveMode: boolean;
   onRetry: () => void;
 }
 
-const ROW_HEIGHT = 48;
+/** Within this distance of the top the list follows new events. */
+const TOP_THRESHOLD = 8;
+/** Start fetching older events this far before the bottom. */
+const LOAD_OLDER_THRESHOLD = 600;
+
+/** Why new events are being held, or null while following. */
+function holdReasonOf(isPaused: boolean, hasExpanded: boolean, isAtTop: boolean): string | null {
+  if (isPaused) return 'Paused';
+  if (hasExpanded) return 'Paused while an event is expanded';
+  if (!isAtTop) return 'Paused while scrolled down';
+  return null;
+}
+
+const LoadFailed: React.FC<{ error: Error; onRetry: () => void }> = ({ error, onRetry }) => (
+  <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+    <div className="w-16 h-16 bg-rose-900/20 rounded-full flex items-center justify-center mb-4 border border-rose-900/30">
+      <AlertCircle className="text-rose-500" size={32} />
+    </div>
+    <h3 className="text-lg font-bold text-gray-100 mb-2">Failed to load logs</h3>
+    <p className="text-gray-400 mb-6 max-w-md">{error.message || 'An unexpected error occurred while fetching logs.'}</p>
+    <button
+      onClick={onRetry}
+      className="bg-gray-800 hover:bg-gray-700 text-gray-100 px-6 py-2 rounded font-medium transition-colors"
+    >
+      Retry
+    </button>
+  </div>
+);
+
+const NoEvents: React.FC<{ isLiveEnabled: boolean }> = ({ isLiveEnabled }) => (
+  <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+    <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
+      <Inbox className="text-gray-600" size={32} />
+    </div>
+    <h3 className="text-lg font-bold text-gray-100 mb-2">No logs found</h3>
+    <p className="text-gray-500 max-w-md">
+      {isLiveEnabled && 'Waiting for new events. '}
+      Try adjusting your filters or check if the app is sending logs.
+    </p>
+  </div>
+);
+
+/** Last line of the list: loading, retry, more to load, or the end. */
+const FeedEnd: React.FC<{
+  isLoadingOlder: boolean;
+  hasError: boolean;
+  hasMore: boolean;
+  onLoadOlder: () => void;
+}> = ({ isLoadingOlder, hasError, hasMore, onLoadOlder }) => {
+  let content: React.ReactNode = 'No older events';
+  if (isLoadingOlder) {
+    content = (
+      <>
+        <Loader2 size={14} className="animate-spin" />
+        Loading older events…
+      </>
+    );
+  } else if (hasError) {
+    content = (
+      <button onClick={onLoadOlder} className="text-rose-400 hover:text-rose-300">
+        Failed to load older events — retry
+      </button>
+    );
+  } else if (hasMore) {
+    content = (
+      <button onClick={onLoadOlder} className="hover:text-gray-400">
+        Load older events
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center gap-2 py-4 text-xs text-gray-600" data-testid="feed-end">
+      {content}
+    </div>
+  );
+};
+
+const FeedStatus: React.FC<{ isLiveEnabled: boolean; holdReason: string | null }> = ({ isLiveEnabled, holdReason }) => {
+  if (!isLiveEnabled) return <span className="text-gray-600">Live view disabled</span>;
+  if (holdReason) return <span className="text-amber-400">{holdReason}</span>;
+  return <span className="text-green-400">Following new events</span>;
+};
+
+const PendingBanner: React.FC<{
+  count: number;
+  overflow: boolean;
+  holdReason: string | null;
+  onClick: () => void;
+}> = ({ count, overflow, holdReason, onClick }) => (
+  <button
+    onClick={onClick}
+    data-testid="pending-banner"
+    className="flex items-center justify-center gap-2 h-8 text-xs font-medium bg-secondary-900/40 border-b border-secondary-800/50 text-secondary-300 hover:bg-secondary-900/60 transition-colors"
+  >
+    <ArrowUp size={14} />
+    {overflow ? `${count}+` : count} new {count === 1 ? 'event' : 'events'}
+    {holdReason && <span className="text-gray-500">· {holdReason.toLowerCase()} — click to show</span>}
+  </button>
+);
 
 export const LogTable: React.FC<LogTableProps> = ({
   logs,
-  isLoading,
-  isError,
-  error,
+  pendingCount,
+  pendingOverflow = false,
   total,
-  limit,
-  offset,
-  onPageChange,
-  onLimitChange,
+  hasMore,
+  isLoading,
+  isLoadingOlder,
+  error,
+  isPaused,
+  isLiveEnabled,
+  onLoadOlder,
+  onShowPending,
+  onHoldChange,
   onFilterBatch,
   onFilterTrace,
   onFilterContext,
-  isLiveMode,
   onRetry
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  const [isAtTop, setIsAtTop] = useState(true);
+
+  // Only rows still on screen count: a reload or new filters can remove an expanded one.
+  const hasExpanded = useMemo(
+    () => expandedIds.size > 0 && logs.some(log => expandedIds.has(log.id)),
+    [expandedIds, logs],
+  );
+  const hold = isPaused || hasExpanded || !isAtTop;
 
   useEffect(() => {
-    const handleResize = () => {
-      if (containerRef.current) {
-        setContainerHeight(containerRef.current.clientHeight);
-      }
-    };
+    onHoldChange(hold);
+  }, [hold, onHoldChange]);
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+  const toggleExpanded = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
+  /** Load the next older page when the bottom is near, or when the list doesn't fill the screen. */
+  const maybeLoadOlder = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || !hasMore || isLoadingOlder || isLoading) return;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < LOAD_OLDER_THRESHOLD) onLoadOlder();
+  }, [hasMore, isLoadingOlder, isLoading, onLoadOlder]);
+
+  useEffect(() => {
+    maybeLoadOlder();
+  }, [logs.length, maybeLoadOlder]);
+
+  const handleScroll = () => {
+    const el = containerRef.current;
+    if (!el) return;
+    setIsAtTop(el.scrollTop <= TOP_THRESHOLD);
+    maybeLoadOlder();
   };
 
-  const { virtualizedLogs, paddingTop, paddingBottom } = useMemo(() => {
-    if (logs.length <= 100) {
-      return {
-        virtualizedLogs: logs.map((log, index) => ({ log, index })),
-        paddingTop: 0,
-        paddingBottom: 0
-      };
-    }
+  const showPending = () => {
+    onShowPending();
+    if (containerRef.current) containerRef.current.scrollTop = 0;
+  };
 
-    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 10);
-    const endIndex = Math.min(logs.length - 1, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + 10);
+  if (error && logs.length === 0) return <LoadFailed error={error} onRetry={onRetry} />;
 
-    return {
-      virtualizedLogs: logs.slice(startIndex, endIndex + 1).map((log, index) => ({
-        log,
-        index: startIndex + index
-      })),
-      paddingTop: startIndex * ROW_HEIGHT,
-      paddingBottom: (logs.length - endIndex - 1) * ROW_HEIGHT
-    };
-  }, [logs, scrollTop, containerHeight]);
+  const holdReason = holdReasonOf(isPaused, hasExpanded, isAtTop);
 
-  if (isError) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-        <div className="w-16 h-16 bg-rose-900/20 rounded-full flex items-center justify-center mb-4 border border-rose-900/30">
-          <AlertCircle className="text-rose-500" size={32} />
-        </div>
-        <h3 className="text-lg font-bold text-gray-100 mb-2">Failed to load logs</h3>
-        <p className="text-gray-400 mb-6 max-w-md">{error?.message || 'An unexpected error occurred while fetching logs.'}</p>
-        <button
-          onClick={onRetry}
-          className="bg-gray-800 hover:bg-gray-700 text-gray-100 px-6 py-2 rounded font-medium transition-colors"
-        >
-          Retry
-        </button>
+  let body: React.ReactNode;
+  if (isLoading && logs.length === 0) {
+    body = (
+      <div className="divide-y divide-gray-900">
+        <Skeleton />
+        <Skeleton />
+        <Skeleton />
       </div>
     );
-  }
-
-  if (!isLoading && logs.length === 0) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-        <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
-          <Inbox className="text-gray-600" size={32} />
-        </div>
-        <h3 className="text-lg font-bold text-gray-100 mb-2">No logs found</h3>
-        <p className="text-gray-500 max-w-md">Try adjusting your filters or check if the app is sending logs.</p>
-      </div>
+  } else if (logs.length === 0) {
+    body = <NoEvents isLiveEnabled={isLiveEnabled} />;
+  } else {
+    body = (
+      <>
+        {logs.map(log => (
+          <LogRow
+            key={log.id}
+            log={log}
+            isLive={isLiveEnabled}
+            isExpanded={expandedIds.has(log.id)}
+            onToggle={toggleExpanded}
+            onFilterBatch={onFilterBatch}
+            onFilterTrace={onFilterTrace}
+            onFilterContext={onFilterContext}
+          />
+        ))}
+        <FeedEnd isLoadingOlder={isLoadingOlder} hasError={!!error} hasMore={hasMore} onLoadOlder={onLoadOlder} />
+      </>
     );
   }
 
@@ -124,75 +242,30 @@ export const LogTable: React.FC<LogTableProps> = ({
         <div className="w-10 flex-shrink-0"></div>
       </div>
 
-      <div 
+      {pendingCount > 0 && (
+        <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={showPending} />
+      )}
+
+      <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto relative scroll-smooth"
+        data-testid="log-scroller"
+        className="flex-1 overflow-y-auto relative"
       >
-        {isLoading && logs.length === 0 ? (
-          <div className="divide-y divide-gray-900">
-            <Skeleton />
-            <Skeleton />
-            <Skeleton />
-          </div>
-        ) : (
-          <div style={{ paddingTop, paddingBottom }}>
-            {virtualizedLogs.map(({ log, index }) => (
-              <LogRow 
-                key={`${log.id}-${log.timestamp}-${index}`}
-                log={log} 
-                isLive={isLiveMode}
-                onFilterBatch={onFilterBatch}
-                onFilterTrace={onFilterTrace}
-                onFilterContext={onFilterContext}
-              />
-            ))}
-          </div>
-        )}
+        {body}
       </div>
 
-      {!isLiveMode && (
-        <div className="bg-gray-950 border-t border-gray-900 px-4 py-3 flex items-center justify-between text-xs text-gray-500">
-          <div>
-            Showing <span className="text-gray-300 font-mono">{offset + 1}</span>–
-            <span className="text-gray-300 font-mono">{Math.min(offset + limit, total)}</span> of 
-            <span className="text-gray-300 font-mono ml-1">{total}</span> results
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span>Page size:</span>
-              <select
-                value={limit}
-                onChange={(e) => onLimitChange(Number(e.target.value))}
-                className="bg-gray-900 border border-gray-800 rounded px-2 py-1 focus:outline-none focus:border-secondary-500 text-gray-300"
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={500}>500</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                disabled={offset === 0}
-                onClick={() => onPageChange(Math.max(0, offset - limit))}
-                className="p-1.5 bg-gray-900 border border-gray-800 rounded disabled:opacity-30 hover:bg-gray-800 transition-colors"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                disabled={offset + limit >= total}
-                onClick={() => onPageChange(offset + limit)}
-                className="p-1.5 bg-gray-900 border border-gray-800 rounded disabled:opacity-30 hover:bg-gray-800 transition-colors"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+      <div className="bg-gray-950 border-t border-gray-900 px-4 py-2 flex items-center justify-between text-xs text-gray-500">
+        <div>
+          <span className="text-gray-300 font-mono">{logs.length}</span> loaded
+          {total > 0 && (
+            <> of <span className="text-gray-300 font-mono">{total}</span> matching</>
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} />
+        </div>
+      </div>
     </div>
   );
 };

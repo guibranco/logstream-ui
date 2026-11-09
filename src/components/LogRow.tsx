@@ -14,10 +14,23 @@ interface LogRowProps {
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
+  /** Controlled expansion; when omitted the row keeps its own state. */
+  isExpanded?: boolean;
+  onToggle?: (id: string) => void;
 }
 
-export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFilterTrace, onFilterContext }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+export const LogRow: React.FC<LogRowProps> = ({
+  log,
+  isLive,
+  onFilterBatch,
+  onFilterTrace,
+  onFilterContext,
+  isExpanded: expandedProp,
+  onToggle,
+}) => {
+  const [expandedState, setExpandedState] = useState(false);
+  const isExpanded = expandedProp ?? expandedState;
+  const toggle = () => (onToggle ? onToggle(log.id) : setExpandedState(v => !v));
   const [copied, setCopied] = useState<string | null>(null);
 
   const handleCopy = (text: string, type: string) => {
@@ -29,7 +42,10 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
   const timestamp = new Date(log.timestamp);
 
   return (
-    <div className={cn(
+    <div
+      // Off-screen rows skip layout and paint, so long feeds stay cheap without windowing.
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 48px' }}
+      className={cn(
       "border-b border-gray-900 transition-colors",
       isExpanded ? "bg-gray-900/50" : "hover:bg-gray-900/30",
       isLive && "border-l-2",
@@ -44,7 +60,7 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
     )}>
       <div 
         className="flex items-center px-4 h-12 cursor-pointer select-none"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggle}
       >
         <div className="w-32 flex-shrink-0 text-xs text-gray-500 group relative">
           <span title={log.timestamp}>

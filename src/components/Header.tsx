@@ -1,7 +1,7 @@
 import React from 'react';
 import { WSStatus } from '../types';
 import { cn } from '../lib/utils';
-import { Activity, Trash2, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
+import { Activity, RefreshCw, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
 import { useServerInfo } from '../hooks/useServerInfo';
 import { ThemePicker } from './ThemePicker';
 
@@ -10,14 +10,18 @@ interface HeaderProps {
   connections: number;
   isLive: boolean;
   setIsLive: (live: boolean) => void;
-  bufferCount: number;
+  pendingCount: number;
   currentView: 'dashboard' | 'retention' | 'applications';
   setCurrentView: (view: 'dashboard' | 'retention' | 'applications') => void;
-  onFlush: () => void;
-  onClear: () => void;
+  onReload: () => void;
   onOpenStats: () => void;
   onOpenSettings: () => void;
   onDisconnect: () => void;
+}
+
+function liveLabel(isLive: boolean, pendingCount: number): string {
+  if (isLive) return 'Live';
+  return pendingCount > 0 ? `Paused · ${pendingCount} new` : 'Paused';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,11 +29,10 @@ export const Header: React.FC<HeaderProps> = ({
   connections,
   isLive,
   setIsLive,
-  bufferCount,
+  pendingCount,
   currentView,
   setCurrentView,
-  onFlush,
-  onClear,
+  onReload,
   onOpenStats,
   onOpenSettings,
   onDisconnect
@@ -101,51 +104,34 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3">
         {currentView === 'dashboard' && (
           <>
-            {bufferCount > 0 && !isLive && (
-              <button
-                onClick={onFlush}
-                className="bg-secondary-600 hover:bg-secondary-500 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors animate-bounce"
-              >
-                {bufferCount} new entries — click to load
-              </button>
-            )}
-
             {isWebsocketEnabled ? (
-              <div className="flex items-center bg-gray-900 rounded p-1 border border-gray-800">
-                <button
-                  onClick={() => setIsLive(true)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-all",
-                    isLive ? "bg-gray-800 text-green-400 shadow-sm" : "text-gray-500 hover:text-gray-300"
-                  )}
-                >
-                  <Zap size={14} />
-                  Live
-                </button>
-                <button
-                  onClick={() => setIsLive(false)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-all",
-                    !isLive ? "bg-gray-800 text-amber-400 shadow-sm" : "text-gray-500 hover:text-gray-300"
-                  )}
-                >
-                  <ZapOff size={14} />
-                  Paused
-                </button>
-              </div>
+              <button
+                onClick={() => setIsLive(!isLive)}
+                title={isLive ? 'Pause: hold new events above the list' : 'Resume following new events'}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all",
+                  isLive
+                    ? "bg-gray-900 border-gray-800 text-green-400 hover:bg-gray-800"
+                    : "bg-amber-900/20 border-amber-800/50 text-amber-400 hover:bg-amber-900/30"
+                )}
+              >
+                {isLive ? <Zap size={14} /> : <ZapOff size={14} />}
+                {liveLabel(isLive, pendingCount)}
+              </button>
             ) : (
               <div className="flex items-center bg-gray-900/40 rounded px-3 py-1.5 border border-gray-800 text-xs font-semibold text-amber-500 gap-1.5 cursor-not-allowed select-none">
                 <ZapOff size={14} />
-                Paused (Live View Disabled)
+                Live view disabled
               </div>
             )}
 
             <button
-              onClick={onClear}
-              className="p-2 text-gray-500 hover:text-rose-400 hover:bg-gray-900 rounded transition-all"
-              title="Clear live buffer"
+              onClick={onReload}
+              className="p-2 text-gray-500 hover:text-gray-200 hover:bg-gray-900 rounded transition-all"
+              title="Reload from the latest events"
+              aria-label="Reload from the latest events"
             >
-              <Trash2 size={18} />
+              <RefreshCw size={18} />
             </button>
 
             <button
