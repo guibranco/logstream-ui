@@ -4,10 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LogStream</title>
+    <script>
+      // Apply the last selected theme before the app loads, so a light theme does not flash dark.
+      // Written by src/themes/themeStore.ts (cacheResolvedTheme); the app re-applies it on start.
+      (function () {
+        try {
+          var cache = JSON.parse(localStorage.getItem('logservice:theme-cache') || 'null');
+          if (!cache) return;
+          var mode = cache.mode === 'system'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+            : cache.mode;
+          var vars = cache[mode];
+          if (!vars) return;
+          var root = document.documentElement;
+          for (var name in vars) root.style.setProperty(name, vars[name]);
+          root.dataset.mode = mode;
+          root.style.colorScheme = mode;
+        } catch (e) {
+          // Fall back to the default theme in index.css.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

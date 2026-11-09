@@ -54,7 +54,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
             <div className="p-4 bg-amber-500/10 rounded-full mb-4">
               <AlertCircle className="w-8 h-8 text-amber-500" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Retention is not enabled</h3>
+            <h3 className="text-xl font-bold text-gray-50 mb-2">Retention is not enabled</h3>
             <p className="text-gray-400 max-w-md">
               Set <code className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-300">RETENTION_CONFIG</code> in the server's .env to enable policy management.
             </p>
@@ -64,7 +64,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
             <div className="p-4 bg-red-500/10 rounded-full mb-4">
               <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Could not load policies</h3>
+            <h3 className="text-xl font-bold text-gray-50 mb-2">Could not load policies</h3>
             <p className="text-gray-400">{(error as Error).message}</p>
           </>
         )}
@@ -78,7 +78,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
         <div className="p-4 bg-gray-800 rounded-full mb-4">
           <Clock className="w-8 h-8 text-gray-500" />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">No retention policies</h3>
+        <h3 className="text-xl font-bold text-gray-50 mb-2">No retention policies</h3>
         <p className="text-gray-400 max-w-md">
           Create your first policy to start managing log lifecycle.
         </p>
@@ -102,7 +102,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
           {policies.map((policy) => (
             <tr key={policy.name} className="hover:bg-gray-800/50 transition-colors group">
               <td className="px-4 py-4">
-                <span className="font-mono text-sm font-bold text-blue-400">{policy.name}</span>
+                <span className="font-mono text-sm font-bold text-primary-400">{policy.name}</span>
               </td>
               <td className="px-4 py-4">
                 <span className="text-sm text-gray-200">
@@ -150,7 +150,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => setDeletingName(null)}
-                        className="text-xs text-gray-400 hover:text-white px-2 py-1"
+                        className="text-xs text-gray-400 hover:text-gray-50 px-2 py-1"
                       >
                         Cancel
                       </button>
@@ -166,7 +166,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
                     <>
                       <button
                         onClick={() => onEdit(policy)}
-                        className="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-gray-800 rounded transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-primary-400 hover:bg-gray-800 rounded transition-colors"
                         title="Edit policy"
                       >
                         <Pencil size={16} />

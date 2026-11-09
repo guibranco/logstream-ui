@@ -61,7 +61,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
           </h3>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-50 hover:bg-gray-800 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -76,7 +76,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Billing service"
-              className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all placeholder:text-gray-600"
+              className="w-full bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 transition-all placeholder:text-gray-600"
             />
           </div>
 
@@ -114,7 +114,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
             <div className="mt-4 p-3 bg-gray-950 rounded border border-gray-800 space-y-1">
               <span className="text-[10px] uppercase tracking-wider font-bold text-gray-600">Header Preview</span>
               <p className="text-xs font-mono text-gray-400">
-                X-Api-Key: <span className="text-blue-400">{appKey || 'your-service'}</span>
+                X-Api-Key: <span className="text-primary-400">{appKey || 'your-service'}</span>
               </p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
               <button
                 onClick={() => setActive(!active)}
                 className={cn(
-                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900",
+                  "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900",
                   active ? "bg-green-600" : "bg-gray-700"
                 )}
               >
@@ -161,7 +161,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
           <button
             onClick={handleSubmit}
             disabled={isLoading || !name || (!isEditing && !isAppKeyValid)}
-            className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
+            className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-900/20"
           >
             {isLoading && <Loader2 size={18} className="animate-spin" />}
             {isEditing ? 'Save Changes' : 'Register App'}

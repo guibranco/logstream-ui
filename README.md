@@ -15,7 +15,7 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
 - **Auth-aware** — separate read key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
-- **Dark mode only** — purpose-built dark theme with colour-coded log level badges
+- **Themes** — Blue and Green themes, each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
 
 ---
 
@@ -102,6 +102,61 @@ The UI connects to `wss://host/ws?token=<UI_SECRET>`. On success the server send
 ### HTTP 401 handling
 
 Any `401` response clears the stored config and redirects to the settings screen with the message *"Session expired or secret rejected — update your settings."*
+
+---
+
+## Themes
+
+The 🎨 button in the header (also on the settings screen) picks the theme and the mode: **Light**, **Dark** or **System** (follows the operating system, switching live). The choice is stored in `localStorage` under `logservice:theme`; the default is Blue, dark. A small script in `index.html` re-applies the last theme before the app loads, so a light theme does not flash dark.
+
+| Theme | Neutral | Primary (buttons, links, focus) | Secondary (filters, highlights) |
+|-------|---------|----------------------------------|----------------------------------|
+| Blue | `gray` | `blue` | `sky` |
+| Green | `zinc` | `emerald` | `green` |
+
+### How it works
+
+Components use three colour roles, always written for a dark UI:
+
+- `gray-*` — the neutral scale (backgrounds, borders, text; `text-gray-50` is the strongest text)
+- `primary-*` — the main accent
+- `secondary-*` — the second accent
+
+Status and log-level colours (`red`, `amber`, `green`, `sky` for `info`…) stay Tailwind's own and do not change with the theme. Use `text-white` only on solid coloured buttons (`bg-primary-600`, `bg-red-600`…), never on a neutral surface.
+
+The active theme writes those roles as CSS variables (`--color-gray-950`, `--color-primary-600`…) on `<html>`. For a light variant it flips the scales: the neutral scale end to end (`bg-gray-950` becomes the lightest surface, `text-gray-100` dark text), and accent and status colours around the middle (`-300`/`-400` text becomes `-700`/`-600`, `-900` tints become `-200`, while `-500` to `-700` keep their value so solid buttons look the same in both modes).
+
+### Adding a theme
+
+Add a file to `src/themes/presets/`; it is picked up automatically:
+
+```ts
+// src/themes/presets/violet.ts
+import colors from 'tailwindcss/colors';
+import { defineTheme } from '../types';
+
+export default defineTheme({
+  id: 'violet',             // stored in preferences; keep it stable
+  name: 'Violet',
+  description: 'Slate with violet and fuchsia accents',
+  order: 2,                 // position in the picker (optional)
+  dark: {
+    neutral: colors.slate,
+    primary: colors.violet,
+    secondary: colors.fuchsia, // optional, defaults to primary
+  },
+  light: {
+    neutral: colors.slate,
+    primary: colors.violet,
+    secondary: colors.fuchsia,
+    overrides: {
+      'gray-950': colors.white, // any variable, any CSS colour, applied last
+    },
+  },
+});
+```
+
+Give each scale in its natural order (50 lightest, 950 darkest); the light variant is flipped for you. Scales do not have to come from Tailwind: any object with the keys `50` to `950` works. `overrides` sets single variables after the mapping (`'primary-600': 'oklch(52% 0.15 160)'`). `tests/themes/registry.test.ts` checks every preset has complete light and dark variants.
 
 ---
 
@@ -194,13 +249,21 @@ src/
 ├── store/
 │   └── configStore.ts          localStorage read / write / clear helpers
 ├── context/
-│   └── AuthContext.tsx          Active config + openSettings() + signOut()
+│   ├── AuthContext.tsx          Active config + openSettings() + signOut()
+│   └── ThemeContext.tsx         Selected theme and mode, applied to <html>
+├── themes/
+│   ├── types.ts                 ThemeDefinition, defineTheme()
+│   ├── engine.ts                Theme → CSS variables (light flips the scales)
+│   ├── registry.ts              Loads every file in presets/
+│   ├── themeStore.ts            Theme preference in localStorage
+│   └── presets/                 One file per theme (blue.ts, green.ts)
 ├── hooks/
 │   ├── useWebSocket.ts          Auto-reconnecting WS hook with backoff
 │   └── useLogs.ts               TanStack Query wrapper for GET /api/logs
 ├── components/
 │   ├── SettingsScreen.tsx       First-visit and edit-mode settings form
 │   ├── Header.tsx               Sticky top bar
+│   ├── ThemePicker.tsx          Theme and light/dark/system menu
 │   ├── FilterBar.tsx            Sticky search + filter controls
 │   ├── LogTable.tsx             Virtualised log entry table
 │   ├── LogRow.tsx               Single table row

@@ -49,7 +49,7 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
           <span title={log.timestamp}>
             {formatDistanceToNow(timestamp, { addSuffix: true })}
           </span>
-          <div className="absolute hidden group-hover:block bg-gray-800 text-white p-1 rounded -top-8 left-0 z-10 whitespace-nowrap border border-gray-700">
+          <div className="absolute hidden group-hover:block bg-gray-800 text-gray-50 p-1 rounded -top-8 left-0 z-10 whitespace-nowrap border border-gray-700">
             {format(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}
           </div>
         </div>
@@ -58,7 +58,7 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
           <LevelBadge level={log.level} />
         </div>
 
-        <div className="w-32 flex-shrink-0 text-xs font-mono text-sky-400 truncate px-2">
+        <div className="w-32 flex-shrink-0 text-xs font-mono text-secondary-400 truncate px-2">
           {log.app_key}
         </div>
 
@@ -164,7 +164,7 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
                     )}
                     <button 
                       onClick={() => onFilterTrace(log.trace_id)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-sky-900/30 border border-sky-800/50 text-sky-400 text-xs font-bold rounded hover:bg-sky-900/50 transition-all"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-secondary-900/30 border border-secondary-800/50 text-secondary-400 text-xs font-bold rounded hover:bg-secondary-900/50 transition-all"
                     >
                       <ExternalLink size={14} />
                       View trace

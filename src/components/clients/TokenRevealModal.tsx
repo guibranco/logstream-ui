@@ -48,12 +48,12 @@ export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, toke
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-widest text-gray-500">API Token</label>
               <div className="relative group">
-                <div className="bg-gray-950 border border-gray-800 rounded-lg pl-4 pr-12 py-3 font-mono text-sm text-blue-400 break-all select-all ring-2 ring-blue-500/10">
+                <div className="bg-gray-950 border border-gray-800 rounded-lg pl-4 pr-12 py-3 font-mono text-sm text-primary-400 break-all select-all ring-2 ring-primary-500/10">
                   {token}
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-all active:scale-95"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-50 hover:bg-gray-800 rounded-md transition-all active:scale-95"
                   title="Copy to clipboard"
                 >
                   {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
@@ -75,7 +75,7 @@ export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, toke
         <div className="p-6 bg-gray-900 border-t border-gray-800">
           <button
             onClick={onClose}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-primary-900/20 flex items-center justify-center gap-2"
           >
             <ShieldCheck size={20} />
             I've saved the token securely

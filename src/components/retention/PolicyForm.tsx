@@ -112,16 +112,16 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
       <div className="relative w-full max-w-lg bg-gray-950 border-l border-gray-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         <header className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">
+            <h2 className="text-xl font-bold text-gray-50">
               {isEditing ? 'Edit Policy' : 'New Policy'}
             </h2>
             {isEditing && (
-              <p className="text-xs font-mono text-blue-400 mt-0.5">{policy.name}</p>
+              <p className="text-xs font-mono text-primary-400 mt-0.5">{policy.name}</p>
             )}
           </div>
           <button 
             onClick={onClose}
-            className="p-2 text-gray-500 hover:text-white hover:bg-gray-900 rounded-lg transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-50 hover:bg-gray-900 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -140,7 +140,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                   placeholder="e.g. remove-old-debug"
                   disabled={isEditing}
                   className={cn(
-                    "w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all",
+                    "w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all",
                     isEditing && "opacity-50 cursor-not-allowed"
                   )}
                 />
@@ -158,10 +158,10 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                     min="1"
                     value={formData.older_than_days}
                     onChange={(e) => setFormData({ ...formData, older_than_days: Number(e.target.value) })}
-                    className="w-24 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-24 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                   />
                   {cutoffDate && (
-                    <span className="text-xs text-blue-400 font-medium bg-blue-400/10 px-2 py-1 rounded">
+                    <span className="text-xs text-primary-400 font-medium bg-primary-400/10 px-2 py-1 rounded">
                       Entries before: {format(cutoffDate, 'MMM d, yyyy')}
                     </span>
                   )}
@@ -179,7 +179,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                   <select
                     value={formData.level || ''}
                     onChange={(e) => setFormData({ ...formData, level: (e.target.value || undefined) as LogLevel })}
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none"
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none"
                   >
                     <option value="">(any)</option>
                     <option value="debug">debug</option>
@@ -197,7 +197,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                     value={formData.app_key || ''}
                     onChange={(e) => setFormData({ ...formData, app_key: e.target.value })}
                     placeholder="e.g. billing-api"
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                   />
                 </div>
               </div>
@@ -210,7 +210,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                     value={formData.app_id || ''}
                     onChange={(e) => setFormData({ ...formData, app_id: e.target.value })}
                     placeholder="e.g. production"
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -220,7 +220,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                     value={formData.category || ''}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     placeholder="e.g. auth"
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                   />
                 </div>
               </div>
@@ -232,7 +232,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                   onChange={(e) => setFormData({ ...formData, message_regex: e.target.value })}
                   placeholder="e.g. .*@hotmail\.com"
                   rows={2}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all font-mono"
                 />
               </div>
 
@@ -243,7 +243,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                   value={formData.message_glob || ''}
                   onChange={(e) => setFormData({ ...formData, message_glob: e.target.value })}
                   placeholder="e.g. *@gmail.com"
-                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                  className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                 />
               </div>
             </div>
@@ -279,7 +279,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-gray-50 hover:bg-gray-800 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -287,7 +287,7 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
               form="policy-form"
               type="submit"
               disabled={isPending}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition-all active:scale-95"
+              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-semibold transition-all active:scale-95"
             >
               {isPending ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

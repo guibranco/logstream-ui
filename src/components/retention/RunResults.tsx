@@ -23,7 +23,7 @@ export function RunResults({ results }: RunResultsProps) {
           </span>
         </div>
         {isDryRun && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-primary-400 border border-primary-400/20 px-2 py-0.5 rounded">
             Dry run results
           </span>
         )}
@@ -43,7 +43,7 @@ export function RunResults({ results }: RunResultsProps) {
                 {prunedCount === 0 ? (
                   <span className="text-[10px] text-gray-500 font-medium bg-gray-800 px-1.5 py-0.5 rounded">Clean</span>
                 ) : (
-                  <span className="text-[10px] text-blue-400 font-bold bg-blue-400/10 px-1.5 py-0.5 rounded uppercase">Active</span>
+                  <span className="text-[10px] text-primary-400 font-bold bg-primary-400/10 px-1.5 py-0.5 rounded uppercase">Active</span>
                 )}
               </div>
               
@@ -54,7 +54,7 @@ export function RunResults({ results }: RunResultsProps) {
                       <Trash2 size={12} />
                       <span className="text-[10px] uppercase tracking-wider font-semibold">Deleted Entries</span>
                     </div>
-                    <div className="text-2xl font-bold text-white tabular-nums">
+                    <div className="text-2xl font-bold text-gray-50 tabular-nums">
                       {result.dry_run ? '~' : ''}{prunedCount.toLocaleString()}
                     </div>
                   </div>

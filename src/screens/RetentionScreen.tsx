@@ -27,8 +27,8 @@ export function RetentionScreen() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <Database className="w-7 h-7 text-blue-500" />
+            <h1 className="text-2xl font-bold text-gray-50 tracking-tight flex items-center gap-2">
+              <Database className="w-7 h-7 text-primary-500" />
               Retention Management
             </h1>
             <p className="text-gray-400 text-sm mt-1">
@@ -38,7 +38,7 @@ export function RetentionScreen() {
           
           <button
             onClick={handleCreateNew}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-600/20 active:scale-95 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-primary-600/20 active:scale-95 whitespace-nowrap"
           >
             <Plus size={18} />
             New Policy

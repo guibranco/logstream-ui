@@ -3,6 +3,7 @@ import { WSStatus } from '../types';
 import { cn } from '../lib/utils';
 import { Activity, Trash2, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
 import { useServerInfo } from '../hooks/useServerInfo';
+import { ThemePicker } from './ThemePicker';
 
 interface HeaderProps {
   status: WSStatus;
@@ -65,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setCurrentView('dashboard')}
             className={cn(
               "px-4 py-1.5 rounded-md text-sm font-medium transition-all",
-              currentView === 'dashboard' ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              currentView === 'dashboard' ? "bg-gray-800 text-gray-50 shadow-sm" : "text-gray-500 hover:text-gray-300"
             )}
           >
             Dashboard
@@ -76,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setCurrentView('applications')}
               className={cn(
                 "px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2",
-                currentView === 'applications' ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+                currentView === 'applications' ? "bg-gray-800 text-gray-50 shadow-sm" : "text-gray-500 hover:text-gray-300"
               )}
             >
               <ServerIcon size={14} />
@@ -88,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setCurrentView('retention')}
             className={cn(
               "px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2",
-              currentView === 'retention' ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              currentView === 'retention' ? "bg-gray-800 text-gray-50 shadow-sm" : "text-gray-500 hover:text-gray-300"
             )}
           >
             <Clock size={14} />
@@ -103,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             {bufferCount > 0 && !isLive && (
               <button
                 onClick={onFlush}
-                className="bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors animate-bounce"
+                className="bg-secondary-600 hover:bg-secondary-500 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors animate-bounce"
               >
                 {bufferCount} new entries — click to load
               </button>
@@ -159,9 +160,11 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         <div className="flex items-center gap-1">
+          <ThemePicker />
+
           <button
             onClick={onOpenSettings}
-            className="p-2 text-gray-500 hover:text-blue-400 hover:bg-gray-900 rounded transition-all"
+            className="p-2 text-gray-500 hover:text-primary-400 hover:bg-gray-900 rounded transition-all"
             title="Update connection settings"
           >
             <Settings size={18} />

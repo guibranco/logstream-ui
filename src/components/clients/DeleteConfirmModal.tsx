@@ -46,8 +46,8 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ client, 
           </div>
           <h3 className="text-xl font-bold text-gray-100 mb-2">Application Deleted</h3>
           <p className="text-gray-400">
-            <span className="text-white font-semibold">{deletedInfo.deleted}</span> and 
-            <span className="text-white font-semibold"> {deletedInfo.logs_deleted.toLocaleString()}</span> log entries deleted.
+            <span className="text-gray-50 font-semibold">{deletedInfo.deleted}</span> and 
+            <span className="text-gray-50 font-semibold"> {deletedInfo.logs_deleted.toLocaleString()}</span> log entries deleted.
           </p>
         </motion.div>
       </div>
@@ -66,7 +66,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ client, 
             <Trash2 size={20} />
             <h3 className="text-lg font-bold">Delete Application</h3>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-50 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -75,7 +75,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ client, 
           <div className="bg-red-900/20 border border-red-900/50 rounded-lg p-4 mb-6 flex gap-3">
             <AlertTriangle size={24} className="text-red-500 shrink-0" />
             <div className="text-sm text-red-200 leading-relaxed">
-              Delete <span className="font-bold text-white">"{client.app_key}"</span>?
+              Delete <span className="font-bold text-gray-50">"{client.app_key}"</span>?
               <p className="mt-2 font-medium text-red-300">
                 This will permanently delete the application and ALL log entries sent by it. This action cannot be undone.
               </p>
@@ -93,7 +93,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({ client, 
             <button
               disabled={isLoading}
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-800 text-gray-400 rounded-lg font-medium hover:bg-gray-800 hover:text-white transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 border border-gray-800 text-gray-400 rounded-lg font-medium hover:bg-gray-800 hover:text-gray-50 transition-all disabled:opacity-50"
             >
               Cancel
             </button>

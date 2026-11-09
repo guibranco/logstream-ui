@@ -6,6 +6,7 @@ import { LogTable } from './components/LogTable';
 import { StatsDrawer } from './components/StatsDrawer';
 import { SettingsScreen } from './components/SettingsScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
@@ -184,10 +185,12 @@ function LogStreamApp() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LogStreamApp />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <LogStreamApp />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

@@ -41,9 +41,9 @@ export function RunPanel({ onResults }: RunPanelProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-4 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-white">Trigger retention run</h2>
+            <h2 className="text-lg font-bold text-gray-50">Trigger retention run</h2>
             {dryRun ? (
-              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20">
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary-400 bg-primary-400/10 px-2 py-0.5 rounded border border-primary-400/20">
                 Simulation mode
               </span>
             ) : (
@@ -66,7 +66,7 @@ export function RunPanel({ onResults }: RunPanelProps) {
                   disabled={isPending}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-800 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                <div className="w-11 h-6 bg-gray-800 rounded-full peer peer-focus:ring-4 peer-focus:ring-primary-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600" />
                 <span className="ms-3 text-sm font-medium text-gray-300">Dry run</span>
               </label>
             </div>
@@ -77,7 +77,7 @@ export function RunPanel({ onResults }: RunPanelProps) {
                 value={selectedPolicy}
                 onChange={(e) => setSelectedPolicy(e.target.value)}
                 disabled={isPending}
-                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-w-[180px]"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all min-w-[180px]"
               >
                 <option value="">(all policies)</option>
                 {policies?.map((p) => (
@@ -90,7 +90,7 @@ export function RunPanel({ onResults }: RunPanelProps) {
           <div className={cn(
             "p-3 rounded-lg flex items-start gap-2.5 transition-all text-sm",
             dryRun 
-              ? "bg-blue-500/10 border border-blue-500/20 text-blue-400" 
+              ? "bg-primary-500/10 border border-primary-500/20 text-primary-400" 
               : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
           )}>
             {dryRun ? (
@@ -114,7 +114,7 @@ export function RunPanel({ onResults }: RunPanelProps) {
             className={cn(
               "flex items-center justify-center gap-2 px-8 py-3 rounded-xl font-bold transition-all active:scale-95 shadow-lg min-w-[200px]",
               dryRun 
-                ? "bg-blue-600 hover:bg-blue-500 shadow-blue-600/20" 
+                ? "bg-primary-600 hover:bg-primary-500 shadow-primary-600/20" 
                 : "bg-red-600 hover:bg-red-500 shadow-red-600/20",
               isPending && "opacity-50 cursor-not-allowed"
             )}
