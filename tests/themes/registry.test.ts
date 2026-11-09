@@ -25,6 +25,7 @@ describe('theme registry', () => {
   it('falls back to the default theme for unknown ids', () => {
     expect(getTheme('does-not-exist').id).toBe(DEFAULT_THEME_ID);
     expect(getTheme(null).id).toBe(DEFAULT_THEME_ID);
-    expect(getTheme('green').id).toBe('green');
+    expect(getTheme('blue').id).toBe('blue');
+    expect(DEFAULT_THEME_ID).toBe('green');
   });
 });

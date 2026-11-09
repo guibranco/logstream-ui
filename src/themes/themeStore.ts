@@ -1,5 +1,6 @@
 import { ModePreference } from './types';
 import { ThemeVariables } from './engine';
+import { DEFAULT_THEME_ID } from './registry';
 
 export interface ThemePreference {
   themeId: string;
@@ -12,7 +13,7 @@ export const THEME_CACHE_KEY = 'logservice:theme-cache';
 
 const MODES: ReadonlyArray<ModePreference> = ['light', 'dark', 'system'];
 
-export const DEFAULT_PREFERENCE: ThemePreference = { themeId: 'blue', mode: 'dark' };
+export const DEFAULT_PREFERENCE: ThemePreference = { themeId: DEFAULT_THEME_ID, mode: 'dark' };
 
 export function getThemePreference(): ThemePreference {
   try {

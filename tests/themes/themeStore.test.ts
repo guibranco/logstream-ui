@@ -11,14 +11,14 @@ import {
 describe('themeStore', () => {
   beforeEach(() => localStorage.clear());
 
-  it('defaults to the blue dark theme', () => {
+  it('defaults to the green dark theme', () => {
     expect(getThemePreference()).toEqual(DEFAULT_PREFERENCE);
-    expect(DEFAULT_PREFERENCE).toEqual({ themeId: 'blue', mode: 'dark' });
+    expect(DEFAULT_PREFERENCE).toEqual({ themeId: 'green', mode: 'dark' });
   });
 
   it('round-trips a saved preference', () => {
-    saveThemePreference({ themeId: 'green', mode: 'system' });
-    expect(getThemePreference()).toEqual({ themeId: 'green', mode: 'system' });
+    saveThemePreference({ themeId: 'blue', mode: 'system' });
+    expect(getThemePreference()).toEqual({ themeId: 'blue', mode: 'system' });
   });
 
   it('ignores invalid or corrupt values', () => {

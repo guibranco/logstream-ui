@@ -107,7 +107,7 @@ Any `401` response clears the stored config and redirects to the settings screen
 
 ## Themes
 
-The 🎨 button in the header (also on the settings screen) picks the theme and the mode: **Light**, **Dark** or **System** (follows the operating system, switching live). The choice is stored in `localStorage` under `logservice:theme`; the default is Blue, dark. A small script in `index.html` re-applies the last theme before the app loads, so a light theme does not flash dark.
+The 🎨 button in the header (also on the settings screen) picks the theme and the mode: **Light**, **Dark** or **System** (follows the operating system, switching live). The choice is stored in `localStorage` under `logservice:theme`; the default is Green, dark. A small script in `index.html` re-applies the last theme before the app loads, so a light theme does not flash dark.
 
 | Theme | Neutral | Primary (buttons, links, focus) | Secondary (filters, highlights) |
 |-------|---------|----------------------------------|----------------------------------|

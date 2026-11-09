@@ -6,7 +6,7 @@ import { ThemeDefinition } from './types';
  */
 const modules = import.meta.glob<{ default: ThemeDefinition }>('./presets/*.ts', { eager: true });
 
-export const DEFAULT_THEME_ID = 'blue';
+export const DEFAULT_THEME_ID = 'green';
 
 function byOrderThenName(a: ThemeDefinition, b: ThemeDefinition): number {
   const ao = a.order ?? Number.POSITIVE_INFINITY;
