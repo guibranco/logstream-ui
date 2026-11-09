@@ -15,7 +15,7 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
 - **Auth-aware** — separate read key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
-- **Themes** — Blue, Green, Red, Orange and Pink themes, each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
+- **Themes** — 16 themes (Blue, Green, Red, Orange, Pink, Violet, Indigo, Ocean, Graphite, Sepia, Lime, Catppuccin, Solarized, Nord, Dracula and High contrast), each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
 
 ---
 
@@ -116,6 +116,19 @@ The 🎨 button in the header (also on the settings screen) picks the theme and 
 | Red | `stone` | `red` | `rose` |
 | Orange | `stone` | `orange` | `amber` |
 | Pink | `mauve` | `pink` | `fuchsia` |
+| Violet | `slate` | `violet` | `purple` |
+| Indigo | `slate` | `indigo` | `violet` |
+| Ocean | `mist` | `teal` | `cyan` |
+| Graphite | `neutral` | `neutral` | `zinc` |
+| Sepia | `taupe` | `amber` | `yellow` |
+| Lime | `olive` | `lime` | `yellow` |
+| Catppuccin | Mocha / Latte | mauve | blue |
+| Solarized | base03…base3 | blue | cyan |
+| Nord | Polar Night / Snow Storm | Frost (nord9, nord10) | Frost (nord8) |
+| Dracula | Dracula / Alucard | purple | pink |
+| High contrast | black / white | `blue` | `cyan` |
+
+Catppuccin, Solarized, Nord and Dracula use their official hex values (light variants: Catppuccin Latte, Solarized light, Dracula's Alucard; Nord has no official light variant, so its light one uses Snow Storm for the page and Polar Night for text).
 
 ### How it works
 
@@ -134,24 +147,24 @@ The active theme writes those roles as CSS variables (`--color-gray-950`, `--col
 Add a file to `src/themes/presets/`; it is picked up automatically:
 
 ```ts
-// src/themes/presets/violet.ts
+// src/themes/presets/sunset.ts
 import colors from 'tailwindcss/colors';
 import { defineTheme } from '../types';
 
 export default defineTheme({
-  id: 'violet',             // stored in preferences; keep it stable
-  name: 'Violet',
-  description: 'Slate with violet and fuchsia accents',
-  order: 5,                 // position in the picker (optional)
+  id: 'sunset',             // stored in preferences; keep it stable
+  name: 'Sunset',
+  description: 'Stone with rose and amber accents',
+  order: 16,                // position in the picker (optional)
   dark: {
-    neutral: colors.slate,
-    primary: colors.violet,
-    secondary: colors.fuchsia, // optional, defaults to primary
+    neutral: colors.stone,
+    primary: colors.rose,
+    secondary: colors.amber,   // optional, defaults to primary
   },
   light: {
-    neutral: colors.slate,
-    primary: colors.violet,
-    secondary: colors.fuchsia,
+    neutral: colors.stone,
+    primary: colors.rose,
+    secondary: colors.amber,
     overrides: {
       'gray-950': colors.white, // any variable, any CSS colour, applied last
     },
@@ -159,7 +172,19 @@ export default defineTheme({
 });
 ```
 
-Give each scale in its natural order (50 lightest, 950 darkest); the light variant is flipped for you. Scales do not have to come from Tailwind: any object with the keys `50` to `950` works. `overrides` sets single variables after the mapping (`'primary-600': 'oklch(52% 0.15 160)'`). `tests/themes/registry.test.ts` checks every preset has complete light and dark variants.
+Give each scale in its natural order (50 lightest, 950 darkest); the light variant is flipped for you. Scales do not have to come from Tailwind: any object with the keys `50` to `950` works. `overrides` sets single variables after the mapping (`'primary-600': 'oklch(52% 0.15 160)'`). `tests/themes/registry.test.ts` checks every preset has complete light and dark variants, and `tests/themes/contrast.test.ts` checks both variants stay readable (white button text and accent text at least 3:1, body text at least 7:1); a light accent such as `amber` or `lime` usually needs `primary-500`/`primary-600` overridden with darker shades to pass.
+
+#### Palettes from outside Tailwind
+
+To use an existing palette's hex values, build the scales with `scale()` from `src/themes/palette.ts`. Give it `50`, `950` and any shades you have; the rest are interpolated:
+
+```ts
+import { scale } from '../palette';
+
+const mauve = scale({ '50': '#f6f0fe', '400': '#cba6f7', '600': '#8839ef', '950': '#2b0d55' });
+```
+
+A neutral scale can also be written out in full (all eleven shades), as `catppuccin.ts` and `high-contrast.ts` do. Remember the light variant is flipped: its `50` is the page and its `900` the body text.
 
 ---
 
@@ -257,9 +282,10 @@ src/
 ├── themes/
 │   ├── types.ts                 ThemeDefinition, defineTheme()
 │   ├── engine.ts                Theme → CSS variables (light flips the scales)
+│   ├── palette.ts               scale() for non-Tailwind palettes, contrast()
 │   ├── registry.ts              Loads every file in presets/
 │   ├── themeStore.ts            Theme preference in localStorage
-│   └── presets/                 One file per theme (blue, green, red, orange, pink)
+│   └── presets/                 One file per theme
 ├── hooks/
 │   ├── useWebSocket.ts          Auto-reconnecting WS hook with backoff
 │   └── useLogs.ts               TanStack Query wrapper for GET /api/logs

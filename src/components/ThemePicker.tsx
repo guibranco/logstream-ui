@@ -38,6 +38,7 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ align = 'right', class
   const { themes, theme, mode, resolvedMode, setThemeId, setMode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,6 +48,8 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ align = 'right', class
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setIsOpen(false);
     };
+    // With many themes the list scrolls: start with the current one in view.
+    selectedRef.current?.scrollIntoView?.({ block: 'nearest' });
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
@@ -105,12 +108,17 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ align = 'right', class
 
           <div>
             <p className="px-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Theme</p>
-            <div className="space-y-1" role="radiogroup" aria-label="Theme">
+            <div
+              className="space-y-1 max-h-[min(22rem,calc(100vh-14rem))] overflow-y-auto overscroll-contain -mr-1.5 pr-1.5"
+              role="radiogroup"
+              aria-label="Theme"
+            >
               {themes.map((option) => {
                 const selected = option.id === theme.id;
                 return (
                   <button
                     key={option.id}
+                    ref={selected ? selectedRef : undefined}
                     type="button"
                     role="radio"
                     aria-checked={selected}
