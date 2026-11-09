@@ -1,0 +1,66 @@
+import { LogLevel, SearchFilters } from '../types';
+import { appendContextParams } from './contextProperties';
+
+/** Plain string filters, in the order they appear in the URL. */
+const PLAIN_KEYS = [
+  'search',
+  'context_search',
+  'app_key',
+  'app_id',
+  'user_agent',
+  'level',
+  'category',
+  'trace_id',
+  'batch_id',
+  'date_from',
+  'date_to',
+] as const satisfies readonly (keyof SearchFilters)[];
+
+const LEVELS: readonly LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
+
+const CONTEXT_PARAM = /^(context|context_not)\[(.+)\]$/;
+
+/** Query string (without "?") for the given filters — same shape the API takes. */
+export function filtersToQuery(filters: SearchFilters): string {
+  const params = new URLSearchParams();
+  for (const key of PLAIN_KEYS) {
+    const value = filters[key];
+    if (value) params.append(key, value);
+  }
+  appendContextParams(params, filters);
+  return params.toString();
+}
+
+/**
+ * Filters encoded in a URL query string, or null when it carries none
+ * (so the caller can fall back to the last saved filters).
+ */
+export function filtersFromQuery(search: string): SearchFilters | null {
+  const params = new URLSearchParams(search);
+  const filters: SearchFilters = {};
+  let found = false;
+
+  for (const key of PLAIN_KEYS) {
+    const value = params.get(key);
+    if (!value) continue;
+    if (key === 'level' && !LEVELS.includes(value as LogLevel)) continue;
+    (filters as Record<string, string>)[key] = value;
+    found = true;
+  }
+
+  for (const [name, value] of params.entries()) {
+    const match = CONTEXT_PARAM.exec(name);
+    if (!match) continue;
+    const group = match[1] as 'context' | 'context_not';
+    filters[group] = { ...filters[group], [match[2]]: value };
+    found = true;
+  }
+
+  return found ? filters : null;
+}
+
+/** Current URL with its query string replaced by the given filters. */
+export function urlWithFilters(location: Pick<Location, 'pathname' | 'hash'>, filters: SearchFilters): string {
+  const query = filtersToQuery(filters);
+  return `${location.pathname}${query ? `?${query}` : ''}${location.hash}`;
+}

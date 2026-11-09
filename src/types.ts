@@ -38,6 +38,8 @@ export interface SearchFilters {
   context?: Record<string, string>;
   /** Context property path → value that must not match (Exclude). */
   context_not?: Record<string, string>;
+  /** Free text across all context keys and values (min. 3 characters). */
+  context_search?: string;
 }
 
 export type WSStatus = 'connected' | 'reconnecting' | 'disconnected';

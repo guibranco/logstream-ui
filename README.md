@@ -120,7 +120,7 @@ Any `401` response clears the stored config and redirects to the settings screen
 
 ### Filter bar
 
-All filters are combined and sent as a single `GET /api/logs` query. The filter state persists in `localStorage["logservice:filters"]` across page refreshes.
+All filters are combined and sent as a single `GET /api/logs` query. The filter state persists in `localStorage["logservice:filters"]` across page refreshes and is mirrored in the page URL, so the address bar is a shareable link to the current search. Opening a link that carries filters shows those results instead of the live tail, and takes precedence over the saved filters.
 
 | Filter | Match type |
 |--------|-----------|
@@ -132,6 +132,10 @@ All filters are combined and sent as a single `GET /api/logs` query. The filter 
 | Date From / To | ISO 8601 range |
 | Trace ID | Exact |
 | Batch ID | Exact |
+| Context contains *(Advanced)* | Free text across all context keys and values (`context_search`, min. 3 chars) |
+| Context filters *(Advanced)* | `key = value` / `key ≠ value` rows (`context[key]` / `context_not[key]`), dots for nested keys, max. 10 |
+
+**Advanced filters** is a collapsible section under the main filters. It opens automatically when context filters are active. How "Context contains" matches depends on the server storage, and the hint under the field says which mode is active (from `GET /api/info`): MariaDB matches whole words, file storage also matches inside words. Active context filters appear as chips; click × on a chip to remove that filter.
 
 ### Log table columns
 

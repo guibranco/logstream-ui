@@ -10,6 +10,8 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useLogs } from './hooks/useLogs';
 import { SearchFilters } from './types';
 import { withContextFilter } from './lib/contextProperties';
+import { filtersFromQuery, urlWithFilters } from './lib/filterUrl';
+import { useServerInfo } from './hooks/useServerInfo';
 
 import { RetentionScreen } from './screens/RetentionScreen';
 import { ApplicationsScreen } from './screens/ApplicationsScreen';
@@ -27,10 +29,18 @@ function LogStreamApp() {
     return (saved === 'retention' || saved === 'applications') ? saved : 'dashboard';
   });
 
+  // A shared link wins over the filters saved in this browser.
+  const [initialUrlFilters] = useState(() => filtersFromQuery(window.location.search));
   const [filters, setFilters] = useState<SearchFilters>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : {};
+    if (initialUrlFilters) return initialUrlFilters;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
   });
+  const { data: serverInfo } = useServerInfo();
   
   const [limit, setLimit] = useState(100);
   const [offset, setOffset] = useState(0);
@@ -56,8 +66,18 @@ function LogStreamApp() {
   } = useLogs(filters, limit, offset);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
+    } catch {
+      // Storage unavailable (private mode, quota): the URL still carries the filters.
+    }
+    window.history.replaceState(window.history.state, '', urlWithFilters(window.location, filters));
   }, [filters]);
+
+  // Opening a link that carries filters means "show me these results", not the live tail.
+  useEffect(() => {
+    if (initialUrlFilters) setIsLive(false);
+  }, [initialUrlFilters, setIsLive]);
 
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
@@ -108,6 +128,7 @@ function LogStreamApp() {
             <FilterBar
               filters={filters}
               onSearch={handleSearch}
+              storageType={serverInfo?.storage_type}
             />
 
             <main className="flex-1 flex flex-col min-h-0">

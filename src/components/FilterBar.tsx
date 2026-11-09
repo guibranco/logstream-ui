@@ -1,22 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { SearchFilters, LogLevel } from '../types';
-import { Search, RotateCcw, X } from 'lucide-react';
+import { Search, RotateCcw, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { withoutContextFilter } from '../lib/contextProperties';
+import {
+  ContextRow,
+  contextFilterErrors,
+  filtersToRows,
+  rowsToFilters,
+  withoutContextFilter,
+} from '../lib/contextProperties';
+import { ContextSearchInput } from './search/ContextSearchInput';
+import { ContextKeyValueFilter } from './search/ContextKeyValueFilter';
 
 interface FilterBarProps {
   filters: SearchFilters;
   onSearch: (filters: SearchFilters) => void;
+  /** From GET /api/info; adjusts the context search hint. */
+  storageType?: 'file' | 'mariadb';
 }
 
 const LEVELS: LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
 
-export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, onSearch }) => {
+const hasContextFilters = (f: SearchFilters) =>
+  !!f.context_search || Object.keys(f.context ?? {}).length > 0 || Object.keys(f.context_not ?? {}).length > 0;
+
+export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, onSearch, storageType }) => {
   const [localFilters, setLocalFilters] = useState<SearchFilters>(initialFilters);
+  const [contextRows, setContextRows] = useState<ContextRow[]>(() => filtersToRows(initialFilters));
+  const [advancedOpen, setAdvancedOpen] = useState(() => hasContextFilters(initialFilters));
 
   useEffect(() => {
     setLocalFilters(initialFilters);
+    setContextRows(filtersToRows(initialFilters));
+    if (hasContextFilters(initialFilters)) setAdvancedOpen(true);
   }, [initialFilters]);
+
+  const errors = contextFilterErrors(contextRows, localFilters.context_search);
+  const activeAdvanced = contextRows.filter(r => r.key.trim() && r.value).length
+    + (localFilters.context_search?.trim() ? 1 : 0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -36,14 +57,22 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
     onSearch(resetFilters);
   };
 
+  // Chips show what is applied, not what is being edited.
   const contextChips = [
-    ...Object.entries(localFilters.context ?? {}).map(([path, value]) => ({ path, value, exclude: false })),
-    ...Object.entries(localFilters.context_not ?? {}).map(([path, value]) => ({ path, value, exclude: true })),
+    ...Object.entries(initialFilters.context ?? {}).map(([path, value]) => ({ path, value, exclude: false })),
+    ...Object.entries(initialFilters.context_not ?? {}).map(([path, value]) => ({ path, value, exclude: true })),
   ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(localFilters);
+    if (errors.length > 0) return;
+
+    const term = localFilters.context_search?.trim();
+    onSearch({
+      ...localFilters,
+      ...rowsToFilters(contextRows),
+      context_search: term ? term : undefined,
+    });
   };
 
   return (
@@ -92,7 +121,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium py-2 rounded transition-colors flex items-center justify-center gap-2"
+              disabled={errors.length > 0}
+              title={errors.length > 0 ? errors.join('\n') : undefined}
+              className="flex-1 bg-sky-600 hover:bg-sky-500 disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium py-2 rounded transition-colors flex items-center justify-center gap-2"
             >
               <Search size={16} />
               Search
@@ -170,9 +201,58 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
           </div>
         </div>
 
-        {contextChips.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen(open => !open)}
+            aria-expanded={advancedOpen}
+            aria-controls="advanced-filters"
+            className="flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-gray-200"
+          >
+            <SlidersHorizontal size={14} />
+            Advanced filters
+            {activeAdvanced > 0 && (
+              <span className="px-1.5 rounded-full bg-sky-900 text-sky-300 text-[10px] font-bold">
+                {activeAdvanced}
+              </span>
+            )}
+            <ChevronDown size={14} className={cn('transition-transform', advancedOpen && 'rotate-180')} />
+          </button>
+
+          {advancedOpen && (
+            <div id="advanced-filters" className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-6 p-3 rounded border border-gray-800 bg-gray-950/40">
+              <ContextSearchInput
+                value={localFilters.context_search ?? ''}
+                onChange={value => setLocalFilters(prev => ({ ...prev, context_search: value }))}
+                storageType={storageType}
+              />
+              <ContextKeyValueFilter rows={contextRows} onChange={setContextRows} />
+
+              {errors.length > 0 && (
+                <ul className="lg:col-span-2 text-xs text-rose-400 space-y-0.5" role="alert">
+                  {errors.map(err => <li key={err}>{err}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
+        {(contextChips.length > 0 || initialFilters.context_search) && (
           <div className="flex flex-wrap items-center gap-2" data-testid="context-filters">
             <span className="text-xs text-gray-500 font-medium">Context:</span>
+            {initialFilters.context_search && (
+              <span className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded border text-xs font-mono bg-violet-950/40 border-violet-900 text-violet-300">
+                contains “{initialFilters.context_search}”
+                <button
+                  type="button"
+                  onClick={() => onSearch({ ...initialFilters, context_search: undefined })}
+                  className="p-0.5 rounded hover:bg-gray-800"
+                  aria-label="Remove context search"
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            )}
             {contextChips.map(({ path, value, exclude }) => (
               <span
                 key={`${exclude ? '!' : ''}${path}`}
@@ -186,7 +266,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
                 {path} {exclude ? '≠' : '='} {value}
                 <button
                   type="button"
-                  onClick={() => onSearch(withoutContextFilter(localFilters, path, exclude))}
+                  onClick={() => onSearch(withoutContextFilter(initialFilters, path, exclude))}
                   className="p-0.5 rounded hover:bg-gray-800"
                   aria-label={`Remove context filter ${path}`}
                 >

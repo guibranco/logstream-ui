@@ -74,6 +74,77 @@ export function withContextFilter(
   };
 }
 
+// ── Manual key/value builder ─────────────────────────────────────────────────
+
+/** Limits enforced by the server (ContextFilter::MAX_FILTERS / MIN_SEARCH_LEN). */
+export const MAX_CONTEXT_FILTERS = 10;
+export const MIN_CONTEXT_SEARCH_LEN = 3;
+export const MAX_CONTEXT_SEARCH_LEN = 200;
+
+/** One editable row of the context filter builder. */
+export interface ContextRow {
+  id: string;
+  key: string;
+  value: string;
+  exclude: boolean;
+}
+
+let rowSeq = 0;
+export const newContextRow = (key = '', value = '', exclude = false): ContextRow => ({
+  id: `ctx-${++rowSeq}`,
+  key,
+  value,
+  exclude,
+});
+
+export function filtersToRows(filters: SearchFilters): ContextRow[] {
+  return [
+    ...Object.entries(filters.context ?? {}).map(([k, v]) => newContextRow(k, v, false)),
+    ...Object.entries(filters.context_not ?? {}).map(([k, v]) => newContextRow(k, v, true)),
+  ];
+}
+
+/** Rows with both a key and a value; empty rows are drafts and are ignored. */
+const completeRows = (rows: ContextRow[]) => rows.filter(r => r.key.trim() !== '' && r.value !== '');
+
+/** Why a path would be rejected by the server, or null when it is valid. */
+export function contextPathError(key: string): string | null {
+  const path = key.trim();
+  if (path === '') return null; // draft row
+  if (path.length > 200) return 'Path is too long (max. 200 characters)';
+  if (path.split('.').some(segment => segment === '')) return 'Path has an empty segment (check the dots)';
+  return null;
+}
+
+/** Validation messages for the builder and the free-text search, empty when valid. */
+export function contextFilterErrors(rows: ContextRow[], search: string | undefined): string[] {
+  const errors: string[] = [];
+
+  for (const row of rows) {
+    const err = contextPathError(row.key);
+    if (err) errors.push(`${row.key.trim()}: ${err}`);
+  }
+  if (completeRows(rows).length > MAX_CONTEXT_FILTERS) {
+    errors.push(`At most ${MAX_CONTEXT_FILTERS} context filters are allowed`);
+  }
+
+  const term = (search ?? '').trim();
+  if (term !== '' && term.length < MIN_CONTEXT_SEARCH_LEN) {
+    errors.push(`Context search needs at least ${MIN_CONTEXT_SEARCH_LEN} characters`);
+  }
+
+  return errors;
+}
+
+/** Convert builder rows into `context` / `context_not` (a later row wins on duplicate paths). */
+export function rowsToFilters(rows: ContextRow[]): Pick<SearchFilters, 'context' | 'context_not'> {
+  let result: SearchFilters = {};
+  for (const row of completeRows(rows)) {
+    result = withContextFilter(result, row.key.trim(), row.value, row.exclude);
+  }
+  return { context: result.context, context_not: result.context_not };
+}
+
 /** Return filters without the condition on the given path. */
 export function withoutContextFilter(filters: SearchFilters, path: string, exclude: boolean): SearchFilters {
   const key = exclude ? 'context_not' : 'context';
