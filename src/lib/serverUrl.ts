@@ -12,7 +12,8 @@ function parse(base: string, protocols: string[]): URL {
     throw new Error('The LogStream server URL in your settings is not a valid URL.');
   }
   if (!protocols.includes(url.protocol)) {
-    throw new Error(`The LogStream server URL must start with ${protocols.map(p => `${p}//`).join(' or ')}.`);
+    const allowed = protocols.map(p => p + '//').join(' or ');
+    throw new Error(`The LogStream server URL must start with ${allowed}.`);
   }
   return url;
 }
@@ -20,7 +21,9 @@ function parse(base: string, protocols: string[]): URL {
 /** `${apiUrl}${path}?params` for the HTTP API (http/https only). */
 export function apiEndpoint(apiUrl: string, path: string, params?: URLSearchParams): string {
   const url = parse(apiUrl, ['http:', 'https:']);
-  url.pathname = `${url.pathname.replace(/\/+$/, '')}${path}`;
+  let base = url.pathname;
+  while (base.endsWith('/')) base = base.slice(0, -1);
+  url.pathname = base + path;
   url.search = params ? params.toString() : '';
   url.hash = '';
   return url.toString();
