@@ -5,6 +5,7 @@ import { LevelBadge } from './LevelBadge';
 import { ContextProperties } from './ContextProperties';
 import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { splitUrls } from '../lib/linkify';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LogRowProps {
@@ -113,8 +114,24 @@ export const LogRow: React.FC<LogRowProps> = ({ log, isLive, onFilterBatch, onFi
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">User Agent</h4>
-                      <p className="text-xs text-gray-400 italic break-all">
-                        {log.user_agent || 'N/A'}
+                      <p className="text-xs text-gray-400 italic break-all" data-testid="user-agent">
+                        {log.user_agent
+                          ? splitUrls(log.user_agent).map((segment, index) =>
+                              segment.type === 'url' ? (
+                                <a
+                                  key={index}
+                                  href={segment.value}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-secondary-400 underline hover:text-secondary-300"
+                                >
+                                  {segment.value}
+                                </a>
+                              ) : (
+                                <React.Fragment key={index}>{segment.value}</React.Fragment>
+                              ),
+                            )
+                          : 'N/A'}
                       </p>
                     </div>
                     <div>
