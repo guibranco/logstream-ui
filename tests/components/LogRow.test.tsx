@@ -39,6 +39,21 @@ describe('LogRow', () => {
     expect(screen.queryByLabelText('Copy sender IP')).not.toBeInTheDocument();
   });
 
+  it('renders URLs in the user agent as links that open in a new tab', () => {
+    renderRow({ ...baseLog, user_agent: 'MyBot/2.0 (+https://example.com/bot)' });
+    const link = screen.getByRole('link', { name: 'https://example.com/bot' });
+    expect(link).toHaveAttribute('href', 'https://example.com/bot');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByTestId('user-agent')).toHaveTextContent('MyBot/2.0 (+https://example.com/bot)');
+  });
+
+  it('renders a user agent without URLs as plain text', () => {
+    renderRow(baseLog);
+    expect(screen.getByTestId('user-agent')).toHaveTextContent('Mozilla/5.0');
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('turns context Find / Exclude clicks into context filters', () => {
     const onFilterContext = vi.fn();
     renderRow({ ...baseLog, context: { order: { id: 42 } } }, onFilterContext);
