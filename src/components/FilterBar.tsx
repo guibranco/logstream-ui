@@ -14,6 +14,7 @@ import { ContextKeyValueFilter } from './search/ContextKeyValueFilter';
 import { DateRangePicker, DateRangeValue } from './search/DateRangePicker';
 import { AppKeyOption, AppKeyPicker } from './search/AppKeyPicker';
 import { asList, fromList, toggleValue } from '../lib/multiValue';
+import { TemplateText } from './TemplatedMessage';
 
 interface FilterBarProps {
   filters: SearchFilters;
@@ -29,7 +30,7 @@ interface FilterBarProps {
 const LEVELS: LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
 
 const hasContextFilters = (f: SearchFilters) =>
-  !!f.context_search || Object.keys(f.context ?? {}).length > 0 || Object.keys(f.context_not ?? {}).length > 0;
+  !!f.message_template || !!f.context_search || Object.keys(f.context ?? {}).length > 0 || Object.keys(f.context_not ?? {}).length > 0;
 
 export const FilterBar: React.FC<FilterBarProps> = ({
   filters: initialFilters,
@@ -50,7 +51,8 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const errors = contextFilterErrors(contextRows, localFilters.context_search);
   const activeAdvanced = contextRows.filter(r => r.key.trim() && r.value).length
-    + (localFilters.context_search?.trim() ? 1 : 0);
+    + (localFilters.context_search?.trim() ? 1 : 0)
+    + (localFilters.message_template ? 1 : 0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -254,6 +256,25 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               />
               <ContextKeyValueFilter rows={contextRows} onChange={setContextRows} />
 
+              <div className="lg:col-span-2 flex flex-col gap-1">
+                <label htmlFor="filter-message-template" className="text-xs font-medium text-gray-400">
+                  Message template
+                </label>
+                <input
+                  id="filter-message-template"
+                  type="text"
+                  name="message_template"
+                  placeholder="Charge failed for invoice #{invoice_id}"
+                  value={localFilters.message_template || ''}
+                  onChange={handleChange}
+                  aria-describedby="filter-message-template-hint"
+                  className="bg-gray-950 border border-gray-800 rounded px-3 py-1.5 text-xs font-mono focus:outline-none focus:border-secondary-500"
+                />
+                <span id="filter-message-template-hint" className="text-[11px] text-gray-500">
+                  Exact match: every event logged from this template, whatever its values.
+                </span>
+              </div>
+
               {errors.length > 0 && (
                 <ul className="lg:col-span-2 text-xs text-rose-400 space-y-0.5" role="alert">
                   {errors.map(err => <li key={err}>{err}</li>)}
@@ -262,6 +283,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </div>
           )}
         </div>
+
+        {initialFilters.message_template && (
+          <div className="flex flex-wrap items-center gap-2" data-testid="template-filter">
+            <span className="text-xs text-gray-500 font-medium">Template:</span>
+            <span className="flex items-center gap-1 pl-2 pr-1 py-0.5 rounded border text-xs font-mono bg-sky-950/40 border-sky-900 text-sky-200 max-w-full">
+              <TemplateText template={initialFilters.message_template} className="truncate" />
+              <button
+                type="button"
+                onClick={() => onSearch({ ...initialFilters, message_template: undefined })}
+                className="p-0.5 rounded hover:bg-gray-800 flex-shrink-0"
+                aria-label="Remove template filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          </div>
+        )}
 
         {(contextChips.length > 0 || initialFilters.context_search) && (
           <div className="flex flex-wrap items-center gap-2" data-testid="context-filters">

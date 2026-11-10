@@ -151,3 +151,24 @@ describe('FilterBar levels (Seq style)', () => {
     expect(onSearch).toHaveBeenLastCalledWith({ range: '1h', date_from: undefined, date_to: undefined });
   });
 });
+
+describe('FilterBar message template', () => {
+  it('shows the applied template as a chip that can be removed', () => {
+    const onSearch = vi.fn();
+    render(<FilterBar filters={{ level: 'error', message_template: 'Charge {id} failed' }} onSearch={onSearch} />);
+
+    expect(screen.getByTestId('template-filter')).toHaveTextContent('Charge {id} failed');
+    fireEvent.click(screen.getByLabelText('Remove template filter'));
+    expect(onSearch).toHaveBeenCalledWith({ level: 'error', message_template: undefined });
+  });
+
+  it('searches by a template typed in the advanced filters', () => {
+    const onSearch = vi.fn();
+    render(<FilterBar filters={{}} onSearch={onSearch} />);
+    openAdvanced();
+
+    fireEvent.change(screen.getByLabelText('Message template'), { target: { value: 'Charge {id} failed' } });
+    fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
+    expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ message_template: 'Charge {id} failed' }));
+  });
+});

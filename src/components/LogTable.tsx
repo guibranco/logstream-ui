@@ -30,6 +30,7 @@ interface LogTableProps {
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
+  onFilterTemplate?: (template: string) => void;
   onRetry: () => void;
 }
 
@@ -189,6 +190,7 @@ export const LogTable: React.FC<LogTableProps> = ({
   onFilterBatch,
   onFilterTrace,
   onFilterContext,
+  onFilterTemplate,
   onRetry
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -281,6 +283,7 @@ export const LogTable: React.FC<LogTableProps> = ({
             onFilterBatch={onFilterBatch}
             onFilterTrace={onFilterTrace}
             onFilterContext={onFilterContext}
+            onFilterTemplate={onFilterTemplate}
           />
         ))}
         <FeedEnd

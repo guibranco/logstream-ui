@@ -66,4 +66,11 @@ describe('matchesFilters with lists', () => {
     expect(matchesFilters(log, { app_key: ['orders-api'] })).toBe(false);
     expect(matchesFilters(log, { level: [] })).toBe(true);
   });
+
+  it('matches the message template exactly', () => {
+    const templated = { ...log, message_template: 'Request failed with {status}' };
+    expect(matchesFilters(templated, { message_template: 'Request failed with {status}' })).toBe(true);
+    expect(matchesFilters(templated, { message_template: 'Request failed' })).toBe(false);
+    expect(matchesFilters(log, { message_template: 'Request failed with {status}' })).toBe(false);
+  });
 });
