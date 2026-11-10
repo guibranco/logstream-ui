@@ -116,6 +116,10 @@ function LogStreamApp() {
     setFilters(f => ({ ...f, trace_id: traceId, batch_id: undefined, search: undefined }));
   }, []);
 
+  const handleFilterTemplate = useCallback((template: string) => {
+    setFilters(f => ({ ...f, message_template: template, search: undefined }));
+  }, []);
+
   const handleFilterContext = useCallback((path: string, value: string, exclude: boolean) => {
     setFilters(f => withContextFilter(f, path, value, exclude));
   }, []);
@@ -166,6 +170,7 @@ function LogStreamApp() {
                 onFilterBatch={handleFilterBatch}
                 onFilterTrace={handleFilterTrace}
                 onFilterContext={handleFilterContext}
+                onFilterTemplate={handleFilterTemplate}
                 onRetry={feed.reload}
               />
             </main>

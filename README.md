@@ -217,8 +217,9 @@ All filters are combined and sent as a single `GET /api/logs` query. The filter 
 | Batch ID | Exact |
 | Context contains *(Advanced)* | Free text across all context keys and values (`context_search`, min. 3 chars) |
 | Context filters *(Advanced)* | `key = value` / `key ≠ value` rows (`context[key]` / `context_not[key]`), dots for nested keys, max. 10 |
+| Message template *(Advanced)* | Exact (`message_template`): every event logged from the same template, whatever its values |
 
-**Advanced filters** is a collapsible section under the main filters. It opens automatically when context filters are active. How "Context contains" matches depends on the server storage, and the hint under the field says which mode is active (from `GET /api/info`): MariaDB matches whole words, file storage also matches inside words. Active context filters appear as chips; click × on a chip to remove that filter.
+**Advanced filters** is a collapsible section under the main filters. It opens automatically when context filters are active. How "Context contains" matches depends on the server storage, and the hint under the field says which mode is active (from `GET /api/info`): MariaDB matches whole words, file storage also matches inside words. Active context and template filters appear as chips; click × on a chip to remove that filter.
 
 ### Log table columns
 
@@ -226,14 +227,15 @@ All filters are combined and sent as a single `GET /api/logs` query. The filter 
 
 - **Timestamp** — shown as relative time (*"2 min ago"*); full ISO on hover
 - **Level** — colour-coded pill badge (see level colours below)
-- **Message** — truncated to 80 chars; full text in expanded row
+- **Message** — truncated to 80 chars; full text in expanded row. When the event has a message template, the values rendered into it are coloured by type, as in Seq (strings, numbers, booleans/null, objects), with the property name on hover
 - **Trace ID** — first 8 chars + `…`; click to copy the full ID to clipboard
 
 ### Expanded row detail
 
 Click any row to reveal:
 
-- Full message text
+- Full message text, with template values coloured as in the list
+- Message template (when the server stored one), placeholders highlighted, with a copy button and **View all with this template**, which filters by it
 - `batch_id` — click to auto-fill the Batch ID filter
 - `user_agent`
 - `sender_ip` — the client IP recorded by the server, with a copy button

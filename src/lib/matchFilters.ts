@@ -7,7 +7,7 @@ import { asList } from './multiValue';
  * belongs in the feed currently on screen.
  */
 
-const EXACT_FIELDS = ['app_key', 'app_id', 'level', 'trace_id', 'batch_id'] as const;
+const EXACT_FIELDS = ['app_key', 'app_id', 'level', 'trace_id', 'batch_id', 'message_template'] as const;
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);

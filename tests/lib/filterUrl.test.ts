@@ -63,4 +63,11 @@ describe('several levels and app keys in the URL', () => {
   it('keeps a single value plain and drops unknown levels', () => {
     expect(filtersFromQuery('?level=error&level=loud&app_key=a-api')).toEqual({ level: 'error', app_key: 'a-api' });
   });
+
+  it('round-trips the message template', () => {
+    const templated: SearchFilters = { message_template: 'Charge failed for invoice #{invoice_id}' };
+    const query = filtersToQuery(templated);
+    expect(new URLSearchParams(query).get('message_template')).toBe('Charge failed for invoice #{invoice_id}');
+    expect(filtersFromQuery(`?${query}`)).toEqual(templated);
+  });
 });

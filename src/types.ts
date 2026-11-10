@@ -11,6 +11,8 @@ export interface LogEntry {
   level: LogLevel;
   category: string;
   message: string;
+  /** Template the message was rendered from (`Charge failed for {invoice_id}`); null or absent when none. */
+  message_template?: string | null;
   context: Record<string, unknown> | null;
   timestamp: string;    // ISO 8601
   created_at: string;   // ISO 8601
@@ -38,6 +40,8 @@ export interface SearchFilters {
   /** Relative window ending now (e.g. `15m`); replaces date_from/date_to. See lib/dateRange. */
   range?: string;
   search?: string;
+  /** Exact message template: every entry logged from the same line, whatever its values. */
+  message_template?: string;
   /** Context property path → value that must match (Find). */
   context?: Record<string, string>;
   /** Context property path → value that must not match (Exclude). */

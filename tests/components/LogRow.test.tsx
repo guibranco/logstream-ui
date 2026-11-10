@@ -89,3 +89,53 @@ describe('LogRow level dot', () => {
     expect(dotFor('notice')).toBeNull();
   });
 });
+
+describe('LogRow message template', () => {
+  const templated: LogEntry = {
+    ...baseLog,
+    message: 'Charge 1234 failed: true',
+    message_template: 'Charge {invoice_id} failed: {retry}',
+    context: { invoice_id: 1234, retry: true },
+  };
+
+  const expand = (log: LogEntry, onFilterTemplate = vi.fn()) => {
+    render(
+      <LogRow
+        log={log}
+        onFilterBatch={vi.fn()}
+        onFilterTrace={vi.fn()}
+        onFilterContext={vi.fn()}
+        onFilterTemplate={onFilterTemplate}
+      />,
+    );
+    fireEvent.click(screen.getByText(log.message.split(' ')[0], { exact: false }));
+    return onFilterTemplate;
+  };
+
+  it('colours each rendered value by type in the row and the expanded message', () => {
+    expand(templated);
+    const values = screen.getAllByTestId('template-value');
+    // Two values, shown in the row and again in the full message.
+    expect(values).toHaveLength(4);
+    expect(values[0]).toHaveTextContent('1234');
+    expect(values[0]).toHaveAttribute('data-kind', 'number');
+    expect(values[0]).toHaveAttribute('title', 'invoice_id');
+    expect(values[1]).toHaveAttribute('data-kind', 'boolean');
+  });
+
+  it('shows the template with its placeholders and filters by it', () => {
+    const onFilterTemplate = expand(templated);
+    expect(screen.getByTestId('message-template')).toHaveTextContent('Charge {invoice_id} failed: {retry}');
+    expect(screen.getAllByTestId('template-placeholder').map(p => p.textContent)).toEqual(['{invoice_id}', '{retry}']);
+
+    fireEvent.click(screen.getByRole('button', { name: /view all with this template/i }));
+    expect(onFilterTemplate).toHaveBeenCalledWith('Charge {invoice_id} failed: {retry}');
+  });
+
+  it('shows no template section for entries without one', () => {
+    expand({ ...baseLog });
+    expect(screen.queryByTestId('message-template')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('template-value')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /view all with this template/i })).not.toBeInTheDocument();
+  });
+});

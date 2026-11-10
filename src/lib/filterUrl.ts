@@ -6,6 +6,7 @@ import { asList, fromList, MULTI_VALUE_KEYS } from './multiValue';
 /** Plain string filters, in the order they appear in the URL. */
 const PLAIN_KEYS = [
   'search',
+  'message_template',
   'context_search',
   'app_key',
   'app_id',

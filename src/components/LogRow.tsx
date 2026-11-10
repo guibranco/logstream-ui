@@ -3,7 +3,8 @@ import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
 import { ContextProperties } from './ContextProperties';
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter } from 'lucide-react';
+import { TemplatedMessage, TemplateText } from './TemplatedMessage';
 import { cn } from '../lib/utils';
 import { splitUrls } from '../lib/linkify';
 import { motion, AnimatePresence } from 'motion/react';
@@ -14,6 +15,8 @@ interface LogRowProps {
   onFilterBatch: (batchId: string) => void;
   onFilterTrace: (traceId: string) => void;
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
+  /** Show every entry logged from this message template. */
+  onFilterTemplate?: (template: string) => void;
   /** Controlled expansion; when omitted the row keeps its own state. */
   isExpanded?: boolean;
   onToggle?: (id: string) => void;
@@ -47,6 +50,7 @@ export const LogRow: React.FC<LogRowProps> = ({
   onFilterBatch,
   onFilterTrace,
   onFilterContext,
+  onFilterTemplate,
   isExpanded: expandedProp,
   onToggle,
 }) => {
@@ -111,7 +115,9 @@ export const LogRow: React.FC<LogRowProps> = ({
 
         <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
           <LevelDot level={log.level} />
-          <span className="text-sm text-gray-200 truncate font-medium">{log.message}</span>
+          <span className="text-sm text-gray-200 truncate font-medium">
+            <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
+          </span>
         </div>
 
         <div className="w-32 flex-shrink-0 text-[10px] font-mono text-gray-600 flex items-center gap-1 group">
@@ -146,9 +152,30 @@ export const LogRow: React.FC<LogRowProps> = ({
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Full Message</h4>
                     <p className="text-gray-100 whitespace-pre-wrap font-medium leading-relaxed bg-gray-900/50 p-4 rounded border border-gray-800">
-                      {log.message}
+                      <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
                     </p>
                   </div>
+
+                  {log.message_template && (
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Message Template</h4>
+                      <div className="flex items-start gap-2 group">
+                        <p
+                          className="flex-1 min-w-0 text-xs font-mono text-gray-300 whitespace-pre-wrap break-words bg-gray-900/50 px-4 py-2 rounded border border-gray-800"
+                          data-testid="message-template"
+                        >
+                          <TemplateText template={log.message_template} />
+                        </p>
+                        <button
+                          onClick={() => handleCopy(log.message_template!, 'template')}
+                          className="p-1 mt-1 hover:bg-gray-800 rounded transition-all"
+                          aria-label="Copy message template"
+                        >
+                          {copied === 'template' ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -225,6 +252,15 @@ export const LogRow: React.FC<LogRowProps> = ({
                       <ExternalLink size={14} />
                       View trace
                     </button>
+                    {log.message_template && onFilterTemplate && (
+                      <button
+                        onClick={() => onFilterTemplate(log.message_template!)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-sky-900/30 border border-sky-800/50 text-sky-400 text-xs font-bold rounded hover:bg-sky-900/50 transition-all"
+                      >
+                        <Filter size={14} />
+                        View all with this template
+                      </button>
+                    )}
                   </div>
                 </div>
 
