@@ -118,3 +118,36 @@ describe('FilterBar advanced filters', () => {
     expect(screen.getByText(/including inside words/)).toBeInTheDocument();
   });
 });
+
+describe('FilterBar levels (Seq style)', () => {
+  it('selects several levels at once when the server supports lists', () => {
+    const onSearch = vi.fn();
+    const { rerender } = render(<FilterBar filters={{ range: '1d' }} onSearch={onSearch} multiValue />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'error' }));
+    expect(onSearch).toHaveBeenLastCalledWith({ range: '1d', level: 'error' });
+
+    rerender(<FilterBar filters={{ range: '1d', level: 'error' }} onSearch={onSearch} multiValue />);
+    fireEvent.click(screen.getByRole('button', { name: 'critical' }));
+    expect(onSearch).toHaveBeenLastCalledWith({ range: '1d', level: ['error', 'critical'] });
+
+    rerender(<FilterBar filters={{ level: ['error', 'critical'] }} onSearch={onSearch} multiValue />);
+    expect(screen.getByRole('button', { name: 'error' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'error' }));
+    expect(onSearch).toHaveBeenLastCalledWith({ level: 'critical' });
+  });
+
+  it('keeps one level at a time on servers without list support', () => {
+    const onSearch = vi.fn();
+    render(<FilterBar filters={{ level: 'error' }} onSearch={onSearch} />);
+    fireEvent.click(screen.getByRole('button', { name: 'warning' }));
+    expect(onSearch).toHaveBeenLastCalledWith({ level: 'warning' });
+  });
+
+  it('reset keeps the time range', () => {
+    const onSearch = vi.fn();
+    render(<FilterBar filters={{ range: '1h', level: 'error', search: 'x' }} onSearch={onSearch} />);
+    fireEvent.click(screen.getByTitle('Reset filters'));
+    expect(onSearch).toHaveBeenLastCalledWith({ range: '1h', date_from: undefined, date_to: undefined });
+  });
+});

@@ -24,10 +24,12 @@ export interface SearchResult {
 }
 
 export interface SearchFilters {
-  app_key?: string;
+  /** One app key, or several (any of them matches; needs features.multi_value_filters). */
+  app_key?: string | string[];
   app_id?: string;
   user_agent?: string;
-  level?: LogLevel;
+  /** One level, or several (any of them matches; needs features.multi_value_filters). */
+  level?: LogLevel | LogLevel[];
   category?: string;
   trace_id?: string;
   batch_id?: string;

@@ -52,3 +52,15 @@ describe('date range in the URL', () => {
     expect(filtersFromQuery('?range=forever')).toBeNull();
   });
 });
+
+describe('several levels and app keys in the URL', () => {
+  it('repeats the key for each value and reads them back', () => {
+    const query = filtersToQuery({ level: ['error', 'critical'], app_key: ['a-api', 'b-api'] });
+    expect(query).toBe('app_key=a-api&app_key=b-api&level=error&level=critical');
+    expect(filtersFromQuery(`?${query}`)).toEqual({ app_key: ['a-api', 'b-api'], level: ['error', 'critical'] });
+  });
+
+  it('keeps a single value plain and drops unknown levels', () => {
+    expect(filtersFromQuery('?level=error&level=loud&app_key=a-api')).toEqual({ level: 'error', app_key: 'a-api' });
+  });
+});

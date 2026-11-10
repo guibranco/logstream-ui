@@ -65,3 +65,27 @@ describe('LogRow', () => {
     expect(onFilterContext).toHaveBeenNthCalledWith(2, 'order.id', '42', true);
   });
 });
+
+describe('LogRow level dot', () => {
+  const dotFor = (level: LogEntry['level']) => {
+    const { unmount } = render(
+      <LogRow log={{ ...baseLog, level }} onFilterBatch={vi.fn()} onFilterTrace={vi.fn()} onFilterContext={vi.fn()} />,
+    );
+    const dot = screen.queryByTestId('level-dot');
+    const result = dot ? { className: dot.className, label: dot.getAttribute('aria-label') } : null;
+    unmount();
+    return result;
+  };
+
+  it('marks warning yellow, error red and critical purple', () => {
+    expect(dotFor('warning')).toMatchObject({ label: 'Warning', className: expect.stringContaining('bg-yellow-400') });
+    expect(dotFor('error')).toMatchObject({ label: 'Error', className: expect.stringContaining('bg-red-500') });
+    expect(dotFor('critical')).toMatchObject({ label: 'Critical', className: expect.stringContaining('bg-purple-500') });
+  });
+
+  it('shows no dot for debug, info and notice', () => {
+    expect(dotFor('debug')).toBeNull();
+    expect(dotFor('info')).toBeNull();
+    expect(dotFor('notice')).toBeNull();
+  });
+});

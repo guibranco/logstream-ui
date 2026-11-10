@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
@@ -12,7 +12,10 @@ import { useEventFeed } from './hooks/useEventFeed';
 import { SearchFilters } from './types';
 import { withContextFilter } from './lib/contextProperties';
 import { filtersFromQuery, urlWithFilters } from './lib/filterUrl';
+import { rememberRange, withRememberedRange } from './lib/dateRange';
 import { useServerInfo } from './hooks/useServerInfo';
+import { useClients } from './hooks/useClients';
+import { AppKeyOption } from './components/search/AppKeyPicker';
 
 import { RetentionScreen } from './screens/RetentionScreen';
 import { ApplicationsScreen } from './screens/ApplicationsScreen';
@@ -20,6 +23,15 @@ import { ApplicationsScreen } from './screens/ApplicationsScreen';
 const queryClient = new QueryClient();
 
 const STORAGE_KEY = 'logservice:filters';
+
+/** localStorage, or null where reading it throws (blocked storage). */
+function safeStorage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 const VIEW_STORAGE_KEY = 'logservice:view';
 
 function LogStreamApp() {
@@ -33,13 +45,17 @@ function LogStreamApp() {
   // A shared link wins over the filters saved in this browser.
   const [initialUrlFilters] = useState(() => filtersFromQuery(window.location.search));
   const [filters, setFilters] = useState<SearchFilters>(() => {
-    if (initialUrlFilters) return initialUrlFilters;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
+    let initial: SearchFilters = initialUrlFilters ?? {};
+    if (!initialUrlFilters) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        initial = saved ? JSON.parse(saved) : {};
+      } catch {
+        initial = {};
+      }
     }
+    // No range in the link or the saved filters: the remembered one, or the last 24 hours.
+    return withRememberedRange(initial, safeStorage());
   });
   const { data: serverInfo } = useServerInfo();
   const [isStatsOpen, setIsStatsOpen] = useState(false);
@@ -47,6 +63,31 @@ function LogStreamApp() {
   const [isPaused, setIsPaused] = useState(false);
 
   const feed = useEventFeed(filters);
+
+  const multiValue = serverInfo?.features?.multi_value_filters === true;
+  const hasClientRegistry = serverInfo?.features?.client_management === true;
+  const { data: clientList } = useClients(hasClientRegistry);
+  // Without a registry (file storage), offer every app key seen in this session,
+  // so filtering by one app doesn't hide the others from the picker.
+  const [seenAppKeys, setSeenAppKeys] = useState<ReadonlySet<string>>(() => new Set());
+  useEffect(() => {
+    if (hasClientRegistry) return;
+    setSeenAppKeys(prev => {
+      const fresh = feed.entries.filter(e => !prev.has(e.app_key));
+      if (fresh.length === 0) return prev;
+      const next = new Set(prev);
+      for (const e of fresh) next.add(e.app_key);
+      return next;
+    });
+  }, [hasClientRegistry, feed.entries]);
+
+  // Registered applications, or the app keys seen so far.
+  const appKeyOptions = useMemo<AppKeyOption[]>(() => {
+    if (hasClientRegistry) {
+      return (clientList?.clients ?? []).map(c => ({ appKey: c.app_key, name: c.name }));
+    }
+    return [...seenAppKeys].map(appKey => ({ appKey }));
+  }, [hasClientRegistry, clientList, seenAppKeys]);
   const { status, connections, isWebsocketEnabled } = useWebSocket(feed.pushLive, feed.catchUp);
 
   useEffect(() => {
@@ -55,6 +96,7 @@ function LogStreamApp() {
     } catch {
       // Storage unavailable (private mode, quota): the URL still carries the filters.
     }
+    rememberRange(filters, safeStorage());
     window.history.replaceState(window.history.state, '', urlWithFilters(window.location, filters));
   }, [filters]);
 
@@ -98,6 +140,8 @@ function LogStreamApp() {
               filters={filters}
               onSearch={handleSearch}
               storageType={serverInfo?.storage_type}
+              multiValue={multiValue}
+              appKeyOptions={appKeyOptions}
             />
 
             <main className="flex-1 flex flex-col min-h-0">

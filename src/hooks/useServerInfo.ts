@@ -8,6 +8,8 @@ export interface ServerInfo {
     client_management: boolean;
     retention: boolean;
     websocket: boolean;
+    /** GET /api/logs accepts app_key[] / level[] lists (logstream-server#115). */
+    multi_value_filters?: boolean;
   };
 }
 

@@ -1,4 +1,5 @@
 import { LogEntry, SearchFilters } from '../types';
+import { asList } from './multiValue';
 
 /**
  * Client-side mirror of the server's search filters (FileStorage::matches and
@@ -50,7 +51,11 @@ const containsCI = (haystack: string | null | undefined, needle: string) =>
 const time = (iso: string) => new Date(iso).getTime();
 
 function fieldsMatch(entry: LogEntry, filters: SearchFilters): boolean {
-  const exact = EXACT_FIELDS.every(field => !filters[field] || entry[field] === filters[field]);
+  // A list matches when the entry's value is any of its values.
+  const exact = EXACT_FIELDS.every(field => {
+    const wanted = asList<string>(filters[field]);
+    return wanted.length === 0 || wanted.includes(entry[field] ?? '');
+  });
   return exact
     && (!filters.user_agent || containsCI(entry.user_agent, filters.user_agent))
     && (!filters.category || containsCI(entry.category, filters.category))

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogEntry, SearchFilters } from '../types';
+import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
 import { ContextProperties } from './ContextProperties';
@@ -18,6 +18,27 @@ interface LogRowProps {
   isExpanded?: boolean;
   onToggle?: (id: string) => void;
 }
+
+/** Dot before the message for the levels that need attention, as in Seq. */
+const LEVEL_DOT: Partial<Record<LogLevel, { className: string; label: string }>> = {
+  warning: { className: 'bg-yellow-400', label: 'Warning' },
+  error: { className: 'bg-red-500', label: 'Error' },
+  critical: { className: 'bg-purple-500', label: 'Critical' },
+};
+
+const LevelDot: React.FC<{ level: LogLevel }> = ({ level }) => {
+  const dot = LEVEL_DOT[level];
+  // The empty slot keeps every message starting at the same column.
+  if (!dot) return <span className="w-2 h-2 flex-shrink-0" aria-hidden="true" />;
+  return (
+    <span
+      className={cn('w-2 h-2 rounded-full flex-shrink-0', dot.className)}
+      role="img"
+      aria-label={dot.label}
+      data-testid="level-dot"
+    />
+  );
+};
 
 export const LogRow: React.FC<LogRowProps> = ({
   log,
@@ -87,8 +108,9 @@ export const LogRow: React.FC<LogRowProps> = ({
           {log.category}
         </div>
 
-        <div className="flex-1 text-sm text-gray-200 truncate px-2 font-medium">
-          {log.message}
+        <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
+          <LevelDot level={log.level} />
+          <span className="text-sm text-gray-200 truncate font-medium">{log.message}</span>
         </div>
 
         <div className="w-32 flex-shrink-0 text-[10px] font-mono text-gray-600 flex items-center gap-1 group">

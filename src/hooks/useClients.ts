@@ -27,14 +27,14 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return response.json();
 }
 
-export function useClients() {
+export function useClients(enabled = true) {
   const config = getConfig();
   const apiUrl = config?.apiUrl;
 
   return useQuery<ClientListResponse>({
     queryKey: ['clients'],
     queryFn: () => fetchWithAuth(`${apiUrl}/api/clients`),
-    enabled: !!apiUrl,
+    enabled: enabled && !!apiUrl,
   });
 }
 
