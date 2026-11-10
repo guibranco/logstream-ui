@@ -57,3 +57,13 @@ describe('matchesFilters', () => {
     expect(matchesFilters(log, { date_from: '2026-11-09T10:00:01Z' })).toBe(false);
   });
 });
+
+describe('matchesFilters with lists', () => {
+  it('matches any of several levels and app keys', () => {
+    expect(matchesFilters(log, { level: ['warning', 'error'] })).toBe(true);
+    expect(matchesFilters(log, { level: ['warning', 'critical'] })).toBe(false);
+    expect(matchesFilters(log, { app_key: ['orders-api', 'gstraccini'] })).toBe(true);
+    expect(matchesFilters(log, { app_key: ['orders-api'] })).toBe(false);
+    expect(matchesFilters(log, { level: [] })).toBe(true);
+  });
+});

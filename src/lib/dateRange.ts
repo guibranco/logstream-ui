@@ -94,3 +94,44 @@ export function describeRange(filters: SearchFilters, format: (d: Date) => strin
   if (to) return `Until ${format(to)}`;
   return 'Any time';
 }
+
+// ── Default and remembered range ─────────────────────────────────────────────
+
+/** Range used until the user picks another one. */
+export const DEFAULT_RANGE = '1d';
+
+const RANGE_STORAGE_KEY = 'logservice:range';
+/** Stored when the user chose "Any time", so the default doesn't come back. */
+const ANY_TIME = 'any';
+
+const hasDateRange = (f: SearchFilters) => !!(f.range || f.date_from || f.date_to);
+
+/**
+ * Filters with the remembered range (or the 1-day default) added when they
+ * carry no date range of their own, e.g. a fresh browser or a shared link
+ * without one.
+ */
+export function withRememberedRange(filters: SearchFilters, storage: Pick<Storage, 'getItem'> | null): SearchFilters {
+  if (hasDateRange(filters)) return filters;
+  let saved: string | null = null;
+  try {
+    saved = storage?.getItem(RANGE_STORAGE_KEY) ?? null;
+  } catch {
+    // Storage unavailable: use the default.
+  }
+  if (saved === ANY_TIME) return filters;
+  return { ...filters, range: findPreset(saved ?? undefined)?.key ?? DEFAULT_RANGE };
+}
+
+/**
+ * Remember the range choice: a preset key, or "any time". A custom from/to
+ * travels with the saved filters, so it isn't stored here.
+ */
+export function rememberRange(filters: SearchFilters, storage: Pick<Storage, 'setItem'> | null): void {
+  if (filters.date_from || filters.date_to) return;
+  try {
+    storage?.setItem(RANGE_STORAGE_KEY, findPreset(filters.range)?.key ?? ANY_TIME);
+  } catch {
+    // Storage unavailable (private mode, quota): the URL still carries the range.
+  }
+}

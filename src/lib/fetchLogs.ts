@@ -2,6 +2,7 @@ import { SearchFilters, SearchResult } from '../types';
 import { appendContextParams } from './contextProperties';
 import { apiEndpoint } from './serverUrl';
 import { toServerTime } from './dateRange';
+import { asList } from './multiValue';
 
 const DATE_KEYS = new Set(['date_from', 'date_to']);
 
@@ -23,6 +24,13 @@ export async function fetchLogs(
 ): Promise<SearchResult> {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {
+    // Several values go as a list (`level[]=a&level[]=b`), which the server matches with "any of".
+    if (Array.isArray(value)) {
+      const values = asList<string>(value);
+      if (values.length === 1) params.append(key, values[0]);
+      else values.forEach(v => params.append(`${key}[]`, v));
+      return;
+    }
     // `range` is resolved into date_from by the caller; the server doesn't know it.
     if (typeof value !== 'string' || !value || key === 'range') return;
     params.append(key, DATE_KEYS.has(key) ? toServerTime(value) : value);

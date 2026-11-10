@@ -12,12 +12,18 @@ import {
 import { ContextSearchInput } from './search/ContextSearchInput';
 import { ContextKeyValueFilter } from './search/ContextKeyValueFilter';
 import { DateRangePicker, DateRangeValue } from './search/DateRangePicker';
+import { AppKeyOption, AppKeyPicker } from './search/AppKeyPicker';
+import { asList, fromList, toggleValue } from '../lib/multiValue';
 
 interface FilterBarProps {
   filters: SearchFilters;
   onSearch: (filters: SearchFilters) => void;
   /** From GET /api/info; adjusts the context search hint. */
   storageType?: 'file' | 'mariadb';
+  /** The server accepts several levels / app keys at once (features.multi_value_filters). */
+  multiValue?: boolean;
+  /** Applications offered in the app picker. */
+  appKeyOptions?: AppKeyOption[];
 }
 
 const LEVELS: LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
@@ -25,7 +31,13 @@ const LEVELS: LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'crit
 const hasContextFilters = (f: SearchFilters) =>
   !!f.context_search || Object.keys(f.context ?? {}).length > 0 || Object.keys(f.context_not ?? {}).length > 0;
 
-export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, onSearch, storageType }) => {
+export const FilterBar: React.FC<FilterBarProps> = ({
+  filters: initialFilters,
+  onSearch,
+  storageType,
+  multiValue = false,
+  appKeyOptions = [],
+}) => {
   const [localFilters, setLocalFilters] = useState<SearchFilters>(initialFilters);
   const [contextRows, setContextRows] = useState<ContextRow[]>(() => filtersToRows(initialFilters));
   const [advancedOpen, setAdvancedOpen] = useState(() => hasContextFilters(initialFilters));
@@ -45,15 +57,28 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
     setLocalFilters(prev => ({ ...prev, [name]: value }));
   };
 
-  const toggleLevel = (level: LogLevel) => {
-    setLocalFilters(prev => ({
-      ...prev,
-      level: prev.level === level ? undefined : level
-    }));
+  // Like Seq, levels and apps apply as soon as they are picked, keeping the other applied filters.
+  const applyNow = (changes: Partial<SearchFilters>) => {
+    setLocalFilters(prev => ({ ...prev, ...changes }));
+    onSearch({ ...initialFilters, ...changes });
   };
 
+  const selectedLevels = asList(initialFilters.level);
+
+  const toggleLevel = (level: LogLevel) => {
+    let next = toggleValue(selectedLevels, level);
+    // Without server support for lists, a level replaces the previous one.
+    if (!multiValue) next = next.filter(l => l === level);
+    applyNow({ level: fromList(next) });
+  };
+
+  // Reset clears what is searched for, not the time window (as in Seq).
   const handleReset = () => {
-    const resetFilters: SearchFilters = {};
+    const resetFilters: SearchFilters = {
+      range: initialFilters.range,
+      date_from: initialFilters.date_from,
+      date_to: initialFilters.date_to,
+    };
     setLocalFilters(resetFilters);
     onSearch(resetFilters);
   };
@@ -104,13 +129,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
             />
           </div>
 
-          <input
-            type="text"
-            name="app_key"
-            placeholder="App Key"
-            value={localFilters.app_key || ''}
-            onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
+          <AppKeyPicker
+            selected={asList(initialFilters.app_key)}
+            options={appKeyOptions}
+            multiple={multiValue}
+            onChange={keys => applyNow({ app_key: fromList(keys) })}
           />
 
           <input
@@ -153,15 +176,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex flex-wrap gap-2">
+          <div
+            className="flex flex-wrap gap-2"
+            title={multiValue ? 'Pick one or more levels' : 'This server filters one level at a time'}
+          >
             {LEVELS.map(level => (
               <button
                 key={level}
                 type="button"
                 onClick={() => toggleLevel(level)}
+                aria-pressed={selectedLevels.includes(level)}
                 className={cn(
                   "px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border transition-all",
-                  localFilters.level === level
+                  selectedLevels.includes(level)
                     ? "bg-secondary-900 border-secondary-500 text-secondary-400"
                     : "bg-gray-950 border-gray-800 text-gray-500 hover:border-gray-700"
                 )}

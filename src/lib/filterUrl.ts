@@ -1,6 +1,7 @@
 import { LogLevel, SearchFilters } from '../types';
 import { appendContextParams } from './contextProperties';
 import { findPreset } from './dateRange';
+import { asList, fromList, MULTI_VALUE_KEYS } from './multiValue';
 
 /** Plain string filters, in the order they appear in the URL. */
 const PLAIN_KEYS = [
@@ -26,11 +27,22 @@ const CONTEXT_PARAM = /^(context|context_not)\[(.+)\]$/;
 export function filtersToQuery(filters: SearchFilters): string {
   const params = new URLSearchParams();
   for (const key of PLAIN_KEYS) {
-    const value = filters[key];
-    if (value) params.append(key, value);
+    // One-or-many filters repeat their key (`level=error&level=critical`).
+    for (const value of asList<string>(filters[key])) params.append(key, value);
   }
   appendContextParams(params, filters);
   return params.toString();
+}
+
+const isMultiValue = (key: string): boolean => (MULTI_VALUE_KEYS as readonly string[]).includes(key);
+
+/** Value of one filter in the query, dropping invalid levels and ranges. */
+function readParam(params: URLSearchParams, key: (typeof PLAIN_KEYS)[number]): string | string[] | undefined {
+  let values = params.getAll(key).filter(v => v !== '');
+  if (key === 'level') values = values.filter(v => LEVELS.includes(v as LogLevel));
+  if (key === 'range') values = values.filter(v => findPreset(v));
+  if (values.length === 0) return undefined;
+  return isMultiValue(key) ? fromList(values) : values[0];
 }
 
 /**
@@ -43,11 +55,9 @@ export function filtersFromQuery(search: string): SearchFilters | null {
   let found = false;
 
   for (const key of PLAIN_KEYS) {
-    const value = params.get(key);
-    if (!value) continue;
-    if (key === 'level' && !LEVELS.includes(value as LogLevel)) continue;
-    if (key === 'range' && !findPreset(value)) continue;
-    (filters as Record<string, string>)[key] = value;
+    const value = readParam(params, key);
+    if (value === undefined) continue;
+    (filters as Record<string, string | string[]>)[key] = value;
     found = true;
   }
 
