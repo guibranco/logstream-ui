@@ -33,7 +33,12 @@ export type ParsedException =
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-const asText = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
+const asText = (v: unknown): string => {
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  // Anything else (null, objects) has no useful text form here.
+  return '';
+};
 
 const formatFrame = (frame: unknown): string => {
   if (!isObject(frame)) return asText(frame).trim();
@@ -41,8 +46,11 @@ const formatFrame = (frame: unknown): string => {
   const cls = asText(frame.class);
   const file = asText(frame.file);
   const line = asText(frame.line);
-  const name = cls && fn ? `${cls}.${fn}` : fn || cls || '?';
-  return file ? `at ${name} in ${file}${line ? `:${line}` : ''}` : `at ${name}`;
+  let name = fn || cls || '?';
+  if (cls && fn) name = `${cls}.${fn}`;
+  if (!file) return `at ${name}`;
+  const location = line ? `${file}:${line}` : file;
+  return `at ${name} in ${location}`;
 };
 
 const toFrames = (stack: unknown): string[] => {
@@ -113,7 +121,7 @@ export function exceptionToText(parsed: ParsedException): string {
  * excluded; a string exception is dropped entirely.
  */
 export function withoutExceptionStacks(context: Record<string, unknown> | null): Record<string, unknown> | null {
-  if (!context || context[EXCEPTION_KEY] === undefined) return context;
+  if (context?.[EXCEPTION_KEY] === undefined) return context;
   const value = context[EXCEPTION_KEY];
   const rest = { ...context };
   delete rest[EXCEPTION_KEY];
