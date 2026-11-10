@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { LogEntry } from '../types';
 import { LogRow } from './LogRow';
 import { Skeleton } from './Skeleton';
-import { AlertCircle, Inbox, ArrowUp, Loader2 } from 'lucide-react';
+import { AlertCircle, Inbox, ArrowUp, Loader2, Eraser, Zap } from 'lucide-react';
 
 interface LogTableProps {
   logs: LogEntry[];
@@ -20,6 +20,11 @@ interface LogTableProps {
   isLiveEnabled: boolean;
   onLoadOlder: () => void;
   onShowPending: () => void;
+  /** Leave the paused state set from the header (Resume live). */
+  onResume: () => void;
+  /** The screen was cleared; earlier events come back with a reload. */
+  isCleared?: boolean;
+  onShowEarlier: () => void;
   /** Tells the feed whether new events must wait instead of being added on top. */
   onHoldChange: (hold: boolean) => void;
   onFilterBatch: (batchId: string) => void;
@@ -57,6 +62,19 @@ const LoadFailed: React.FC<{ error: Error; onRetry: () => void }> = ({ error, on
   </div>
 );
 
+const ClearedScreen: React.FC<{ onShowEarlier: () => void }> = ({ onShowEarlier }) => (
+  <div className="flex flex-col items-center justify-center p-12 text-center h-full" data-testid="cleared-screen">
+    <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
+      <Eraser className="text-gray-600" size={32} />
+    </div>
+    <h3 className="text-lg font-bold text-gray-100 mb-2">Screen cleared</h3>
+    <p className="text-gray-500 max-w-md mb-4">New events will appear here as they arrive.</p>
+    <button onClick={onShowEarlier} className="text-xs text-secondary-400 hover:text-secondary-300">
+      Show earlier events
+    </button>
+  </div>
+);
+
 const NoEvents: React.FC<{ isLiveEnabled: boolean }> = ({ isLiveEnabled }) => (
   <div className="flex flex-col items-center justify-center p-12 text-center h-full">
     <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mb-4 border border-gray-800">
@@ -75,10 +93,18 @@ const FeedEnd: React.FC<{
   isLoadingOlder: boolean;
   hasError: boolean;
   hasMore: boolean;
+  isCleared: boolean;
   onLoadOlder: () => void;
-}> = ({ isLoadingOlder, hasError, hasMore, onLoadOlder }) => {
+  onShowEarlier: () => void;
+}> = ({ isLoadingOlder, hasError, hasMore, isCleared, onLoadOlder, onShowEarlier }) => {
   let content: React.ReactNode = 'No older events';
-  if (isLoadingOlder) {
+  if (isCleared) {
+    content = (
+      <button onClick={onShowEarlier} className="hover:text-gray-400">
+        Earlier events were cleared — show them
+      </button>
+    );
+  } else if (isLoadingOlder) {
     content = (
       <>
         <Loader2 size={14} className="animate-spin" />
@@ -105,10 +131,25 @@ const FeedEnd: React.FC<{
   );
 };
 
-const FeedStatus: React.FC<{ isLiveEnabled: boolean; holdReason: string | null }> = ({ isLiveEnabled, holdReason }) => {
+const FeedStatus: React.FC<{
+  isLiveEnabled: boolean;
+  holdReason: string | null;
+  onResume: () => void;
+}> = ({ isLiveEnabled, holdReason, onResume }) => {
   if (!isLiveEnabled) return <span className="text-gray-600">Live view disabled</span>;
-  if (holdReason) return <span className="text-amber-400">{holdReason}</span>;
-  return <span className="text-green-400">Following new events</span>;
+  if (!holdReason) return <span className="text-green-400">Following new events</span>;
+  return (
+    <>
+      <span className="text-amber-400">{holdReason}</span>
+      <button
+        onClick={onResume}
+        className="flex items-center gap-1 px-2 py-0.5 rounded border border-green-800/60 text-green-400 hover:bg-green-900/20 transition-colors"
+      >
+        <Zap size={12} />
+        Resume live
+      </button>
+    </>
+  );
 };
 
 const PendingBanner: React.FC<{
@@ -124,7 +165,7 @@ const PendingBanner: React.FC<{
   >
     <ArrowUp size={14} />
     {overflow ? `${count}+` : count} new {count === 1 ? 'event' : 'events'}
-    {holdReason && <span className="text-gray-500">· {holdReason.toLowerCase()} — click to show</span>}
+    {holdReason && <span className="text-gray-500">· {holdReason.toLowerCase()} — click to resume live</span>}
   </button>
 );
 
@@ -141,6 +182,9 @@ export const LogTable: React.FC<LogTableProps> = ({
   isLiveEnabled,
   onLoadOlder,
   onShowPending,
+  onResume,
+  isCleared = false,
+  onShowEarlier,
   onHoldChange,
   onFilterBatch,
   onFilterTrace,
@@ -150,26 +194,35 @@ export const LogTable: React.FC<LogTableProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [isAtTop, setIsAtTop] = useState(true);
+  // "Resume live" with an event open: keep it open and keep adding new events on top.
+  const [followWhileOpen, setFollowWhileOpen] = useState(false);
 
   // Only rows still on screen count: a reload or new filters can remove an expanded one.
   const hasExpanded = useMemo(
     () => expandedIds.size > 0 && logs.some(log => expandedIds.has(log.id)),
     [expandedIds, logs],
   );
-  const hold = isPaused || hasExpanded || !isAtTop;
+  const heldByExpanded = hasExpanded && !followWhileOpen;
+  const hold = isPaused || heldByExpanded || !isAtTop;
+
+  useEffect(() => {
+    if (!hasExpanded) setFollowWhileOpen(false);
+  }, [hasExpanded]);
 
   useEffect(() => {
     onHoldChange(hold);
   }, [hold, onHoldChange]);
 
   const toggleExpanded = useCallback((id: string) => {
+    // Opening another event pauses again, like the first time.
+    if (!expandedIds.has(id)) setFollowWhileOpen(false);
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }, []);
+  }, [expandedIds]);
 
   /** Load the next older page when the bottom is near, or when the list doesn't fill the screen. */
   const maybeLoadOlder = useCallback(() => {
@@ -189,14 +242,18 @@ export const LogTable: React.FC<LogTableProps> = ({
     maybeLoadOlder();
   };
 
-  const showPending = () => {
-    onShowPending();
+  /** Follow new events again: back to the top, open events stay open, held events show. */
+  const resumeLive = () => {
+    setFollowWhileOpen(true);
     if (containerRef.current) containerRef.current.scrollTop = 0;
+    setIsAtTop(true);
+    if (isPaused) onResume();
+    onShowPending();
   };
 
   if (error && logs.length === 0) return <LoadFailed error={error} onRetry={onRetry} />;
 
-  const holdReason = holdReasonOf(isPaused, hasExpanded, isAtTop);
+  const holdReason = holdReasonOf(isPaused, heldByExpanded, isAtTop);
 
   let body: React.ReactNode;
   if (isLoading && logs.length === 0) {
@@ -207,6 +264,8 @@ export const LogTable: React.FC<LogTableProps> = ({
         <Skeleton />
       </div>
     );
+  } else if (logs.length === 0 && isCleared) {
+    body = <ClearedScreen onShowEarlier={onShowEarlier} />;
   } else if (logs.length === 0) {
     body = <NoEvents isLiveEnabled={isLiveEnabled} />;
   } else {
@@ -224,7 +283,14 @@ export const LogTable: React.FC<LogTableProps> = ({
             onFilterContext={onFilterContext}
           />
         ))}
-        <FeedEnd isLoadingOlder={isLoadingOlder} hasError={!!error} hasMore={hasMore} onLoadOlder={onLoadOlder} />
+        <FeedEnd
+          isLoadingOlder={isLoadingOlder}
+          hasError={!!error}
+          hasMore={hasMore}
+          isCleared={isCleared}
+          onLoadOlder={onLoadOlder}
+          onShowEarlier={onShowEarlier}
+        />
       </>
     );
   }
@@ -243,7 +309,7 @@ export const LogTable: React.FC<LogTableProps> = ({
       </div>
 
       {pendingCount > 0 && (
-        <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={showPending} />
+        <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={resumeLive} />
       )}
 
       <div
@@ -263,7 +329,7 @@ export const LogTable: React.FC<LogTableProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} />
+          <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} onResume={resumeLive} />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { LogLevel, SearchFilters } from '../types';
 import { appendContextParams } from './contextProperties';
+import { findPreset } from './dateRange';
 
 /** Plain string filters, in the order they appear in the URL. */
 const PLAIN_KEYS = [
@@ -14,6 +15,7 @@ const PLAIN_KEYS = [
   'batch_id',
   'date_from',
   'date_to',
+  'range',
 ] as const satisfies readonly (keyof SearchFilters)[];
 
 const LEVELS: readonly LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
@@ -44,6 +46,7 @@ export function filtersFromQuery(search: string): SearchFilters | null {
     const value = params.get(key);
     if (!value) continue;
     if (key === 'level' && !LEVELS.includes(value as LogLevel)) continue;
+    if (key === 'range' && !findPreset(value)) continue;
     (filters as Record<string, string>)[key] = value;
     found = true;
   }

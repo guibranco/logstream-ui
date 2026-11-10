@@ -152,3 +152,37 @@ describe('feedReducer older pages with live events in flight', () => {
     expect(s.cursor).toBe(2 + 3 + 1);
   });
 });
+
+describe('feedReducer clear screen', () => {
+  it('empties the screen and stops loading older events', () => {
+    let s = feedReducer(initialFeedState, page([9, 8, 7], 10, true));
+    s = feedReducer(s, { type: 'live', entry: entry(10), hold: true });
+    s = feedReducer(s, { type: 'clear' });
+    expect(s.entries).toEqual([]);
+    expect(s.pending).toEqual([]);
+    expect(s.hasMore).toBe(false);
+  });
+
+  it('keeps following new events after clearing', () => {
+    let s = feedReducer(initialFeedState, page([9, 8, 7], 10, true));
+    s = feedReducer(s, { type: 'clear' });
+    s = feedReducer(s, { type: 'live', entry: entry(10), hold: false });
+    expect(ids(s)).toEqual(['10']);
+  });
+
+  it('does not bring cleared events back on a reconnect catch-up', () => {
+    let s = feedReducer(initialFeedState, page([9, 8, 7], 10, true));
+    s = feedReducer(s, { type: 'clear' });
+    s = feedReducer(s, { type: 'catchup', entries: [11, 10, 9].map(entry), limit: 3, hold: false });
+    expect(ids(s)).toEqual(['11', '10']);
+  });
+
+  it('forgets the cleared events on reload', () => {
+    let s = feedReducer(initialFeedState, page([9, 8, 7], 10, true));
+    s = feedReducer(s, { type: 'clear' });
+    s = feedReducer(s, { type: 'reset' });
+    s = feedReducer(s, page([9, 8, 7], 10, true));
+    expect(ids(s)).toEqual(['9', '8', '7']);
+    expect(s.cleared).toBeNull();
+  });
+});

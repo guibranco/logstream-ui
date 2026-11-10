@@ -21,6 +21,11 @@ export interface FeedState {
   loaded: boolean;
   /** More events arrived while paused than are held: showing them needs a reload. */
   pendingOverflow: boolean;
+  /**
+   * Ids removed with "clear screen"; they stay out until the next reload,
+   * even when a catch-up page returns them again.
+   */
+  cleared: ReadonlySet<string> | null;
 }
 
 export type FeedAction =
@@ -38,6 +43,7 @@ export type FeedAction =
     }
   | { type: 'live'; entry: LogEntry; hold: boolean }
   | { type: 'flush' }
+  | { type: 'clear' }
   | { type: 'catchup'; entries: LogEntry[]; limit: number; hold: boolean };
 
 /** Most events kept on screen while following the live tail. */
@@ -64,6 +70,7 @@ export const initialFeedState: FeedState = {
   hasMore: false,
   loaded: false,
   pendingOverflow: false,
+  cleared: null,
 };
 
 /** Drop the oldest entries beyond the cap; they can be fetched again by scrolling. */
@@ -94,6 +101,7 @@ function firstPage(state: FeedState, action: PageAction): FeedState {
     hasMore: action.entries.length >= action.limit,
     loaded: true,
     pendingOverflow: false,
+    cleared: null,
   };
 }
 
@@ -135,6 +143,7 @@ function liveEvent(state: FeedState, action: LiveAction): FeedState {
  */
 function catchUp(state: FeedState, action: CatchUpAction): FeedState {
   const known = new Set([...state.entries, ...state.pending].map(e => e.id));
+  state.cleared?.forEach(id => known.add(id));
   const firstKnown = action.entries.findIndex(e => known.has(e.id));
   if (firstKnown === 0) return state;
 
@@ -160,6 +169,17 @@ function flushPending(state: FeedState): FeedState {
   return trim({ ...state, entries: [...fresh, ...state.entries], pending: [] });
 }
 
+/**
+ * Clear the screen: drop everything shown or held and keep following new
+ * events. Older pages stay out of reach until the feed is reloaded.
+ */
+function clearScreen(state: FeedState): FeedState {
+  const cleared = new Set(state.cleared ?? []);
+  for (const e of state.entries) cleared.add(e.id);
+  for (const e of state.pending) cleared.add(e.id);
+  return { ...state, entries: [], pending: [], hasMore: false, pendingOverflow: false, cleared };
+}
+
 export function feedReducer(state: FeedState, action: FeedAction): FeedState {
   switch (action.type) {
     case 'reset':
@@ -172,5 +192,7 @@ export function feedReducer(state: FeedState, action: FeedAction): FeedState {
       return catchUp(state, action);
     case 'flush':
       return flushPending(state);
+    case 'clear':
+      return clearScreen(state);
   }
 }
