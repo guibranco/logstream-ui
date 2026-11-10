@@ -21,7 +21,29 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 
 ## Screenshots
 
-> Add screenshots here after first deploy.
+Taken with sample events, in the default (Green, dark) theme.
+
+### Desktop
+
+**Live dashboard**, filtered to errors and critical events:
+
+![Dashboard on desktop: header, filter bar and the event table](docs/screenshots/desktop-dashboard.png)
+
+**Expanded event**, with the full message, context properties (Find / Exclude / Copy per value) and batch and trace links:
+
+![An expanded event on desktop](docs/screenshots/desktop-expanded-event.png)
+
+**Advanced filters**, for context text, `key = value` context filters and message templates:
+
+![The advanced filters section open on desktop](docs/screenshots/desktop-advanced-filters.png)
+
+### Phone
+
+Below 768 px, the filters fold behind a **Filters** button that counts the active ones, events become two-line cards, and the columns that don't fit move into the expanded event.
+
+| Dashboard | Filters open | Expanded event |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/mobile-dashboard.png" alt="Dashboard on a phone" width="260"> | <img src="docs/screenshots/mobile-filters.png" alt="Filters open on a phone" width="260"> | <img src="docs/screenshots/mobile-expanded-event.png" alt="An expanded event on a phone" width="260"> |
 
 ---
 
