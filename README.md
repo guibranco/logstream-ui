@@ -229,13 +229,16 @@ All filters are combined and sent as a single `GET /api/logs` query. The filter 
 - **Level** — colour-coded pill badge (see level colours below)
 - **Message** — truncated to 80 chars; full text in expanded row. When the event has a message template, the values rendered into it are coloured by type, as in Seq (strings, numbers, booleans/null, objects), with the property name on hover
 - **Trace ID** — first 8 chars + `…`; click to copy the full ID to clipboard
+- A 🐞 after the message marks an entry that carries an exception (see [Logging exceptions](#logging-exceptions))
 
 ### Expanded row detail
 
 Click any row to reveal:
 
 - Full message text, with template values coloured as in the list
+- Exception (when the context has one), with its stack trace and inner exceptions and a copy button; see [Logging exceptions](#logging-exceptions)
 - Message template (when the server stored one), placeholders highlighted, with a copy button and **View all with this template**, which filters by it
+- `category`, with a copy button and **View all in category**, which filters by it
 - `batch_id` — click to auto-fill the Batch ID filter
 - `user_agent`
 - `sender_ip` — the client IP recorded by the server, with a copy button
@@ -247,6 +250,130 @@ Click any row to reveal:
   Active context filters appear as chips under the filter bar; click × to remove one. Arrays are shown as JSON and can't be filtered. Requires a logstream-server version with context filters.
 - **View all in batch** — sets the batch_id filter and re-runs the search
 - **View trace** — sets the trace_id filter and re-runs the search
+
+### Logging exceptions
+
+Like Seq, the UI shows an exception apart from the other properties: under the message, with the type in red, the stack trace below it and each inner exception after a `--->`. LogStream has no dedicated field for it, so the exception goes in the entry's `context` under the key **`exception`**, in either shape:
+
+- **text** — what the runtime prints for the exception, inner exceptions included: `ex.ToString()` in .NET, `(string) $e` in PHP, `err.stack` in Node;
+- **object** — `{ "type", "message", "stack_trace", "inner" }`. `stack_trace` is a string or an array of frames (strings, or `{ "class", "function", "file", "line" }`); the inner exception (`inner`, `inner_exception`, `previous` or `cause`) has the same shape, or is text.
+
+Prefer the object: `exception.type` and `exception.message` stay in the property list, so **Find** / **Exclude** work on them (`context[exception.type]=System.TimeoutException`), while the stack traces only appear in the exception panel. Send the entry with level `error` (or `critical`) and keep the message short, as Seq does: the message says what failed, the exception says why.
+
+```http
+POST /api/logs
+Content-Type: application/json
+X-Api-Key: …
+X-Api-Token: …
+
+{
+  "app_id": "production",
+  "level": "error",
+  "category": "payments",
+  "message": "Charge failed for invoice {invoice_id}",
+  "context": {
+    "invoice_id": 1234,
+    "exception": {
+      "type": "System.InvalidOperationException",
+      "message": "Gateway refused the charge",
+      "stack_trace": "   at Billing.ChargeService.ChargeAsync(Invoice invoice) in /src/Billing/ChargeService.cs:line 42\n   at Billing.Jobs.ChargeJob.RunAsync() in /src/Billing/Jobs/ChargeJob.cs:line 18",
+      "inner": {
+        "type": "System.Net.Http.HttpRequestException",
+        "message": "Response status code does not indicate success: 502 (Bad Gateway).",
+        "stack_trace": "   at Billing.GatewayClient.PostAsync(String path) in /src/Billing/GatewayClient.cs:line 77"
+      }
+    }
+  }
+}
+```
+
+**.NET** — turn the exception into the object, walking `InnerException`:
+
+```csharp
+static Dictionary<string, object?>? ToLogException(Exception? ex, int depth = 0) =>
+    ex is null || depth >= 10
+        ? null
+        : new()
+        {
+            ["type"] = ex.GetType().FullName,
+            ["message"] = ex.Message,
+            ["stack_trace"] = ex.StackTrace,
+            ["inner"] = ToLogException(ex.InnerException, depth + 1),
+        };
+
+try
+{
+    await chargeService.ChargeAsync(invoice);
+}
+catch (Exception ex)
+{
+    await logStream.SendAsync(new
+    {
+        app_id = "production",
+        level = "error",
+        category = "payments",
+        message = "Charge failed for invoice {invoice_id}",
+        context = new Dictionary<string, object?>
+        {
+            ["invoice_id"] = invoice.Id,
+            ["exception"] = ToLogException(ex),
+        },
+    });
+    throw;
+}
+```
+
+For an `AggregateException`, log `ex.Flatten().InnerExceptions` one entry each, or send `ex.ToString()` as text, which lists them all.
+
+**PHP** — the same with `getPrevious()`; `getTrace()` gives the frames as arrays the UI formats (`at Class.method in file:line`):
+
+```php
+function toLogException(?\Throwable $e, int $depth = 0): ?array
+{
+    if ($e === null || $depth >= 10) {
+        return null;
+    }
+
+    return [
+        'type'        => get_class($e),
+        'message'     => $e->getMessage(),
+        'stack_trace' => array_merge(
+            [['function' => '{throw}', 'file' => $e->getFile(), 'line' => $e->getLine()]],
+            $e->getTrace(),
+        ),
+        'inner'       => toLogException($e->getPrevious(), $depth + 1),
+    ];
+}
+
+try {
+    $charges->charge($invoice);
+} catch (\Throwable $e) {
+    $logger->error('Charge failed for invoice {invoice_id}', [
+        'invoice_id' => $invoice->id,
+        'exception'  => toLogException($e),
+    ]);
+    throw $e;
+}
+```
+
+`getTrace()` frames include `args` when `zend.exception_ignore_args` is off; drop them (`array_map(fn ($f) => array_diff_key($f, ['args' => 1]), …)`) so arguments such as passwords never reach the logs. This also follows the PSR-3 convention of passing the exception under the `exception` key.
+
+**Node / TypeScript** — `err.stack` already starts with `Name: message`; `cause` is the inner exception:
+
+```ts
+function toLogException(err: unknown, depth = 0): unknown {
+  if (err == null || depth >= 10) return undefined;
+  if (!(err instanceof Error)) return String(err); // something that isn't an Error was thrown
+  return {
+    type: err.name,
+    message: err.message,
+    stack_trace: err.stack, // its "Name: message" first line is skipped by the UI
+    inner: toLogException(err.cause, depth + 1),
+  };
+}
+```
+
+A stack trace is usually a few kilobytes; at thousands of errors a minute, consider a retention policy on `level=error` so they don't fill the database.
 
 ### Log level colours
 
@@ -302,6 +429,7 @@ src/
 │   ├── LevelBadge.tsx           Colour-coded level pill
 │   ├── StatsDrawer.tsx          Session stats slide-in panel
 │   ├── ContextProperties.tsx    Context as a searchable property list
+│   ├── ExceptionDetails.tsx     Exception and stack trace panel (context.exception)
 │   ├── Skeleton.tsx             Loading placeholder rows
 │   └── AuthErrorBanner.tsx      Persistent auth failure banner
 ├── App.tsx

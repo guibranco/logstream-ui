@@ -31,6 +31,7 @@ interface LogTableProps {
   onFilterTrace: (traceId: string) => void;
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
   onFilterTemplate?: (template: string) => void;
+  onFilterCategory?: (category: string) => void;
   onRetry: () => void;
 }
 
@@ -191,6 +192,7 @@ export const LogTable: React.FC<LogTableProps> = ({
   onFilterTrace,
   onFilterContext,
   onFilterTemplate,
+  onFilterCategory,
   onRetry
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -284,6 +286,7 @@ export const LogTable: React.FC<LogTableProps> = ({
             onFilterTrace={onFilterTrace}
             onFilterContext={onFilterContext}
             onFilterTemplate={onFilterTemplate}
+            onFilterCategory={onFilterCategory}
           />
         ))}
         <FeedEnd
