@@ -40,3 +40,15 @@ describe('filter URL serialisation', () => {
     expect(urlWithFilters({ pathname: '/', hash: '' }, { level: 'info', search: '' })).toBe('/?level=info');
   });
 });
+
+describe('date range in the URL', () => {
+  it('round-trips a relative range', () => {
+    const query = filtersToQuery({ range: '15m', level: 'error' });
+    expect(query).toContain('range=15m');
+    expect(filtersFromQuery(`?${query}`)).toEqual({ level: 'error', range: '15m' });
+  });
+
+  it('drops an unknown range', () => {
+    expect(filtersFromQuery('?range=forever')).toBeNull();
+  });
+});

@@ -1,7 +1,7 @@
 import React from 'react';
 import { WSStatus } from '../types';
 import { cn } from '../lib/utils';
-import { Activity, RefreshCw, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
+import { Activity, Eraser, RefreshCw, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon } from 'lucide-react';
 import { useServerInfo } from '../hooks/useServerInfo';
 import { ThemePicker } from './ThemePicker';
 
@@ -14,6 +14,7 @@ interface HeaderProps {
   currentView: 'dashboard' | 'retention' | 'applications';
   setCurrentView: (view: 'dashboard' | 'retention' | 'applications') => void;
   onReload: () => void;
+  onClear: () => void;
   onOpenStats: () => void;
   onOpenSettings: () => void;
   onDisconnect: () => void;
@@ -33,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentView,
   setCurrentView,
   onReload,
+  onClear,
   onOpenStats,
   onOpenSettings,
   onDisconnect
@@ -124,6 +126,15 @@ export const Header: React.FC<HeaderProps> = ({
                 Live view disabled
               </div>
             )}
+
+            <button
+              onClick={onClear}
+              className="p-2 text-gray-500 hover:text-gray-200 hover:bg-gray-900 rounded transition-all"
+              title="Clear the screen (new events keep arriving)"
+              aria-label="Clear the screen"
+            >
+              <Eraser size={18} />
+            </button>
 
             <button
               onClick={onReload}

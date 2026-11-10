@@ -33,6 +33,8 @@ export interface SearchFilters {
   batch_id?: string;
   date_from?: string;
   date_to?: string;
+  /** Relative window ending now (e.g. `15m`); replaces date_from/date_to. See lib/dateRange. */
+  range?: string;
   search?: string;
   /** Context property path → value that must match (Find). */
   context?: Record<string, string>;

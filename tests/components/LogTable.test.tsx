@@ -31,6 +31,8 @@ const setup = (overrides: Partial<React.ComponentProps<typeof LogTable>> = {}) =
     isLiveEnabled: true,
     onLoadOlder: vi.fn(),
     onShowPending: vi.fn(),
+    onResume: vi.fn(),
+    onShowEarlier: vi.fn(),
     onHoldChange: vi.fn(),
     onFilterBatch: vi.fn(),
     onFilterTrace: vi.fn(),
@@ -89,5 +91,48 @@ describe('LogTable', () => {
     const { props } = setup({ hasMore: false });
     expect(props.onLoadOlder).not.toHaveBeenCalled();
     expect(screen.getByText('No older events')).toBeInTheDocument();
+  });
+
+  it('resumes live with an event still open', () => {
+    const { props } = setup({ pendingCount: 2 });
+    fireEvent.click(screen.getByText('Message 5'));
+    expect(props.onHoldChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByTestId('pending-banner')).toHaveTextContent('click to resume live');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Resume live' }));
+    expect(props.onShowPending).toHaveBeenCalled();
+    expect(props.onHoldChange).toHaveBeenLastCalledWith(false);
+    // The event stays open while new events keep arriving on top.
+    expect(screen.getByText('Full Message')).toBeInTheDocument();
+    expect(screen.getByText('Following new events')).toBeInTheDocument();
+  });
+
+  it('pauses again when another event is opened after resuming', () => {
+    const { props } = setup();
+    fireEvent.click(screen.getByText('Message 5'));
+    fireEvent.click(screen.getByRole('button', { name: /resume live/i }));
+    expect(props.onHoldChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.click(screen.getByText('Message 9'));
+    expect(props.onHoldChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it('leaves the header pause when resuming from the table', () => {
+    const { props } = setup({ isPaused: true });
+    fireEvent.click(screen.getByRole('button', { name: /resume live/i }));
+    expect(props.onResume).toHaveBeenCalled();
+  });
+
+  it('shows the cleared screen and lets earlier events back', () => {
+    const { props } = setup({ logs: [], isCleared: true });
+    expect(screen.getByTestId('cleared-screen')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Show earlier events'));
+    expect(props.onShowEarlier).toHaveBeenCalled();
+  });
+
+  it('offers the cleared events below new ones', () => {
+    const { props } = setup({ logs: [entry(1)], isCleared: true, hasMore: false });
+    fireEvent.click(screen.getByText(/earlier events were cleared/i));
+    expect(props.onShowEarlier).toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { fetchLogs, UnauthorizedError } from '../lib/fetchLogs';
 import { feedReducer, initialFeedState, olderPageOffset } from '../lib/eventFeed';
 import { matchesFilters } from '../lib/matchFilters';
+import { resolveDateRange } from '../lib/dateRange';
 
 export const PAGE_SIZE = 100;
 
@@ -21,8 +22,10 @@ export function useEventFeed(filters: SearchFilters) {
   const [generation, setGeneration] = useState(0);
 
   const holdRef = useRef(false);
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
+  // Filters with the date range resolved for the current load; a relative
+  // range ("last 15 minutes") is fixed when the first page is requested, so
+  // older pages and live matching use the same window.
+  const filtersRef = useRef<SearchFilters>(filters);
   const stateRef = useRef(state);
   stateRef.current = state;
   const generationRef = useRef(generation);
@@ -42,6 +45,7 @@ export function useEventFeed(filters: SearchFilters) {
   // First page: whenever the filters, the server or the generation (reload) change.
   useEffect(() => {
     dispatch({ type: 'reset' });
+    filtersRef.current = resolveDateRange(filters, Date.now());
     setError(null);
     olderInFlight.current = false;
     setIsLoadingOlder(false);
@@ -62,7 +66,7 @@ export function useEventFeed(filters: SearchFilters) {
     void loadFirstPage();
 
     return () => controller.abort();
-    // filtersKey stands for filters; the ref carries the value.
+    // filtersKey stands for filters (same content, stable identity).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, apiUrl, uiSecret, generation, handleError]);
 
@@ -98,6 +102,9 @@ export function useEventFeed(filters: SearchFilters) {
   }, [apiUrl, uiSecret, handleError]);
 
   const reload = useCallback(() => setGeneration(g => g + 1), []);
+
+  /** Empty the screen; new events keep arriving, earlier ones come back with a reload. */
+  const clear = useCallback(() => dispatch({ type: 'clear' }), []);
 
   // A catch-up asked for before the first page arrived runs right after it.
   const catchUpWanted = useRef(false);
@@ -165,7 +172,9 @@ export function useEventFeed(filters: SearchFilters) {
     loadOlder,
     catchUp,
     flush,
+    isCleared: state.cleared !== null,
     reload,
+    clear,
     setHold,
     pushLive,
   };

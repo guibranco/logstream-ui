@@ -11,6 +11,7 @@ import {
 } from '../lib/contextProperties';
 import { ContextSearchInput } from './search/ContextSearchInput';
 import { ContextKeyValueFilter } from './search/ContextKeyValueFilter';
+import { DateRangePicker, DateRangeValue } from './search/DateRangePicker';
 
 interface FilterBarProps {
   filters: SearchFilters;
@@ -62,6 +63,18 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
     ...Object.entries(initialFilters.context ?? {}).map(([path, value]) => ({ path, value, exclude: false })),
     ...Object.entries(initialFilters.context_not ?? {}).map(([path, value]) => ({ path, value, exclude: true })),
   ];
+
+  // Like Seq, picking a range applies it at once, keeping the other applied filters.
+  const applyDateRange = (range: DateRangeValue) => {
+    const next: SearchFilters = {
+      ...initialFilters,
+      range: range.range,
+      date_from: range.date_from,
+      date_to: range.date_to,
+    };
+    setLocalFilters(prev => ({ ...prev, range: range.range, date_from: range.date_from, date_to: range.date_to }));
+    onSearch(next);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,24 +173,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({ filters: initialFilters, o
 
           <div className="h-6 w-px bg-gray-800 hidden lg:block" />
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 font-medium">From:</span>
-            <input
-              type="datetime-local"
-              name="date_from"
-              value={localFilters.date_from || ''}
-              onChange={handleChange}
-              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-secondary-500 text-gray-300"
-            />
-            <span className="text-xs text-gray-500 font-medium">To:</span>
-            <input
-              type="datetime-local"
-              name="date_to"
-              value={localFilters.date_to || ''}
-              onChange={handleChange}
-              className="bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-secondary-500 text-gray-300"
-            />
-          </div>
+          <DateRangePicker
+            value={{ range: initialFilters.range, date_from: initialFilters.date_from, date_to: initialFilters.date_to }}
+            onChange={applyDateRange}
+          />
 
           <div className="h-6 w-px bg-gray-800 hidden lg:block" />
 

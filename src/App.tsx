@@ -115,6 +115,9 @@ function LogStreamApp() {
                 isLiveEnabled={isWebsocketEnabled}
                 onLoadOlder={feed.loadOlder}
                 onShowPending={feed.flush}
+                onResume={() => setIsPaused(false)}
+                isCleared={feed.isCleared}
+                onShowEarlier={feed.reload}
                 onHoldChange={feed.setHold}
                 onFilterBatch={handleFilterBatch}
                 onFilterTrace={handleFilterTrace}
@@ -144,6 +147,7 @@ function LogStreamApp() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         onReload={feed.reload}
+        onClear={feed.clear}
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenSettings={openSettings}
         onDisconnect={signOut}
