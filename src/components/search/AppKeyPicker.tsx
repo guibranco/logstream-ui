@@ -35,6 +35,12 @@ export const AppKeyPicker: React.FC<AppKeyPickerProps> = ({ selected, options, m
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Typing filters the list straight away when the panel opens.
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -100,7 +106,7 @@ export const AppKeyPicker: React.FC<AppKeyPickerProps> = ({ selected, options, m
           <div className="relative p-2 border-b border-gray-800">
             <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
             <input
-              autoFocus
+              ref={searchRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={e => {

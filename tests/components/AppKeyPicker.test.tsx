@@ -63,3 +63,11 @@ describe('AppKeyPicker', () => {
     expect(onChange).toHaveBeenLastCalledWith([]);
   });
 });
+
+describe('AppKeyPicker focus', () => {
+  it('focuses the search box when opened', () => {
+    render(<AppKeyPicker selected={[]} options={options} multiple onChange={vi.fn()} />);
+    fireEvent.click(screen.getByTestId('app-key-button'));
+    expect(screen.getByLabelText('Find an app')).toHaveFocus();
+  });
+});

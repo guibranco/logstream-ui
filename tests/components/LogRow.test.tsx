@@ -72,7 +72,7 @@ describe('LogRow level dot', () => {
       <LogRow log={{ ...baseLog, level }} onFilterBatch={vi.fn()} onFilterTrace={vi.fn()} onFilterContext={vi.fn()} />,
     );
     const dot = screen.queryByTestId('level-dot');
-    const result = dot ? { className: dot.className, label: dot.getAttribute('aria-label') } : null;
+    const result = dot ? { className: dot.className, label: dot.textContent } : null;
     unmount();
     return result;
   };

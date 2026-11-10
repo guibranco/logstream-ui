@@ -33,10 +33,11 @@ const LevelDot: React.FC<{ level: LogLevel }> = ({ level }) => {
   return (
     <span
       className={cn('w-2 h-2 rounded-full flex-shrink-0', dot.className)}
-      role="img"
-      aria-label={dot.label}
+      title={dot.label}
       data-testid="level-dot"
-    />
+    >
+      <span className="sr-only">{dot.label}</span>
+    </span>
   );
 };
 
