@@ -42,6 +42,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const [localFilters, setLocalFilters] = useState<SearchFilters>(initialFilters);
   const [contextRows, setContextRows] = useState<ContextRow[]>(() => filtersToRows(initialFilters));
   const [advancedOpen, setAdvancedOpen] = useState(() => hasContextFilters(initialFilters));
+  // On phones only the message search shows until the filters are opened.
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const collapsible = mobileOpen ? undefined : 'max-md:hidden';
 
   useEffect(() => {
     setLocalFilters(initialFilters);
@@ -53,6 +56,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const activeAdvanced = contextRows.filter(r => r.key.trim() && r.value).length
     + (localFilters.context_search?.trim() ? 1 : 0)
     + (localFilters.message_template ? 1 : 0);
+  // Applied filters besides the message search and the time window, shown on the phone toggle.
+  const appliedCount = [
+    asList(initialFilters.level).length > 0,
+    asList(initialFilters.app_key).length > 0,
+    !!initialFilters.app_id,
+    !!initialFilters.category,
+    !!initialFilters.trace_id,
+    !!initialFilters.batch_id,
+    !!initialFilters.message_template,
+    !!initialFilters.context_search,
+    Object.keys(initialFilters.context ?? {}).length > 0,
+    Object.keys(initialFilters.context_not ?? {}).length > 0,
+  ].filter(Boolean).length;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -107,6 +123,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     e.preventDefault();
     if (errors.length > 0) return;
 
+    setMobileOpen(false);
     const term = localFilters.context_search?.trim();
     onSearch({
       ...localFilters,
@@ -116,27 +133,61 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   };
 
   return (
-    <div className="sticky top-[57px] z-40 bg-gray-900 border-b border-gray-800 p-4 shadow-lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div className="md:col-span-2 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-            <input
-              type="text"
-              name="search"
-              placeholder="Search message text..."
-              value={localFilters.search || ''}
-              onChange={handleChange}
-              className="w-full bg-gray-950 border border-gray-800 rounded px-10 py-2 text-sm focus:outline-none focus:border-secondary-500 transition-colors"
-            />
+    <div
+      className={cn(
+        "sticky top-[57px] z-40 bg-gray-900 border-b border-gray-800 p-3 md:p-4 shadow-lg",
+        // Opened on a phone, the filters scroll on their own and leave room for the events.
+        mobileOpen && "max-md:max-h-[65dvh] max-md:overflow-y-auto",
+      )}
+      data-testid="filter-bar"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4">
+          <div className="col-span-2 flex gap-2">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+              <input
+                type="text"
+                name="search"
+                placeholder="Search message text..."
+                value={localFilters.search || ''}
+                onChange={handleChange}
+                enterKeyHint="search"
+                className="w-full bg-gray-950 border border-gray-800 rounded px-10 py-2 text-sm focus:outline-none focus:border-secondary-500 transition-colors"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(open => !open)}
+              aria-expanded={mobileOpen}
+              aria-controls="filter-fields"
+              data-testid="mobile-filters-toggle"
+              className={cn(
+                "md:hidden flex-shrink-0 flex items-center gap-1.5 px-3 rounded border text-xs font-medium transition-colors",
+                mobileOpen || appliedCount > 0
+                  ? "bg-secondary-900/40 border-secondary-700 text-secondary-300"
+                  : "bg-gray-950 border-gray-800 text-gray-400",
+              )}
+            >
+              <SlidersHorizontal size={14} />
+              Filters
+              {appliedCount > 0 && (
+                <span className="px-1.5 rounded-full bg-secondary-900 text-secondary-300 text-[10px] font-bold">
+                  {appliedCount}
+                </span>
+              )}
+              <ChevronDown size={14} className={cn('transition-transform', mobileOpen && 'rotate-180')} />
+            </button>
           </div>
 
-          <AppKeyPicker
-            selected={asList(initialFilters.app_key)}
-            options={appKeyOptions}
-            multiple={multiValue}
-            onChange={keys => applyNow({ app_key: fromList(keys) })}
-          />
+          <div className={cn("col-span-2 md:col-span-1", collapsible)}>
+            <AppKeyPicker
+              selected={asList(initialFilters.app_key)}
+              options={appKeyOptions}
+              multiple={multiValue}
+              onChange={keys => applyNow({ app_key: fromList(keys) })}
+            />
+          </div>
 
           <input
             type="text"
@@ -144,7 +195,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             placeholder="App ID"
             value={localFilters.app_id || ''}
             onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
+            className={cn("min-w-0 bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500", collapsible)}
           />
 
           <input
@@ -153,10 +204,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             placeholder="Category"
             value={localFilters.category || ''}
             onChange={handleChange}
-            className="bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500"
+            className={cn("min-w-0 bg-gray-950 border border-gray-800 rounded px-3 py-2 text-sm focus:outline-none focus:border-secondary-500", collapsible)}
           />
 
-          <div className="flex gap-2">
+          <div className={cn("col-span-2 md:col-span-1 flex gap-2", collapsible)}>
             <button
               type="submit"
               disabled={errors.length > 0}
@@ -177,7 +228,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
+        <div id="filter-fields" className={cn("flex flex-wrap items-center gap-3 md:gap-4", collapsible)}>
           <div
             className="flex flex-wrap gap-2"
             title={multiValue ? 'Pick one or more levels' : 'This server filters one level at a time'}
@@ -209,14 +260,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
           <div className="h-6 w-px bg-gray-800 hidden lg:block" />
 
-          <div className="flex gap-2 flex-1 lg:flex-none">
+          <div className="flex gap-2 w-full md:w-auto md:flex-1 lg:flex-none">
             <input
               type="text"
               name="trace_id"
               placeholder="Trace ID"
               value={localFilters.trace_id || ''}
               onChange={handleChange}
-              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
+              className="flex-1 min-w-0 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
             />
             <input
               type="text"
@@ -224,12 +275,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               placeholder="Batch ID"
               value={localFilters.batch_id || ''}
               onChange={handleChange}
-              className="flex-1 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
+              className="flex-1 min-w-0 lg:w-40 bg-gray-950 border border-gray-800 rounded px-3 py-1 text-xs focus:outline-none focus:border-secondary-500"
             />
           </div>
         </div>
 
-        <div>
+        <div className={collapsible}>
           <button
             type="button"
             onClick={() => setAdvancedOpen(open => !open)}

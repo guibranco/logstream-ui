@@ -95,10 +95,10 @@ export const LogRow: React.FC<LogRowProps> = ({
       }[log.level]
     )}>
       <div 
-        className="flex items-center px-4 h-12 cursor-pointer select-none"
+        className="flex flex-wrap md:flex-nowrap items-center gap-x-2 md:gap-x-0 gap-y-1 px-3 md:px-4 py-2 md:py-0 md:h-12 cursor-pointer select-none"
         onClick={toggle}
       >
-        <div className="w-32 flex-shrink-0 text-xs text-gray-500 group relative">
+        <div className="md:w-32 flex-shrink-0 text-xs text-gray-500 group relative">
           <span title={log.timestamp}>
             {formatDistanceToNow(timestamp, { addSuffix: true })}
           </span>
@@ -107,25 +107,25 @@ export const LogRow: React.FC<LogRowProps> = ({
           </div>
         </div>
 
-        <div className="w-24 flex-shrink-0">
+        <div className="md:w-24 flex-shrink-0">
           <LevelBadge level={log.level} />
         </div>
 
-        <div className="w-32 flex-shrink-0 text-xs font-mono text-secondary-400 truncate px-2">
+        <div className="min-w-0 flex-1 md:flex-none md:w-32 md:flex-shrink-0 text-xs font-mono text-secondary-400 truncate md:px-2">
           {log.app_key}
         </div>
 
-        <div className="w-24 flex-shrink-0 text-xs text-gray-400 truncate px-2">
+        <div className="hidden md:block w-24 flex-shrink-0 text-xs text-gray-400 truncate px-2">
           {log.app_id}
         </div>
 
-        <div className="w-32 flex-shrink-0 text-xs text-gray-500 italic truncate px-2">
+        <div className="hidden md:block w-32 flex-shrink-0 text-xs text-gray-500 italic truncate px-2">
           {log.category}
         </div>
 
-        <div className="flex-1 min-w-0 flex items-center gap-2 px-2">
+        <div className="order-last md:order-none basis-full md:basis-auto flex-1 min-w-0 flex items-center gap-2 md:px-2">
           <LevelDot level={log.level} />
-          <span className="text-sm text-gray-200 truncate font-medium">
+          <span className="min-w-0 text-sm text-gray-200 font-medium line-clamp-2 md:line-clamp-1 [overflow-wrap:anywhere]">
             <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
           </span>
           {exception && (
@@ -133,7 +133,7 @@ export const LogRow: React.FC<LogRowProps> = ({
           )}
         </div>
 
-        <div className="w-32 flex-shrink-0 text-[10px] font-mono text-gray-600 flex items-center gap-1 group">
+        <div className="hidden md:flex w-32 flex-shrink-0 text-[10px] font-mono text-gray-600 items-center gap-1 group">
           <span className="truncate">{log.trace_id.slice(0, 8)}…</span>
           <button 
             onClick={(e) => {
@@ -146,7 +146,7 @@ export const LogRow: React.FC<LogRowProps> = ({
           </button>
         </div>
 
-        <div className="w-10 flex-shrink-0 flex justify-center">
+        <div className="md:w-10 flex-shrink-0 flex justify-center">
           {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
         </div>
       </div>
@@ -159,12 +159,37 @@ export const LogRow: React.FC<LogRowProps> = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden bg-gray-950/50 border-t border-gray-900"
           >
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-4">
+            <div className="p-3 md:p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                <div className="lg:col-span-2 min-w-0 space-y-4">
+                  {/* The columns a phone has no room for. */}
+                  <dl className="md:hidden grid grid-cols-2 gap-x-4 gap-y-3" data-testid="mobile-summary">
+                    <div className="col-span-2">
+                      <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Time</dt>
+                      <dd className="text-xs font-mono text-gray-300">{format(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">App ID</dt>
+                      <dd className="text-xs font-mono text-gray-300 break-all">{log.app_id || 'N/A'}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Trace ID</dt>
+                      <dd className="flex items-start gap-1">
+                        <span className="text-xs font-mono text-gray-300 break-all">{log.trace_id}</span>
+                        <button
+                          onClick={() => handleCopy(log.trace_id, 'trace')}
+                          className="p-1 -mt-0.5 hover:bg-gray-800 rounded flex-shrink-0"
+                          aria-label="Copy trace ID"
+                        >
+                          {copied === 'trace' ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500" />}
+                        </button>
+                      </dd>
+                    </div>
+                  </dl>
+
                   <div>
                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Full Message</h4>
-                    <p className="text-gray-100 whitespace-pre-wrap font-medium leading-relaxed bg-gray-900/50 p-4 rounded border border-gray-800">
+                    <p className="text-gray-100 whitespace-pre-wrap [overflow-wrap:anywhere] font-medium leading-relaxed bg-gray-900/50 p-3 md:p-4 rounded border border-gray-800">
                       <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
                     </p>
                   </div>
@@ -192,7 +217,7 @@ export const LogRow: React.FC<LogRowProps> = ({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Category</h4>
                       <div className="flex items-center gap-2 group">
@@ -267,7 +292,7 @@ export const LogRow: React.FC<LogRowProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex flex-wrap gap-2 md:gap-3 pt-2">
                     {log.batch_id && (
                       <button 
                         onClick={() => onFilterBatch(log.batch_id!)}
@@ -305,7 +330,7 @@ export const LogRow: React.FC<LogRowProps> = ({
                   </div>
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Context</h4>
                   <div className="bg-gray-900/50 p-3 rounded border border-gray-800 max-h-[400px] overflow-auto">
                     <ContextProperties
