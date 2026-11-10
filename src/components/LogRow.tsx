@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
 import { ContextProperties } from './ContextProperties';
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter, Bug, Tag } from 'lucide-react';
+import { ExceptionDetails } from './ExceptionDetails';
+import { parseException, withoutExceptionStacks } from '../lib/exception';
 import { TemplatedMessage, TemplateText } from './TemplatedMessage';
 import { cn } from '../lib/utils';
 import { splitUrls } from '../lib/linkify';
@@ -17,6 +19,8 @@ interface LogRowProps {
   onFilterContext: (path: string, value: string, exclude: boolean) => void;
   /** Show every entry logged from this message template. */
   onFilterTemplate?: (template: string) => void;
+  /** Show every entry in this category. */
+  onFilterCategory?: (category: string) => void;
   /** Controlled expansion; when omitted the row keeps its own state. */
   isExpanded?: boolean;
   onToggle?: (id: string) => void;
@@ -51,6 +55,7 @@ export const LogRow: React.FC<LogRowProps> = ({
   onFilterTrace,
   onFilterContext,
   onFilterTemplate,
+  onFilterCategory,
   isExpanded: expandedProp,
   onToggle,
 }) => {
@@ -66,6 +71,11 @@ export const LogRow: React.FC<LogRowProps> = ({
   };
 
   const timestamp = new Date(log.timestamp);
+  const exception = useMemo(() => parseException(log.context), [log.context]);
+  const contextProperties = useMemo(
+    () => (exception ? withoutExceptionStacks(log.context) : log.context),
+    [exception, log.context],
+  );
 
   return (
     <div
@@ -118,6 +128,9 @@ export const LogRow: React.FC<LogRowProps> = ({
           <span className="text-sm text-gray-200 truncate font-medium">
             <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
           </span>
+          {exception && (
+            <Bug size={14} className="flex-shrink-0 text-rose-400" aria-label="Has exception" data-testid="exception-indicator" />
+          )}
         </div>
 
         <div className="w-32 flex-shrink-0 text-[10px] font-mono text-gray-600 flex items-center gap-1 group">
@@ -156,6 +169,8 @@ export const LogRow: React.FC<LogRowProps> = ({
                     </p>
                   </div>
 
+                  {exception && <ExceptionDetails exception={exception} />}
+
                   {log.message_template && (
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Message Template</h4>
@@ -178,6 +193,23 @@ export const LogRow: React.FC<LogRowProps> = ({
                   )}
 
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Category</h4>
+                      <div className="flex items-center gap-2 group">
+                        <span className="text-xs font-mono text-gray-300 truncate" data-testid="category">
+                          {log.category || 'N/A'}
+                        </span>
+                        {log.category && (
+                          <button
+                            onClick={() => handleCopy(log.category, 'category')}
+                            className="p-1 hover:bg-gray-800 rounded transition-all"
+                            aria-label="Copy category"
+                          >
+                            {copied === 'category' ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">User Agent</h4>
                       <p className="text-xs text-gray-400 italic break-all" data-testid="user-agent">
@@ -252,6 +284,15 @@ export const LogRow: React.FC<LogRowProps> = ({
                       <ExternalLink size={14} />
                       View trace
                     </button>
+                    {log.category && onFilterCategory && (
+                      <button
+                        onClick={() => onFilterCategory(log.category)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 border border-gray-700 text-gray-300 text-xs font-bold rounded hover:bg-gray-800 transition-all"
+                      >
+                        <Tag size={14} />
+                        View all in category
+                      </button>
+                    )}
                     {log.message_template && onFilterTemplate && (
                       <button
                         onClick={() => onFilterTemplate(log.message_template!)}
@@ -268,7 +309,7 @@ export const LogRow: React.FC<LogRowProps> = ({
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Context</h4>
                   <div className="bg-gray-900/50 p-3 rounded border border-gray-800 max-h-[400px] overflow-auto">
                     <ContextProperties
-                      context={log.context}
+                      context={contextProperties}
                       onFind={(path, value) => onFilterContext(path, value, false)}
                       onExclude={(path, value) => onFilterContext(path, value, true)}
                     />

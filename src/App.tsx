@@ -120,6 +120,10 @@ function LogStreamApp() {
     setFilters(f => ({ ...f, message_template: template, search: undefined }));
   }, []);
 
+  const handleFilterCategory = useCallback((category: string) => {
+    setFilters(f => ({ ...f, category }));
+  }, []);
+
   const handleFilterContext = useCallback((path: string, value: string, exclude: boolean) => {
     setFilters(f => withContextFilter(f, path, value, exclude));
   }, []);
@@ -171,6 +175,7 @@ function LogStreamApp() {
                 onFilterTrace={handleFilterTrace}
                 onFilterContext={handleFilterContext}
                 onFilterTemplate={handleFilterTemplate}
+                onFilterCategory={handleFilterCategory}
                 onRetry={feed.reload}
               />
             </main>

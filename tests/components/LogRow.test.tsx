@@ -66,6 +66,59 @@ describe('LogRow', () => {
   });
 });
 
+describe('LogRow category', () => {
+  it('shows the category in the expanded details and filters by it', () => {
+    const onFilterCategory = vi.fn();
+    render(
+      <LogRow
+        log={baseLog}
+        onFilterBatch={vi.fn()}
+        onFilterTrace={vi.fn()}
+        onFilterContext={vi.fn()}
+        onFilterCategory={onFilterCategory}
+      />,
+    );
+    fireEvent.click(screen.getAllByText('Request handled')[0]);
+
+    expect(screen.getByText('Category')).toBeInTheDocument();
+    expect(screen.getByTestId('category')).toHaveTextContent('http');
+    expect(screen.getByLabelText('Copy category')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('View all in category'));
+    expect(onFilterCategory).toHaveBeenCalledWith('http');
+  });
+});
+
+describe('LogRow exception', () => {
+  const exception = {
+    type: 'System.InvalidOperationException',
+    message: 'Charge failed',
+    stack_trace: '   at Billing.Charge() in /src/Billing.cs:line 42',
+  };
+
+  it('marks the row and shows the stack trace when expanded', () => {
+    renderRow({ ...baseLog, level: 'error', context: { invoice_id: 7, exception } });
+
+    expect(screen.getByTestId('exception-indicator')).toBeInTheDocument();
+    const panel = screen.getByTestId('exception-details');
+    expect(panel).toHaveTextContent('System.InvalidOperationException: Charge failed');
+    expect(panel).toHaveTextContent('at Billing.Charge() in /src/Billing.cs:line 42');
+    expect(screen.getByLabelText('Copy exception')).toBeInTheDocument();
+  });
+
+  it('keeps type and message as properties but not the stack trace', () => {
+    renderRow({ ...baseLog, context: { exception } });
+    expect(screen.getByLabelText('Find exception.type')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Find exception.stack_trace')).not.toBeInTheDocument();
+  });
+
+  it('shows nothing extra without an exception', () => {
+    renderRow(baseLog);
+    expect(screen.queryByTestId('exception-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('exception-details')).not.toBeInTheDocument();
+  });
+});
+
 describe('LogRow level dot', () => {
   const dotFor = (level: LogEntry['level']) => {
     const { unmount } = render(
