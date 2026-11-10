@@ -172,3 +172,35 @@ describe('FilterBar message template', () => {
     expect(onSearch).toHaveBeenCalledWith(expect.objectContaining({ message_template: 'Charge {id} failed' }));
   });
 });
+
+describe('FilterBar on phones', () => {
+  const toggle = () => screen.getByTestId('mobile-filters-toggle');
+
+  it('keeps the filters folded until the toggle opens them', () => {
+    render(<FilterBar filters={{}} onSearch={vi.fn()} />);
+    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByPlaceholderText('App ID')).toHaveClass('max-md:hidden');
+
+    fireEvent.click(toggle());
+
+    expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByPlaceholderText('App ID')).not.toHaveClass('max-md:hidden');
+  });
+
+  it('counts the applied filters on the toggle, leaving out the message search and the time window', () => {
+    render(
+      <FilterBar
+        filters={{ search: 'timeout', range: '24h', level: 'error', category: 'http', context: { a: '1' } }}
+        onSearch={vi.fn()}
+      />,
+    );
+    expect(toggle()).toHaveTextContent('Filters3');
+  });
+
+  it('folds the filters again after a search', () => {
+    render(<FilterBar filters={{}} onSearch={vi.fn()} />);
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole('button', { name: /^search$/i }));
+    expect(toggle()).toHaveAttribute('aria-expanded', 'false');
+  });
+});
