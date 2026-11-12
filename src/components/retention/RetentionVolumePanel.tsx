@@ -92,10 +92,10 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
           value={formatMetric(totalDue, metric)}
           hint={totalStored > 0 ? `${Math.round((totalDue / totalStored) * 100)}% — eligible for a live retention run` : undefined}
         />
-        {olderStored > 0 && (
+        {report.older.count > 0 && (
           <Stat label={`Older than ${report.days} days`} value={formatMetric(olderStored, metric)} hint="not shown on the chart" />
         )}
-        {futureStored > 0 && (
+        {report.future.count > 0 && (
           <Stat label="Dated in the future" value={formatMetric(futureStored, metric)} hint="timestamps after today, not shown on the chart" />
         )}
       </div>

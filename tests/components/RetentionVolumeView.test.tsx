@@ -57,6 +57,17 @@ describe('RetentionVolumeView', () => {
     expect(screen.getByText('Dated in the future', { selector: 'div' }).nextSibling).toHaveTextContent('3');
   });
 
+  it('shows out-of-window entries in Size mode even when their size is zero', () => {
+    render(
+      <RetentionVolumeView
+        report={{ ...report, older: { count: 2, bytes: 0, due_count: 0, due_bytes: 0 }, future: { count: 1, bytes: 0, due_count: 0, due_bytes: 0 } }}
+        metric="bytes"
+      />,
+    );
+    expect(screen.getByText('Older than 3 days', { selector: 'div' }).nextSibling).toHaveTextContent('0 B');
+    expect(screen.getByText('Dated in the future', { selector: 'div' }).nextSibling).toHaveTextContent('0 B');
+  });
+
   it('switches to sizes', () => {
     render(<RetentionVolumeView report={report} metric="bytes" />);
 
