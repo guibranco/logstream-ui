@@ -4,6 +4,7 @@ import { PolicyTable } from '../components/retention/PolicyTable';
 import { PolicyForm } from '../components/retention/PolicyForm';
 import { RunPanel } from '../components/retention/RunPanel';
 import { RunResults } from '../components/retention/RunResults';
+import { RetentionVolumePanel } from '../components/retention/RetentionVolumePanel';
 import { RetentionPolicy, RetentionRunResponse } from '../types';
 
 export function RetentionScreen() {
@@ -44,6 +45,11 @@ export function RetentionScreen() {
             New Policy
           </button>
         </div>
+
+        {/* Storage by age, with a marker per policy */}
+        <section>
+          <RetentionVolumePanel />
+        </section>
 
         {/* Run Controls */}
         <section className="space-y-4">

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { RetentionPolicy, RetentionRunResponse } from '../types';
+import { RETENTION_VOLUME_KEY } from './useRetentionVolume';
 
 export function useRetentionPolicies() {
   const { config } = useAuth();
@@ -96,6 +97,7 @@ export function useCreatePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+      queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
 }
@@ -129,6 +131,7 @@ export function useUpdatePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+      queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
 }
@@ -164,6 +167,7 @@ export function useDeletePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+      queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
 }
@@ -195,8 +199,12 @@ export function useRunRetention() {
 
       return await response.json() as RetentionRunResponse;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+      // A real run deletes entries, so the volume chart is out of date.
+      if (!variables.dry_run && (data.total_pruned ?? data.total_deleted ?? 0) > 0) {
+        queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
+      }
     }
   });
 }

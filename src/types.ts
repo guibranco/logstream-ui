@@ -94,6 +94,46 @@ export interface RetentionRunResponse {
   results?: RetentionRunResult[]; // legacy support
 }
 
+export interface RetentionVolumeTotals {
+  count: number;
+  bytes: number;
+  due_count: number;
+  due_bytes: number;
+}
+
+export interface RetentionVolumeBucket extends RetentionVolumeTotals {
+  /** Local date of the entries' timestamps (YYYY-MM-DD). */
+  date: string;
+  /** Days before today; 0 = today. */
+  age_days: number;
+}
+
+export interface RetentionVolumePolicy {
+  name: string;
+  older_than_days: number | null;
+  /** False for a policy without criteria, which never deletes anything. */
+  active: boolean;
+  matched_count: number;
+  matched_bytes: number;
+  due_count: number;
+  due_bytes: number;
+  /** matched_count ÷ all stored entries, 0–1. */
+  matched_share: number;
+}
+
+export interface RetentionVolumeReport {
+  generated_at: string;
+  days: number;
+  /** file = exact JSONL line sizes; payload = message + template + context length. */
+  size_basis: 'file' | 'payload';
+  /** One bucket per day, oldest first. */
+  buckets: RetentionVolumeBucket[];
+  older: RetentionVolumeTotals;
+  future: RetentionVolumeTotals;
+  policies: RetentionVolumePolicy[];
+  totals: RetentionVolumeTotals;
+}
+
 export interface Client {
   name: string;
   app_key: string;
