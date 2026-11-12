@@ -14,6 +14,17 @@ describe('DateRangePicker', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('offers the long and calendar ranges', () => {
+    const onChange = vi.fn();
+    render(<DateRangePicker value={{}} onChange={onChange} />);
+    fireEvent.click(screen.getByTestId('date-range-button'));
+    for (const label of ['Last 60 days', 'Last 90 days', 'Last 365 days', 'This week', 'This month']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByText('From now'));
+    expect(onChange).toHaveBeenCalledWith({ range: 'now' });
+  });
+
   it('applies a custom from/to range', () => {
     const onChange = vi.fn();
     render(<DateRangePicker value={{}} onChange={onChange} />);

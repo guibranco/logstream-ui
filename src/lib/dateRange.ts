@@ -2,7 +2,8 @@ import { SearchFilters } from '../types';
 
 /**
  * Date ranges the way Seq offers them: a relative window ending now ("last 15
- * minutes"), an absolute from/to, or any time.
+ * minutes"), a calendar period so far ("this week"), an absolute from/to, or
+ * any time.
  *
  * Relative ranges are stored as their key (`range=15m` in the URL) and turned
  * into a `date_from` each time the feed loads, so a shared link or a reload
@@ -12,24 +13,48 @@ import { SearchFilters } from '../types';
 export interface RangePreset {
   key: string;
   label: string;
-  ms: number;
+  /** Start of the range for a given current time; the range always ends now. */
+  start: (now: Date) => Date;
 }
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
+const last = (key: string, label: string, ms: number): RangePreset => ({
+  key,
+  label,
+  start: now => new Date(now.getTime() - ms),
+});
+
+/** Midnight (local time) of the most recent Sunday; today if it is Sunday. */
+export function startOfWeek(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+}
+
+/** Midnight (local time) of the first day of the current month. */
+export function startOfMonth(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
 export const RANGE_PRESETS: readonly RangePreset[] = [
-  { key: '5m', label: 'Last 5 minutes', ms: 5 * MINUTE },
-  { key: '15m', label: 'Last 15 minutes', ms: 15 * MINUTE },
-  { key: '30m', label: 'Last 30 minutes', ms: 30 * MINUTE },
-  { key: '1h', label: 'Last hour', ms: HOUR },
-  { key: '4h', label: 'Last 4 hours', ms: 4 * HOUR },
-  { key: '12h', label: 'Last 12 hours', ms: 12 * HOUR },
-  { key: '1d', label: 'Last 24 hours', ms: DAY },
-  { key: '3d', label: 'Last 3 days', ms: 3 * DAY },
-  { key: '7d', label: 'Last 7 days', ms: 7 * DAY },
-  { key: '30d', label: 'Last 30 days', ms: 30 * DAY },
+  last('5m', 'Last 5 minutes', 5 * MINUTE),
+  last('15m', 'Last 15 minutes', 15 * MINUTE),
+  last('30m', 'Last 30 minutes', 30 * MINUTE),
+  last('1h', 'Last hour', HOUR),
+  last('4h', 'Last 4 hours', 4 * HOUR),
+  last('12h', 'Last 12 hours', 12 * HOUR),
+  last('1d', 'Last 24 hours', DAY),
+  last('3d', 'Last 3 days', 3 * DAY),
+  last('7d', 'Last 7 days', 7 * DAY),
+  last('30d', 'Last 30 days', 30 * DAY),
+  last('60d', 'Last 60 days', 60 * DAY),
+  last('90d', 'Last 90 days', 90 * DAY),
+  last('365d', 'Last 365 days', 365 * DAY),
+  { key: 'week', label: 'This week', start: startOfWeek },
+  { key: 'month', label: 'This month', start: startOfMonth },
+  // Only what arrives after the feed (re)loads: a clean live tail.
+  { key: 'now', label: 'From now', start: now => now },
 ];
 
 export const findPreset = (key: string | undefined) => RANGE_PRESETS.find(p => p.key === key);
@@ -43,14 +68,14 @@ function toInstant(value: string | undefined): Date | null {
 
 /**
  * Filters with the date range made concrete for one load: a relative range
- * becomes `date_from` (now minus the window, no `date_to`), and absolute
+ * becomes `date_from` (its start for the current time, no `date_to`), and absolute
  * dates become ISO instants. The result is what requests and live matching use.
  */
 export function resolveDateRange(filters: SearchFilters, now: number): SearchFilters {
   const { range, ...rest } = filters;
   const preset = findPreset(range);
   if (preset) {
-    return { ...rest, date_from: new Date(now - preset.ms).toISOString(), date_to: undefined };
+    return { ...rest, date_from: preset.start(new Date(now)).toISOString(), date_to: undefined };
   }
   const from = toInstant(rest.date_from);
   const to = toInstant(rest.date_to);
