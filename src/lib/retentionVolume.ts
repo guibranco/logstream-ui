@@ -96,11 +96,13 @@ export function formatMetric(value: number, metric: VolumeMetric): string {
 }
 
 /** A round upper bound and step for the y axis (1, 2, 2.5 or 5 × 10^n per tick). */
-export function niceScale(max: number, ticks = 4): { max: number; step: number } {
-  if (max <= 0) return { max: 1, step: 1 };
+export function niceScale(max: number, ticks = 4, minStep = 0): { max: number; step: number } {
+  if (max <= 0) return { max: Math.max(1, minStep), step: Math.max(1, minStep) };
   const raw = max / ticks;
   const magnitude = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? 10 * magnitude;
+  const nice = [1, 2, 2.5, 5, 10].map((m) => m * magnitude).find((s) => s >= raw) ?? 10 * magnitude;
+  // Entries are whole, so the count axis never steps by a fraction.
+  const step = Math.max(nice, minStep);
   return { max: Math.ceil(max / step) * step, step };
 }
 
@@ -138,7 +140,7 @@ export function buildVolumeChart(
   const bucketWidth = plot.width / n;
 
   const peak = buckets.reduce((m, b) => Math.max(m, storedValue(b, metric)), 0);
-  const scale = niceScale(peak);
+  const scale = niceScale(peak, 4, metric === 'count' ? 1 : 0);
   const y = (v: number) => plot.y + plot.height - (v / scale.max) * plot.height;
 
   const stepArea = (valueOf: (b: RetentionVolumeBucket) => number): string => {
@@ -221,17 +223,32 @@ export function spreadLabels(markers: VolumeMarker[], min: number, max: number, 
     clusters.push([marker]);
   }
 
+  // Forward pass: centre each cluster on its markers, clamped to the bounds,
+  // and push it right of the previous one.
+  const starts: number[] = [];
+  const widths = clusters.map((c) => (c.length - 1) * spacing);
   let previousRight = -Infinity;
-  for (const cluster of clusters) {
+  clusters.forEach((cluster, k) => {
     const centre = cluster.reduce((sum, m) => sum + (m.x as number), 0) / cluster.length;
-    const half = ((cluster.length - 1) * spacing) / 2;
-    let start = Math.min(Math.max(centre - half, min), max - 2 * half);
+    let start = Math.min(Math.max(centre - widths[k] / 2, min), max - widths[k]);
     start = Math.max(start, previousRight + spacing);
-    cluster.forEach((marker, i) => {
-      marker.labelX = start + i * spacing;
-    });
-    previousRight = start + 2 * half;
+    starts.push(start);
+    previousRight = start + widths[k];
+  });
+
+  // Backward pass: a cluster pushed past max moves left, pulling earlier ones
+  // with it, so every badge stays in bounds whenever they all fit.
+  let nextStart = Infinity;
+  for (let k = clusters.length - 1; k >= 0; k--) {
+    starts[k] = Math.min(starts[k], max - widths[k], nextStart - spacing - widths[k]);
+    nextStart = starts[k];
   }
+
+  clusters.forEach((cluster, k) => {
+    cluster.forEach((marker, i) => {
+      marker.labelX = starts[k] + i * spacing;
+    });
+  });
 }
 
 /** Bucket index under a horizontal plot coordinate, or null outside the plot. */

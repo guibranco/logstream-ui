@@ -81,6 +81,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
   const totalStored = metric === 'count' ? report.totals.count : report.totals.bytes;
   const totalDue = metric === 'count' ? report.totals.due_count : report.totals.due_bytes;
   const olderStored = metric === 'count' ? report.older.count : report.older.bytes;
+  const futureStored = metric === 'count' ? report.future.count : report.future.bytes;
 
   return (
     <div className="space-y-4">
@@ -89,10 +90,13 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
         <Stat
           label="Due for deletion"
           value={formatMetric(totalDue, metric)}
-          hint={totalStored > 0 ? `${Math.round((totalDue / totalStored) * 100)}% — removed on the next run` : undefined}
+          hint={totalStored > 0 ? `${Math.round((totalDue / totalStored) * 100)}% — eligible for a live retention run` : undefined}
         />
         {olderStored > 0 && (
           <Stat label={`Older than ${report.days} days`} value={formatMetric(olderStored, metric)} hint="not shown on the chart" />
+        )}
+        {futureStored > 0 && (
+          <Stat label="Dated in the future" value={formatMetric(futureStored, metric)} hint="timestamps after today, not shown on the chart" />
         )}
       </div>
 

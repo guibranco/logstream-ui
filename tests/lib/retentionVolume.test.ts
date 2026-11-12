@@ -53,6 +53,12 @@ describe('niceScale', () => {
     expect(niceScale(1234)).toEqual({ max: 1500, step: 500 });
   });
 
+  it('never steps by less than the minimum', () => {
+    expect(niceScale(1, 4, 1)).toEqual({ max: 1, step: 1 });
+    expect(niceScale(3, 4, 1)).toEqual({ max: 3, step: 1 });
+    expect(niceScale(1)).toEqual({ max: 1, step: 0.25 });
+  });
+
   it('returns a unit scale for empty data', () => {
     expect(niceScale(0)).toEqual({ max: 1, step: 1 });
   });
@@ -87,6 +93,11 @@ describe('buildVolumeChart', () => {
     // Kept = 40 − 20 due = 20 → half way.
     expect(model.keptPath).toContain('L50,70 L70,70');
     expect(model.storedPath.endsWith('Z')).toBe(true);
+  });
+
+  it('labels whole entries on a one-entry axis', () => {
+    const model = buildVolumeChart(report([1, 0]), 'count', layout);
+    expect(model.yTicks.map((t) => t.label)).toEqual(['0', '1']);
   });
 
   it('uses bytes when asked', () => {
@@ -172,6 +183,12 @@ describe('spreadLabels', () => {
     spreadLabels(markers, 0, 200);
     expect(markers[1].labelX).toBe(180);
     expect(markers[0].labelX).toBe(200);
+  });
+
+  it('moves earlier clusters left when a later one would overflow', () => {
+    const markers = markersAt([40, 40, 72, 72]);
+    spreadLabels(markers, 0, 80);
+    expect(markers.map((m) => m.labelX)).toEqual([20, 40, 60, 80]);
   });
 
   it('skips markers beyond the window', () => {

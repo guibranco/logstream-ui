@@ -29,7 +29,7 @@ describe('RetentionVolumeView', () => {
     render(<RetentionVolumeView report={report} metric="count" />);
 
     expect(screen.getByText('Stored', { selector: 'div' }).nextSibling).toHaveTextContent('65');
-    expect(screen.getByText(/23% — removed on the next run/)).toBeInTheDocument();
+    expect(screen.getByText(/23% — eligible for a live retention run/)).toBeInTheDocument();
     expect(screen.getByText('Older than 3 days')).toBeInTheDocument();
   });
 
@@ -48,6 +48,15 @@ describe('RetentionVolumeView', () => {
     expect(screen.getByText(/Not shown: nothing/)).toBeInTheDocument();
   });
 
+  it('shows future-dated entries only when there are some', () => {
+    const { unmount } = render(<RetentionVolumeView report={report} metric="count" />);
+    expect(screen.queryByText('Dated in the future')).not.toBeInTheDocument();
+    unmount();
+
+    render(<RetentionVolumeView report={{ ...report, future: { count: 3, bytes: 300, due_count: 0, due_bytes: 0 } }} metric="count" />);
+    expect(screen.getByText('Dated in the future', { selector: 'div' }).nextSibling).toHaveTextContent('3');
+  });
+
   it('switches to sizes', () => {
     render(<RetentionVolumeView report={report} metric="bytes" />);
 
@@ -56,8 +65,8 @@ describe('RetentionVolumeView', () => {
   });
 
   it('shows a tooltip for the hovered day', () => {
-    const { container } = render(<RetentionVolumeView report={report} metric="count" />);
-    const svg = container.querySelector('svg[role="img"]') as SVGSVGElement;
+    render(<RetentionVolumeView report={report} metric="count" />);
+    const svg = screen.getByRole('img') as unknown as SVGSVGElement;
     svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 960, height: 240, right: 960, bottom: 240, x: 0, y: 0, toJSON: () => ({}) });
 
     // Plot starts at x=56; the first of three buckets covers the left third.
