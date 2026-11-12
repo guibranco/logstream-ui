@@ -94,6 +94,8 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
 
         {/* Stored = kept (solid) + due for deletion (hatched on top) */}
         <path d={model.storedPath} fill="url(#retention-due-hatch)" data-testid="volume-stored" />
+        {/* Opaque base so the hatch never shows through the kept area */}
+        <path d={model.keptPath} fill="var(--color-gray-900)" />
         <path d={model.keptPath} fill="var(--color-primary-500)" fillOpacity={0.35} stroke="var(--color-primary-400)" strokeWidth={2} strokeLinejoin="round" data-testid="volume-kept" />
 
         {/* X axis */}
@@ -117,6 +119,18 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
           />
         )}
 
+        {/* Hit area for the hover layer: larger than any mark, drawn under the
+            markers so their lines and badges still get their own hover */}
+        <rect
+          x={plot.x}
+          y={plot.y}
+          width={plot.width}
+          height={plot.height}
+          fill="transparent"
+          onMouseMove={handleMove}
+          onMouseLeave={() => setHovered(null)}
+          data-testid="volume-hit-area"
+        />
         {/* Policy markers */}
         {model.markers.filter((m) => m.x !== null).map((marker) => {
           const x = marker.x as number;
@@ -153,17 +167,6 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
           );
         })}
 
-        {/* Hit area for the hover layer: larger than any mark */}
-        <rect
-          x={plot.x}
-          y={plot.y}
-          width={plot.width}
-          height={plot.height}
-          fill="transparent"
-          onMouseMove={handleMove}
-          onMouseLeave={() => setHovered(null)}
-          data-testid="volume-hit-area"
-        />
       </svg>
 
       {hoveredBucket && (

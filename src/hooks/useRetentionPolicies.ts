@@ -97,6 +97,9 @@ export function useCreatePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+    },
+    // Even a failed response may follow a committed change, so refresh the chart either way.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
@@ -131,6 +134,9 @@ export function useUpdatePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+    },
+    // Even a failed response may follow a committed change, so refresh the chart either way.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
@@ -167,6 +173,9 @@ export function useDeletePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
+    },
+    // Even a failed response may follow a committed change, so refresh the chart either way.
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
     }
   });
@@ -199,12 +208,24 @@ export function useRunRetention() {
 
       return await response.json() as RetentionRunResponse;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['retention', 'policies'] });
-      // A real run deletes entries, so the volume chart is out of date.
-      if (!variables.dry_run && (data.total_pruned ?? data.total_deleted ?? 0) > 0) {
+    },
+    // A real run may delete entries (even one whose response failed), so the
+    // chart is out of date unless the run reports it deleted nothing.
+    onSettled: (data, error, variables) => {
+      if (!variables.dry_run && (error || prunedCount(data) > 0)) {
         queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
       }
     }
   });
+}
+
+/** Entries a run deleted, from its totals or, when those are missing, its per-policy results. */
+export function prunedCount(data: RetentionRunResponse | undefined): number {
+  if (!data) return 0;
+  const total = data.total_pruned ?? data.total_deleted;
+  if (total !== undefined) return total;
+  const results = data.policies ?? data.results ?? [];
+  return results.reduce((sum, r) => sum + (r.pruned ?? r.deleted ?? 0), 0);
 }
