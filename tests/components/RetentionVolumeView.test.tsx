@@ -1,7 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { RetentionVolumeView } from '@/src/components/retention/RetentionVolumePanel';
+import { RetentionVolumePanel, RetentionVolumeView } from '@/src/components/retention/RetentionVolumePanel';
 import { RetentionVolumeReport } from '@/src/types';
+
+const volumeHook = vi.hoisted(() => ({ calls: [] as number[] }));
+vi.mock('@/src/hooks/useRetentionVolume', () => ({
+  useRetentionVolume: (days: number) => {
+    volumeHook.calls.push(days);
+    return { data: undefined, isLoading: false, isError: false, error: null, isFetching: false };
+  },
+}));
 
 const zero = { count: 0, bytes: 0, due_count: 0, due_bytes: 0 };
 
@@ -23,6 +31,19 @@ const report: RetentionVolumeReport = {
   ],
   totals: { count: 65, bytes: 6500, due_count: 15, due_bytes: 1500 },
 };
+
+describe('RetentionVolumePanel', () => {
+  it('offers a 7-day window and loads it when picked', () => {
+    render(<RetentionVolumePanel />);
+
+    const windows = within(screen.getByRole('group', { name: 'Window' })).getAllByRole('button');
+    expect(windows.map((b) => b.textContent)).toEqual(['7d', '30d', '90d', '180d', '365d']);
+
+    fireEvent.click(screen.getByRole('button', { name: '7d' }));
+    expect(screen.getByRole('button', { name: '7d' })).toHaveAttribute('aria-pressed', 'true');
+    expect(volumeHook.calls.at(-1)).toBe(7);
+  });
+});
 
 describe('RetentionVolumeView', () => {
   it('shows totals and the share due for deletion', () => {
