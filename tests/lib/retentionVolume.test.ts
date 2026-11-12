@@ -122,6 +122,11 @@ describe('buildVolumeChart', () => {
     expect(model.inactive.map((p) => p.name)).toEqual(['empty']);
   });
 
+  it('labels every other day on a 7-day window', () => {
+    const model = buildVolumeChart(report([1, 1, 1, 1, 1, 1, 1]), 'count', layout);
+    expect(model.xTicks.map((t) => t.label)).toEqual(['Today', '2d ago', '4d ago', '6d ago']);
+  });
+
   it('labels the newest tick as today', () => {
     const model = buildVolumeChart(report([1, 1, 1]), 'count', layout);
     expect(model.xTicks[0].label).toBe('Today');

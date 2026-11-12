@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { RetentionVolumeView } from '@/src/components/retention/RetentionVolumePanel';
+import { RetentionVolumeView, VOLUME_WINDOWS } from '@/src/components/retention/RetentionVolumePanel';
 import { RetentionVolumeReport } from '@/src/types';
 
 const zero = { count: 0, bytes: 0, due_count: 0, due_bytes: 0 };
@@ -23,6 +23,12 @@ const report: RetentionVolumeReport = {
   ],
   totals: { count: 65, bytes: 6500, due_count: 15, due_bytes: 1500 },
 };
+
+describe('VOLUME_WINDOWS', () => {
+  it('offers a 7-day window before the longer ones', () => {
+    expect(VOLUME_WINDOWS).toEqual([7, 30, 90, 180, 365]);
+  });
+});
 
 describe('RetentionVolumeView', () => {
   it('shows totals and the share due for deletion', () => {
