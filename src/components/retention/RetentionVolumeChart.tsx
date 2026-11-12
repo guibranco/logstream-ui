@@ -39,7 +39,7 @@ function useWidth(ref: React.RefObject<HTMLDivElement | null>): number {
   return width;
 }
 
-export function RetentionVolumeChart({ report, metric, activeMarker = null, onMarkerHover }: RetentionVolumeChartProps) {
+export function RetentionVolumeChart({ report, metric, activeMarker = null, onMarkerHover }: Readonly<RetentionVolumeChartProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const width = useWidth(containerRef);
   const [hovered, setHovered] = useState<number | null>(null);

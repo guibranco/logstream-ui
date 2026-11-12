@@ -21,14 +21,15 @@ function SegmentedControl<T extends string | number>({
   options,
   value,
   onChange,
-}: {
+}: Readonly<{
   label: string;
   options: { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
-}) {
+}>) {
   return (
-    <div role="group" aria-label={label} className="inline-flex bg-gray-950 border border-gray-800 rounded-lg p-0.5">
+    <fieldset className="inline-flex bg-gray-950 border border-gray-800 rounded-lg p-0.5 m-0 min-w-0">
+      <legend className="sr-only">{label}</legend>
       {options.map((option) => (
         <button
           key={option.value}
@@ -43,11 +44,11 @@ function SegmentedControl<T extends string | number>({
           {option.label}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function Stat({ label, value, hint }: Readonly<{ label: string; value: string; hint?: string }>) {
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">{label}</div>
@@ -68,7 +69,7 @@ interface RetentionVolumeViewProps {
 }
 
 /** Chart, legend, numbered policy list and data table for a loaded report. */
-export function RetentionVolumeView({ report, metric }: RetentionVolumeViewProps) {
+export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolumeViewProps>) {
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
 
   // Marker numbering only depends on policy order, not on width.
@@ -98,17 +99,17 @@ export function RetentionVolumeView({ report, metric }: RetentionVolumeViewProps
       <div className="flex items-center gap-4 text-xs text-gray-400" aria-label="Legend">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm bg-primary-500/35 border-2 border-primary-400" />
-          Kept
+          <span>Kept</span>
         </span>
         <span className="flex items-center gap-1.5">
           <svg width="12" height="12" aria-hidden="true" className="rounded-sm">
             <rect width="12" height="12" fill="url(#retention-due-hatch)" />
           </svg>
-          Due for deletion
+          <span>Due for deletion</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-[9px] font-bold text-gray-100">n</span>
-          Policy cutoff
+          <span>Policy cutoff</span>
         </span>
       </div>
 
