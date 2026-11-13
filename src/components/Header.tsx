@@ -11,8 +11,8 @@ interface HeaderProps {
   isLive: boolean;
   setIsLive: (live: boolean) => void;
   pendingCount: number;
-  currentView: 'dashboard' | 'retention' | 'applications';
-  setCurrentView: (view: 'dashboard' | 'retention' | 'applications') => void;
+  currentView: 'events' | 'retention' | 'applications';
+  setCurrentView: (view: 'events' | 'retention' | 'applications') => void;
   onReload: () => void;
   onClear: () => void;
   onOpenStats: () => void;
@@ -69,13 +69,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Navigation Tabs */}
         <nav className="order-last md:order-none w-full md:w-auto flex items-center bg-gray-900/50 rounded-lg p-1 border border-gray-800/50 overflow-x-auto scrollbar-hide">
           <button
-            onClick={() => setCurrentView('dashboard')}
+            onClick={() => setCurrentView('events')}
             className={cn(
               "flex-1 md:flex-none px-3 md:px-4 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap",
-              currentView === 'dashboard' ? "bg-gray-800 text-gray-50 shadow-sm" : "text-gray-500 hover:text-gray-300"
+              currentView === 'events' ? "bg-gray-800 text-gray-50 shadow-sm" : "text-gray-500 hover:text-gray-300"
             )}
           >
-            Dashboard
+            Events
           </button>
 
           {serverInfo?.features.client_management && (
@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-1 sm:gap-3">
-        {currentView === 'dashboard' && (
+        {currentView === 'events' && (
           <>
             {isWebsocketEnabled ? (
               <button

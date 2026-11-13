@@ -37,9 +37,9 @@ const VIEW_STORAGE_KEY = 'logservice:view';
 function LogStreamApp() {
   const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
   
-  const [currentView, setCurrentView] = useState<'dashboard' | 'retention' | 'applications'>(() => {
+  const [currentView, setCurrentView] = useState<'events' | 'retention' | 'applications'>(() => {
     const saved = localStorage.getItem(VIEW_STORAGE_KEY);
-    return (saved === 'retention' || saved === 'applications') ? saved : 'dashboard';
+    return (saved === 'retention' || saved === 'applications') ? saved : 'events';
   });
 
   // A shared link wins over the filters saved in this browser.
