@@ -11,6 +11,8 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 - **Real-time log stream** — new entries appear instantly via WebSocket, with a live/buffered toggle and slide-in animation
 - **Full-text search and filters** — filter by application, environment, level, category, trace ID, batch ID, date range, or message substring, all persisted across page refreshes
 - **Expandable rows** — click any entry to reveal the full message, context as a searchable property list (Find / Exclude per value), user agent, sender IP, and one-click batch/trace navigation
+- **Applications** — register the services that send logs, edit them, rotate or reveal-once their API tokens, and deactivate or delete them (servers with client management)
+- **Retention** — storage-by-age chart with a marker per policy, policy editor, and dry or live retention runs with per-policy results
 - **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
@@ -21,9 +23,9 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 
 ## Screenshots
 
-Taken with sample events, in the default (Green, dark) theme.
+Taken with sample events against a mocked server, in the default (Green, dark) theme; every theme is shown under [Themes](#themes). To retake them, see [Retaking the screenshots](#retaking-the-screenshots).
 
-### Desktop
+### Events
 
 **Live events**, filtered to errors and critical events:
 
@@ -33,9 +35,59 @@ Taken with sample events, in the default (Green, dark) theme.
 
 ![An expanded event on desktop](docs/screenshots/desktop-expanded-event.png)
 
+**Exception**, from `context.exception`, with the stack trace and the inner exception after `--->` (see [Logging exceptions](#logging-exceptions)):
+
+![An expanded error event showing the exception panel with its stack trace](docs/screenshots/desktop-exception.png)
+
 **Advanced filters**, for context text, `key = value` context filters and message templates:
 
 ![The advanced filters section open on desktop](docs/screenshots/desktop-advanced-filters.png)
+
+**Trace**, every event with the same trace ID, after **View trace**:
+
+![Events filtered by one trace ID](docs/screenshots/desktop-trace.png)
+
+**Paused**, new events held above the list until you resume:
+
+![The live feed paused with four new events waiting](docs/screenshots/desktop-paused.png)
+
+| Date range | Application picker |
+|:---:|:---:|
+| <img src="docs/screenshots/desktop-date-range.png" alt="Date range picker with relative presets and a custom range" width="420"> | <img src="docs/screenshots/desktop-app-picker.png" alt="Application picker with two apps selected" width="420"> |
+| Relative presets (last 5 minutes to last 365 days, this week, this month) or a custom from / to | Pick one or several registered applications (several need a server with multi-value filters) |
+
+| Stats drawer | Theme picker |
+|:---:|:---:|
+| <img src="docs/screenshots/desktop-stats.png" alt="Stats drawer with counts per level and top app keys" width="420"> | <img src="docs/screenshots/desktop-theme-picker.png" alt="Theme picker with mode and theme list" width="420"> |
+| Counts per level, top app keys and total entries of this session | Light, dark or system mode and the 16 themes |
+
+### Applications
+
+Registers the services allowed to send logs and manages their API tokens. Shown when the server has client management (MariaDB storage).
+
+![Applications page listing registered services with their status](docs/screenshots/desktop-applications.png)
+
+| Register an application | Token shown once |
+|:---:|:---:|
+| <img src="docs/screenshots/desktop-register-app.png" alt="Register application form" width="420"> | <img src="docs/screenshots/desktop-token-reveal.png" alt="New API token shown once after registering" width="420"> |
+| Display name and app key, with a preview of the `X-Api-Key` header | The API token is shown only once, after registering or rotating |
+
+### Retention
+
+Storage by age, with a marker for each policy's cutoff, the share of stored entries each policy matches and what is due for deletion:
+
+![Retention page with the storage-by-age chart and policy markers](docs/screenshots/desktop-retention.png)
+
+| Dry run | New policy |
+|:---:|:---:|
+| <img src="docs/screenshots/desktop-retention-run.png" alt="Retention dry run results per policy" width="420"> | <img src="docs/screenshots/desktop-policy-form.png" alt="New retention policy form" width="420"> |
+| Simulate a run to see how many entries each policy would delete, then run it for real | Age, level, app, environment, category and message regex / glob criteria, with a summary |
+
+### Settings
+
+The connection settings screen, shown on first visit and from ⚙:
+
+![Connection settings screen](docs/screenshots/desktop-settings.png)
 
 ### Phone
 
@@ -44,6 +96,10 @@ Below 768 px, the filters fold behind a **Filters** button that counts the activ
 | Events | Filters open | Expanded event |
 |:---:|:---:|:---:|
 | <img src="docs/screenshots/mobile-events.png" alt="Events page on a phone" width="260"> | <img src="docs/screenshots/mobile-filters.png" alt="Filters open on a phone" width="260"> | <img src="docs/screenshots/mobile-expanded-event.png" alt="An expanded event on a phone" width="260"> |
+
+| Retention | Applications |
+|:---:|:---:|
+| <img src="docs/screenshots/mobile-retention.png" alt="Retention page on a phone" width="260"> | <img src="docs/screenshots/mobile-applications.png" alt="Applications page on a phone" width="260"> |
 
 ---
 
@@ -151,6 +207,29 @@ The 🎨 button in the header (also on the settings screen) picks the theme and 
 | High contrast | black / white | `blue` | `cyan` |
 
 Catppuccin, Solarized, Nord and Dracula use their official hex values (light variants: Catppuccin Latte, Solarized light, Dracula's Alucard; Nord has no official light variant, so its light one uses Snow Storm for the page and Polar Night for text).
+
+### Gallery
+
+The events page with an expanded error event, in each theme:
+
+| Theme | Light | Dark |
+|-------|:-----:|:----:|
+| **Blue** | <img src="docs/screenshots/themes/blue-light.png" alt="Blue theme, light" width="400"> | <img src="docs/screenshots/themes/blue-dark.png" alt="Blue theme, dark" width="400"> |
+| **Green (default)** | <img src="docs/screenshots/themes/green-light.png" alt="Green theme, light" width="400"> | <img src="docs/screenshots/themes/green-dark.png" alt="Green theme, dark" width="400"> |
+| **Red** | <img src="docs/screenshots/themes/red-light.png" alt="Red theme, light" width="400"> | <img src="docs/screenshots/themes/red-dark.png" alt="Red theme, dark" width="400"> |
+| **Orange** | <img src="docs/screenshots/themes/orange-light.png" alt="Orange theme, light" width="400"> | <img src="docs/screenshots/themes/orange-dark.png" alt="Orange theme, dark" width="400"> |
+| **Pink** | <img src="docs/screenshots/themes/pink-light.png" alt="Pink theme, light" width="400"> | <img src="docs/screenshots/themes/pink-dark.png" alt="Pink theme, dark" width="400"> |
+| **Violet** | <img src="docs/screenshots/themes/violet-light.png" alt="Violet theme, light" width="400"> | <img src="docs/screenshots/themes/violet-dark.png" alt="Violet theme, dark" width="400"> |
+| **Indigo** | <img src="docs/screenshots/themes/indigo-light.png" alt="Indigo theme, light" width="400"> | <img src="docs/screenshots/themes/indigo-dark.png" alt="Indigo theme, dark" width="400"> |
+| **Ocean** | <img src="docs/screenshots/themes/ocean-light.png" alt="Ocean theme, light" width="400"> | <img src="docs/screenshots/themes/ocean-dark.png" alt="Ocean theme, dark" width="400"> |
+| **Graphite** | <img src="docs/screenshots/themes/graphite-light.png" alt="Graphite theme, light" width="400"> | <img src="docs/screenshots/themes/graphite-dark.png" alt="Graphite theme, dark" width="400"> |
+| **Sepia** | <img src="docs/screenshots/themes/sepia-light.png" alt="Sepia theme, light" width="400"> | <img src="docs/screenshots/themes/sepia-dark.png" alt="Sepia theme, dark" width="400"> |
+| **Lime** | <img src="docs/screenshots/themes/lime-light.png" alt="Lime theme, light" width="400"> | <img src="docs/screenshots/themes/lime-dark.png" alt="Lime theme, dark" width="400"> |
+| **Catppuccin** | <img src="docs/screenshots/themes/catppuccin-light.png" alt="Catppuccin theme, light" width="400"> | <img src="docs/screenshots/themes/catppuccin-dark.png" alt="Catppuccin theme, dark" width="400"> |
+| **Solarized** | <img src="docs/screenshots/themes/solarized-light.png" alt="Solarized theme, light" width="400"> | <img src="docs/screenshots/themes/solarized-dark.png" alt="Solarized theme, dark" width="400"> |
+| **Nord** | <img src="docs/screenshots/themes/nord-light.png" alt="Nord theme, light" width="400"> | <img src="docs/screenshots/themes/nord-dark.png" alt="Nord theme, dark" width="400"> |
+| **Dracula** | <img src="docs/screenshots/themes/dracula-light.png" alt="Dracula theme, light" width="400"> | <img src="docs/screenshots/themes/dracula-dark.png" alt="Dracula theme, dark" width="400"> |
+| **High contrast** | <img src="docs/screenshots/themes/high-contrast-light.png" alt="High contrast theme, light" width="400"> | <img src="docs/screenshots/themes/high-contrast-dark.png" alt="High contrast theme, dark" width="400"> |
 
 ### How it works
 
@@ -513,6 +592,19 @@ npm run lint
 # Build + preview the production bundle locally
 npm run build && npm run preview
 ```
+
+### Retaking the screenshots
+
+`scripts/screenshots.py` drives the dev server with Playwright against a mocked logstream-server (HTTP routes and the WebSocket are faked in the browser, so no backend is needed) and writes every image into `docs/screenshots/`:
+
+```bash
+npx vite --port=5173 --host=127.0.0.1   # in another terminal
+pip install playwright && playwright install chromium
+python scripts/screenshots.py          # everything
+python scripts/screenshots.py themes   # only the theme gallery
+```
+
+The argument picks a group: `existing` (events and phone shots), `screens` (all but the themes), `applications`, `retention`, `themes` or `all` (default). Run the images through a PNG optimiser (`pngquant`, `oxipng`) before committing.
 
 ### Pointing at a local backend
 
