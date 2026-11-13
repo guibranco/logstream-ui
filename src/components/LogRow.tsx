@@ -3,9 +3,10 @@ import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
 import { ContextProperties } from './ContextProperties';
-import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter, Bug, Tag } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter, Bug, Tag, FileText } from 'lucide-react';
 import { ExceptionDetails } from './ExceptionDetails';
 import { parseException, withoutExceptionStacks } from '../lib/exception';
+import { logToMarkdown } from '../lib/logMarkdown';
 import { TemplatedMessage, TemplateText } from './TemplatedMessage';
 import { cn } from '../lib/utils';
 import { splitUrls } from '../lib/linkify';
@@ -293,6 +294,15 @@ export const LogRow: React.FC<LogRowProps> = ({
                   </div>
 
                   <div className="flex flex-wrap gap-2 md:gap-3 pt-2">
+                    <button
+                      onClick={() => handleCopy(logToMarkdown(log), 'markdown')}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 border border-gray-700 text-gray-300 text-xs font-bold rounded hover:bg-gray-800 transition-all"
+                      title="Copy the whole event (message, exception, context) as Markdown, e.g. to paste into an AI agent"
+                      data-testid="copy-markdown"
+                    >
+                      {copied === 'markdown' ? <Check size={14} className="text-green-500" /> : <FileText size={14} />}
+                      {copied === 'markdown' ? 'Copied!' : 'Copy as Markdown'}
+                    </button>
                     {log.batch_id && (
                       <button 
                         onClick={() => onFilterBatch(log.batch_id!)}

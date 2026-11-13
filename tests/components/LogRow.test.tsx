@@ -191,4 +191,18 @@ describe('LogRow message template', () => {
     expect(screen.queryByTestId('template-value')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /view all with this template/i })).not.toBeInTheDocument();
   });
+
+  it('copies the whole event as Markdown', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderRow({ ...baseLog, level: 'error', context: { exception: 'System.Exception: boom\n   at A.B()' } });
+
+    fireEvent.click(screen.getByTestId('copy-markdown'));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const markdown = writeText.mock.calls[0][0] as string;
+    expect(markdown).toContain('## ERROR log event from `my-app`');
+    expect(markdown).toContain('### Exception\n\n```text\nSystem.Exception: boom\n   at A.B()\n```');
+    expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copied!');
+  });
 });
