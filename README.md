@@ -595,16 +595,16 @@ npm run build && npm run preview
 
 ### Retaking the screenshots
 
-`scripts/screenshots.py` drives the dev server with Playwright against a mocked logstream-server (HTTP routes and the WebSocket are faked in the browser, so no backend is needed) and writes every image under `docs/screenshots/`:
+`scripts/screenshots.py` drives the dev server with Playwright against a mocked logstream-server (HTTP routes and the WebSocket are faked in the browser, so no backend is needed) and writes every image into `docs/screenshots/`:
 
 ```bash
 npx vite --port=5173 --host=127.0.0.1   # in another terminal
 pip install playwright && playwright install chromium
-python scripts/screenshots.py                            # everything, into docs/screenshots
-python scripts/screenshots.py docs/screenshots themes   # only the theme gallery
+python scripts/screenshots.py          # everything
+python scripts/screenshots.py themes   # only the theme gallery
 ```
 
-The second argument picks a group: `existing` (events and phone shots), `screens` (all but the themes), `applications`, `retention`, `themes` or `all` (default). The output folder must be inside the current directory. Run the images through a PNG optimiser (`pngquant`, `oxipng`) before committing.
+The argument picks a group: `existing` (events and phone shots), `screens` (all but the themes), `applications`, `retention`, `themes` or `all` (default). Run the images through a PNG optimiser (`pngquant`, `oxipng`) before committing.
 
 ### Pointing at a local backend
 

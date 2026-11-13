@@ -1,7 +1,7 @@
 """Screenshots of logstream-ui against a mocked logstream-server (HTTP + WebSocket).
 
-Usage: python scripts/screenshots.py [OUTPUT_DIR] [all|existing|screens|applications|retention|themes]
-OUTPUT_DIR defaults to docs/screenshots and must be inside the current directory.
+Usage: python scripts/screenshots.py [all|existing|screens|applications|retention|themes]
+Writes into docs/screenshots.
 Needs the dev server running (LOGSTREAM_UI_URL, default http://127.0.0.1:5173/logstream-ui/)
 and Playwright for Python. Set CHROME_PATH to use an installed Chrome instead of Playwright's Chromium.
 """
@@ -13,17 +13,10 @@ from playwright.sync_api import sync_playwright
 BASE = os.environ.get("LOGSTREAM_UI_URL", "http://127.0.0.1:5173/logstream-ui/")
 API = "https://logs.example.com"
 WS = "wss://logs.example.com/ws"
-def output_dir(arg):
-    """The output folder, which must be inside the current directory (normally the repo root)."""
-    root = os.path.realpath(os.getcwd())
-    path = os.path.realpath(os.path.join(root, arg))
-    if os.path.commonpath([root, path]) != root:
-        sys.exit(f"Output folder must be inside {root}")
-    return path
-
-OUT = output_dir(sys.argv[1] if len(sys.argv) > 1 else "docs/screenshots")
+# Always the repo's own screenshot folder, next to this script.
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "screenshots")
 os.makedirs(os.path.join(OUT, "themes"), exist_ok=True)
-ONLY = sys.argv[2] if len(sys.argv) > 2 else "all"
+ONLY = sys.argv[1] if len(sys.argv) > 1 else "all"
 CONFIG = {"apiUrl": API, "wsUrl": WS, "uiSecret": "lsu_example"}
 
 random.seed(7)
@@ -127,7 +120,13 @@ def volume(days):
         base = 4200 + int(1800 * random.random()) - (1500 if weekday >= 5 else 0)
         count = max(300, base)
         b = count * 610
-        due = int(count * (0.55 if age > 30 else 0.3 if age > 7 else 0))
+        if age > 30:
+            due_share = 0.55
+        elif age > 7:
+            due_share = 0.3
+        else:
+            due_share = 0
+        due = int(count * due_share)
         bk = {"date": d.isoformat(), "age_days": age, "count": count, "bytes": b, "due_count": due, "due_bytes": due * 610}
         buckets.append(bk)
         for k in tot: tot[k] += bk[k]
