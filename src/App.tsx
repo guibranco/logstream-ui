@@ -16,6 +16,8 @@ import { rememberRange, withRememberedRange } from './lib/dateRange';
 import { useServerInfo } from './hooks/useServerInfo';
 import { useClients } from './hooks/useClients';
 import { AppKeyOption } from './components/search/AppKeyPicker';
+import { Footer } from './components/Footer';
+import { UI_VERSION } from './lib/version';
 
 import { RetentionScreen } from './screens/RetentionScreen';
 import { ApplicationsScreen } from './screens/ApplicationsScreen';
@@ -208,6 +210,8 @@ function LogStreamApp() {
       />
       
       {renderScreen()}
+
+      <Footer uiVersion={UI_VERSION} serverVersion={serverInfo?.version} />
     </div>
   );
 }
