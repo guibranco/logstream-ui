@@ -4,7 +4,8 @@ import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 import { ThemePicker } from './ThemePicker';
 
-export function SettingsScreen() {
+/** `footer` sits at the bottom of the full-screen overlay (versions and credit). */
+export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const { config, updateConfig, signOut, isConfigured, closeSettings } = useAuth();
   
   const [apiUrl, setApiUrl] = useState(config?.apiUrl || '');
@@ -132,8 +133,9 @@ export function SettingsScreen() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-3xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-[95vh]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-gray-950">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-full">
         <div className="p-6 md:p-8">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-3">
@@ -280,6 +282,8 @@ export function SettingsScreen() {
           </form>
         </div>
       </div>
+      </div>
+      {footer}
     </div>
   );
 }
