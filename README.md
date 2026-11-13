@@ -272,6 +272,7 @@ Click any row to reveal:
   Active context filters appear as chips under the filter bar; click × to remove one. Arrays are shown as JSON and can't be filtered. Requires a logstream-server version with context filters.
 - **View all in batch** — sets the batch_id filter and re-runs the search
 - **View trace** — sets the trace_id filter and re-runs the search
+- **Copy as Markdown** — copies the whole event (summary table, message, template, exception with stack trace, context as JSON) as Markdown, ready to paste into an AI agent or an issue
 
 ### Logging exceptions
 

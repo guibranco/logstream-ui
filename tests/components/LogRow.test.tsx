@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LogRow } from '@/src/components/LogRow';
 import { LogEntry } from '@/src/types';
 
@@ -190,5 +190,30 @@ describe('LogRow message template', () => {
     expect(screen.queryByTestId('message-template')).not.toBeInTheDocument();
     expect(screen.queryByTestId('template-value')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /view all with this template/i })).not.toBeInTheDocument();
+  });
+
+  it('copies the whole event as Markdown', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderRow({ ...baseLog, level: 'error', context: { exception: 'System.Exception: boom\n   at A.B()' } });
+
+    fireEvent.click(screen.getByTestId('copy-markdown'));
+
+    await waitFor(() => expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copied!'));
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const markdown = writeText.mock.calls[0][0] as string;
+    expect(markdown).toContain('## ERROR log event from `my-app`');
+    expect(markdown).toContain('### Exception\n\n```text\nSystem.Exception: boom\n   at A.B()\n```');
+  });
+
+  it('says the Markdown copy failed when the clipboard rejects the write', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderRow(baseLog);
+
+    fireEvent.click(screen.getByTestId('copy-markdown'));
+
+    await waitFor(() => expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copy failed'));
+    expect(screen.getByTestId('copy-markdown')).not.toHaveTextContent('Copied!');
   });
 });
