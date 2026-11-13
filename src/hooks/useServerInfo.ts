@@ -18,7 +18,7 @@ export function useServerInfo() {
   const apiUrl = config?.apiUrl;
 
   const query = useQuery({
-    queryKey: ['server', 'info', config?.featureOverrides],
+    queryKey: ['server', 'info', apiUrl, config?.featureOverrides],
     queryFn: async () => {
       if (!apiUrl) return undefined;
       const response = await fetch(`${apiUrl}/api/info`);
