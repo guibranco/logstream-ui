@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Settings, Globe, Zap, Trash2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown } from 'lucide-react';
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 import { ThemePicker } from './ThemePicker';
@@ -12,6 +12,7 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const [wsUrl, setWsUrl] = useState(config?.wsUrl || '');
   const [uiSecret, setUiSecret] = useState(config?.uiSecret || '');
   const [showSecret, setShowSecret] = useState(false);
+  const [showOverrides, setShowOverrides] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const getInitialOverrideState = (val: boolean | undefined): 'default' | 'enabled' | 'disabled' => {
@@ -29,6 +30,9 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const [websocketOverride, setWebsocketOverride] = useState<'default' | 'enabled' | 'disabled'>(
     getInitialOverrideState(config?.featureOverrides?.websocket)
   );
+
+  const activeOverrides = [clientMgmtOverride, retentionOverride, websocketOverride]
+    .filter((v) => v !== 'default').length;
 
   const deriveWsUrl = (url: string) => {
     try {
@@ -135,7 +139,7 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-gray-950">
       <div className="flex-1 min-h-0 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-full">
+      <div className="w-full max-w-xl bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-y-auto max-h-full">
         <div className="p-6 md:p-8">
           <div className="flex items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-3">
@@ -165,97 +169,79 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
           </p>
 
           <form onSubmit={handleSave} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              {/* Left Column: Connection Setup */}
-              <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
-                  <Globe className="w-4 h-4 text-primary-400" />
-                  <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
-                    Connection Config
-                  </h2>
-                </div>
-
-                {/* API URL */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                    API Base URL
-                  </label>
-                  <input
-                    type="url"
-                    value={apiUrl}
-                    onChange={handleApiUrlChange}
-                    placeholder="https://logs.yourdomain.com"
-                    className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
-                  />
-                  <p className="text-[11px] text-gray-500 leading-normal">The HTTP server address (no trailing slash)</p>
-                  {errors.apiUrl && <p className="text-xs text-red-400 mt-1">{errors.apiUrl}</p>}
-                </div>
-
-                {/* WebSocket URL */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                    WebSocket URL
-                  </label>
-                  <input
-                    type="url"
-                    value={wsUrl}
-                    onChange={(e) => setWsUrl(e.target.value)}
-                    placeholder="wss://logs.yourdomain.com/ws"
-                    className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
-                  />
-                  {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setWsUrl(suggestedWsUrl)}
-                      className="mt-1 flex items-center gap-1.5 text-[10px] text-primary-400 hover:text-primary-300 transition-colors bg-primary-400/10 px-2 py-0.5 rounded"
-                    >
-                      Use {suggestedWsUrl} ↗
-                    </button>
-                  )}
-                  <p className="text-[11px] text-gray-500 leading-normal">Must start with ws:// or wss://</p>
-                  {errors.wsUrl && <p className="text-xs text-red-400 mt-1">{errors.wsUrl}</p>}
-                </div>
-
-                {/* UI Secret */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                    UI Secret (read key)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSecret ? 'text' : 'password'}
-                      value={uiSecret}
-                      onChange={(e) => setUiSecret(e.target.value)}
-                      placeholder="Paste your UI_SECRET here"
-                      className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSecret(!showSecret)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
-                    >
-                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">Required to view & search logs. Never sent over the API query parameters.</p>
-                  {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
-                </div>
+            {/* Connection Setup */}
+            <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
+                <Globe className="w-4 h-4 text-primary-400" />
+                <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
+                  Connection Config
+                </h2>
               </div>
 
-              {/* Right Column: Feature Flag Overrides */}
-              <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
-                <div className="flex items-center gap-2 pb-2 border-b border-gray-800/60">
-                  <Lock className="w-4 h-4 text-primary-400" />
-                  <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
-                    Overrides (For Testing)
-                  </h2>
-                </div>
+              {/* API URL */}
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  API Base URL
+                </label>
+                <input
+                  type="url"
+                  value={apiUrl}
+                  onChange={handleApiUrlChange}
+                  placeholder="https://logs.yourdomain.com"
+                  className={`w-full bg-gray-800 border ${errors.apiUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
+                />
+                <p className="text-[11px] text-gray-500 leading-normal">The HTTP server address (no trailing slash)</p>
+                {errors.apiUrl && <p className="text-xs text-red-400 mt-1">{errors.apiUrl}</p>}
+              </div>
 
-                <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
-                  {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
-                  {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
-                  {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
+              {/* WebSocket URL */}
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  WebSocket URL
+                </label>
+                <input
+                  type="url"
+                  value={wsUrl}
+                  onChange={(e) => setWsUrl(e.target.value)}
+                  placeholder="wss://logs.yourdomain.com/ws"
+                  className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
+                />
+                {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setWsUrl(suggestedWsUrl)}
+                    className="mt-1 flex items-center gap-1.5 text-[10px] text-primary-400 hover:text-primary-300 transition-colors bg-primary-400/10 px-2 py-0.5 rounded"
+                  >
+                    Use {suggestedWsUrl} ↗
+                  </button>
+                )}
+                <p className="text-[11px] text-gray-500 leading-normal">Must start with ws:// or wss://</p>
+                {errors.wsUrl && <p className="text-xs text-red-400 mt-1">{errors.wsUrl}</p>}
+              </div>
+
+              {/* UI Secret */}
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  UI Secret (read key)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSecret ? 'text' : 'password'}
+                    value={uiSecret}
+                    onChange={(e) => setUiSecret(e.target.value)}
+                    placeholder="Paste your UI_SECRET here"
+                    className={`w-full bg-gray-800 border ${errors.uiSecret ? 'border-red-500' : 'border-gray-700'} rounded-xl pl-4 pr-12 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
+                <p className="text-[11px] text-gray-500 leading-relaxed">Required to view & search logs. Never sent over the API query parameters.</p>
+                {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
               </div>
             </div>
 
@@ -278,6 +264,43 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                   Clear saved settings and disconnect
                 </button>
               )}
+            </div>
+
+            {/* Feature Flag Overrides — testing/debugging only, collapsed by default */}
+            <div className="border border-gray-800/40 rounded-2xl bg-gray-950/20">
+              <button
+                type="button"
+                onClick={() => setShowOverrides((v) => !v)}
+                aria-expanded={showOverrides}
+                aria-controls="feature-overrides-panel"
+                className="w-full flex items-center justify-between gap-2 px-5 py-3 text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Overrides (For Testing)
+                  </span>
+                  {activeOverrides > 0 && (
+                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                      {activeOverrides} active
+                    </span>
+                  )}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform ${showOverrides ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              <div id="feature-overrides-panel" hidden={!showOverrides} className="px-5 pb-5 space-y-3">
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Force server features on or off for debugging. Applied when you click Validate and Connect.
+                </p>
+                <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
+                  {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
+                  {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
+                  {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
+                </div>
+              </div>
             </div>
           </form>
         </div>
