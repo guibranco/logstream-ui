@@ -12,7 +12,7 @@ export function fence(content: string, lang = ''): string {
 }
 
 /** A value made safe for one table cell: pipes escaped, line breaks flattened. */
-const cell = (value: string): string => value.replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>');
+const cell = (value: string): string => value.replaceAll('|', String.raw`\|`).replaceAll(/\r?\n/g, '<br>');
 
 /** Inline code that survives backticks in the value. */
 const code = (value: string): string => {
@@ -44,8 +44,9 @@ export function logToMarkdown(log: LogEntry): string {
     ['User agent', log.user_agent, false],
   ];
 
+  const source = log.app_key ? ` from ${code(log.app_key)}` : '';
   const sections: string[] = [
-    `## ${log.level.toUpperCase()} log event${log.app_key ? ` from ${code(log.app_key)}` : ''}`,
+    `## ${log.level.toUpperCase()} log event${source}`,
     [
       '| Field | Value |',
       '| --- | --- |',

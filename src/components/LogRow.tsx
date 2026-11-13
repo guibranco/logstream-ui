@@ -67,17 +67,19 @@ export const LogRow: React.FC<LogRowProps> = ({
   const [copyFailed, setCopyFailed] = useState<string | null>(null);
 
   /** Marks the button as copied only once the write succeeds; a denied clipboard shows as failed. */
-  const handleCopy = async (text: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopyFailed(null);
-      setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
-    } catch {
-      setCopied(null);
-      setCopyFailed(type);
-      setTimeout(() => setCopyFailed(null), 2000);
-    }
+  const handleCopy = (text: string, type: string): void => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopyFailed(null);
+        setCopied(type);
+        setTimeout(() => setCopied(null), 2000);
+      },
+      () => {
+        setCopied(null);
+        setCopyFailed(type);
+        setTimeout(() => setCopyFailed(null), 2000);
+      },
+    );
   };
 
   const timestamp = new Date(log.timestamp);
