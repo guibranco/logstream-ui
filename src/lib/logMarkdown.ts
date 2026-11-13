@@ -8,7 +8,7 @@ import { exceptionToText, parseException, withoutExceptionStacks } from './excep
 export function fence(content: string, lang = ''): string {
   const longest = Math.max(0, ...(content.match(/`+/g) ?? []).map(run => run.length));
   const ticks = '`'.repeat(Math.max(3, longest + 1));
-  return `${ticks}${lang}\n${content.replace(/\s+$/, '')}\n${ticks}`;
+  return `${ticks}${lang}\n${content.trimEnd()}\n${ticks}`;
 }
 
 /** A value made safe for one table cell: pipes escaped, line breaks flattened. */

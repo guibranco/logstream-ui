@@ -64,11 +64,20 @@ export const LogRow: React.FC<LogRowProps> = ({
   const isExpanded = expandedProp ?? expandedState;
   const toggle = () => (onToggle ? onToggle(log.id) : setExpandedState(v => !v));
   const [copied, setCopied] = useState<string | null>(null);
+  const [copyFailed, setCopyFailed] = useState<string | null>(null);
 
-  const handleCopy = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(type);
-    setTimeout(() => setCopied(null), 2000);
+  /** Marks the button as copied only once the write succeeds; a denied clipboard shows as failed. */
+  const handleCopy = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyFailed(null);
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setCopied(null);
+      setCopyFailed(type);
+      setTimeout(() => setCopyFailed(null), 2000);
+    }
   };
 
   const timestamp = new Date(log.timestamp);
@@ -301,7 +310,9 @@ export const LogRow: React.FC<LogRowProps> = ({
                       data-testid="copy-markdown"
                     >
                       {copied === 'markdown' ? <Check size={14} className="text-green-500" /> : <FileText size={14} />}
-                      {copied === 'markdown' ? 'Copied!' : 'Copy as Markdown'}
+                      {copied === 'markdown' && 'Copied!'}
+                      {copyFailed === 'markdown' && 'Copy failed'}
+                      {copied !== 'markdown' && copyFailed !== 'markdown' && 'Copy as Markdown'}
                     </button>
                     {log.batch_id && (
                       <button 
