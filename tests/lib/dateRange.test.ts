@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDateRange, toServerTime, describeRange, findPreset, withRememberedRange, rememberRange } from '@/src/lib/dateRange';
+import {
+  resolveDateRange, toServerTime, describeRange, findPreset, withRememberedRange, rememberRange, startOfWeek, startOfMonth,
+} from '@/src/lib/dateRange';
 
 const NOW = Date.parse('2026-11-09T12:00:00.000Z');
 
@@ -15,8 +17,45 @@ describe('resolveDateRange', () => {
     expect(r.date_to).toBe('2026-11-09T10:00:00.000Z');
   });
 
+  it('covers the longer rolling windows', () => {
+    expect(resolveDateRange({ range: '60d' }, NOW).date_from).toBe('2026-09-10T12:00:00.000Z');
+    expect(resolveDateRange({ range: '90d' }, NOW).date_from).toBe('2026-08-11T12:00:00.000Z');
+    expect(resolveDateRange({ range: '365d' }, NOW).date_from).toBe('2025-11-09T12:00:00.000Z');
+  });
+
+  it('starts "this week" at local midnight of the most recent Sunday', () => {
+    const r = resolveDateRange({ range: 'week' }, NOW);
+    expect(r.date_from).toBe(startOfWeek(new Date(NOW)).toISOString());
+    expect(r.date_to).toBeUndefined();
+  });
+
+  it('starts "this month" at local midnight of the 1st', () => {
+    expect(resolveDateRange({ range: 'month' }, NOW).date_from).toBe(startOfMonth(new Date(NOW)).toISOString());
+  });
+
+  it('starts "from now" at the load time', () => {
+    expect(resolveDateRange({ range: 'now', date_to: '2026-01-01T00:00' }, NOW))
+      .toEqual({ date_from: '2026-11-09T12:00:00.000Z', date_to: undefined });
+  });
+
   it('ignores an unknown range key', () => {
     expect(resolveDateRange({ range: 'forever' }, NOW)).toEqual({ date_from: undefined, date_to: undefined });
+  });
+});
+
+describe('calendar starts', () => {
+  // Local-time dates, so these hold in whatever zone the tests run.
+  it('goes back to Sunday, or stays on a Sunday', () => {
+    const thursday = new Date(2026, 10, 12, 21, 30);
+    expect(startOfWeek(thursday)).toEqual(new Date(2026, 10, 8));
+    expect(startOfWeek(new Date(2026, 10, 8, 9, 15))).toEqual(new Date(2026, 10, 8));
+    // Across a month boundary.
+    expect(startOfWeek(new Date(2026, 9, 2, 8))).toEqual(new Date(2026, 8, 27));
+  });
+
+  it('goes back to the 1st of the month', () => {
+    expect(startOfMonth(new Date(2026, 10, 12, 21, 30))).toEqual(new Date(2026, 10, 1));
+    expect(startOfMonth(new Date(2026, 10, 1, 0, 0))).toEqual(new Date(2026, 10, 1));
   });
 });
 
@@ -39,6 +78,10 @@ describe('describeRange', () => {
     expect(describeRange({ date_to: '2026-11-09T10:00:00Z' }, fmt)).toBe('Until 2026-11-09T10:00');
     expect(describeRange({}, fmt)).toBe('Any time');
     expect(findPreset('7d')?.label).toBe('Last 7 days');
+    expect(findPreset('365d')?.label).toBe('Last 365 days');
+    expect(describeRange({ range: 'week' }, fmt)).toBe('This week');
+    expect(describeRange({ range: 'month' }, fmt)).toBe('This month');
+    expect(describeRange({ range: 'now' }, fmt)).toBe('From now');
   });
 });
 
