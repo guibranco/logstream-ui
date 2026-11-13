@@ -59,7 +59,7 @@ function LogStreamApp() {
     // No range in the link or the saved filters: the remembered one, or the last 24 hours.
     return withRememberedRange(initial, safeStorage());
   });
-  const { data: serverInfo } = useServerInfo();
+  const { data: serverInfo, isError: isServerInfoError } = useServerInfo();
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   // Pausing holds new events above the list; the screen stays the same.
   const [isPaused, setIsPaused] = useState(false);
@@ -133,8 +133,13 @@ function LogStreamApp() {
   // Resuming shows the held events as soon as nothing else holds the feed (expanded row, scroll).
   const handleSetIsLive = useCallback((live: boolean) => setIsPaused(!live), []);
 
+  // While the server is unreachable the footer shows a dash, not the last version it reported.
+  const footer = (
+    <Footer uiVersion={UI_VERSION} serverVersion={isServerInfoError ? undefined : serverInfo?.version} />
+  );
+
   if (isSettingsOpen || !isConfigured) {
-    return <SettingsScreen />;
+    return <SettingsScreen footer={footer} />;
   }
 
   const renderScreen = () => {
@@ -211,7 +216,7 @@ function LogStreamApp() {
       
       {renderScreen()}
 
-      <Footer uiVersion={UI_VERSION} serverVersion={serverInfo?.version} />
+      {footer}
     </div>
   );
 }
