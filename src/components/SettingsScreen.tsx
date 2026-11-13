@@ -291,18 +291,16 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                 />
               </button>
 
-              {showOverrides && (
-                <div id="feature-overrides-panel" className="px-5 pb-5 space-y-3">
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    Force server features on or off for debugging. Applied when you click Validate and Connect.
-                  </p>
-                  <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
-                    {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
-                    {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
-                    {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
-                  </div>
+              <div id="feature-overrides-panel" hidden={!showOverrides} className="px-5 pb-5 space-y-3">
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Force server features on or off for debugging. Applied when you click Validate and Connect.
+                </p>
+                <div className="space-y-4 bg-gray-950/50 p-4 border border-gray-800/60 rounded-xl">
+                  {renderSegmentedControl("Client management feature", clientMgmtOverride, setClientMgmtOverride)}
+                  {renderSegmentedControl("Log retention policies feature", retentionOverride, setRetentionOverride)}
+                  {renderSegmentedControl("WebSocket connections feature", websocketOverride, setWebsocketOverride)}
                 </div>
-              )}
+              </div>
             </div>
           </form>
         </div>
