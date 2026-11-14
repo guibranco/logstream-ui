@@ -158,6 +158,25 @@ The two URLs pre-fill each other: typing the API URL fills in the WebSocket URL 
 
 > **Security note:** The UI secret is stored in `localStorage` so it survives browser restarts. It is sent as a `Bearer` token in `Authorization` headers for HTTP requests and as a `?token=` query parameter on the WebSocket connection URL (browser WebSocket APIs do not support custom headers). It is never included in the visible browser address bar.
 
+### Sharing a connection link
+
+A link can carry the connection settings, so someone can open the UI already pointed at your server:
+
+```
+https://guilherme.stracini.com.br/logstream-ui/#server=logs.example.com&secret=lsu_xxxxxxxx
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `server` (or `domain`, `api`) | API base URL, or a bare domain (`https://` is assumed) |
+| `ws` | WebSocket URL — only needed when it isn't the one derived from `server` (`wss://<server>/ws`) |
+| `secret` | The UI secret (read key) |
+
+- Put the parameters after `#` (the fragment): browsers never send it to the web server, so the secret stays out of access logs and `Referer` headers. The same parameters in the query string (`?server=…`) also work, but are not recommended for the secret.
+- Opening the link shows the settings screen pre-filled, with a notice. Nothing is saved until you click **Validate and Connect**; **Close** keeps your current settings. A link that names a different server without a `secret` does not reuse your saved secret.
+- The parameters are removed from the address bar as soon as the page loads; filters in the query string are kept.
+- To make a link, open ⚙ **Settings** → **Copy share link**. Untick **Include UI secret in the link** to share only the server. Anyone with a link that includes the secret can read your logs.
+
 ### Clearing settings
 
 Open ⚙ **Settings** → scroll to the bottom → **Clear all saved settings and disconnect**. Confirm the dialog to wipe the config and return to the blank settings form.
