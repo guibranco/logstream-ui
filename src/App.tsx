@@ -16,6 +16,7 @@ import { rememberRange, withRememberedRange } from './lib/dateRange';
 import { useServerInfo } from './hooks/useServerInfo';
 import { useClients } from './hooks/useClients';
 import { AppKeyOption } from './components/search/AppKeyPicker';
+import { buildAppKeyOptions, serverAppKey } from './lib/appKeyOptions';
 import { Footer } from './components/Footer';
 import { UI_VERSION } from './lib/version';
 
@@ -83,13 +84,14 @@ function LogStreamApp() {
     });
   }, [hasClientRegistry, feed.entries]);
 
-  // Registered applications, or the app keys seen so far.
-  const appKeyOptions = useMemo<AppKeyOption[]>(() => {
-    if (hasClientRegistry) {
-      return (clientList?.clients ?? []).map(c => ({ appKey: c.app_key, name: c.name }));
-    }
-    return [...seenAppKeys].map(appKey => ({ appKey }));
-  }, [hasClientRegistry, clientList, seenAppKeys]);
+  // Registered applications (or the app keys seen so far), plus the server's
+  // own entries while self-logging is enabled.
+  const ownAppKey = serverAppKey(serverInfo);
+  const appKeyOptions = useMemo<AppKeyOption[]>(() => buildAppKeyOptions({
+    clients: hasClientRegistry ? (clientList?.clients ?? []) : null,
+    seenAppKeys,
+    serverAppKey: ownAppKey,
+  }), [hasClientRegistry, clientList, seenAppKeys, ownAppKey]);
   const { status, connections, isWebsocketEnabled } = useWebSocket(feed.pushLive, feed.catchUp);
 
   useEffect(() => {

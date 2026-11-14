@@ -10,6 +10,13 @@ export interface ServerInfo {
     websocket: boolean;
     /** GET /api/logs accepts app_key[] / level[] lists (logstream-server#115). */
     multi_value_filters?: boolean;
+    /** The server stores its own messages as entries of a reserved app (logstream-server#131). */
+    self_logging?: boolean;
+  };
+  /** The reserved app the server's own messages are stored under. */
+  self_logging?: {
+    enabled: boolean;
+    app_key: string;
   };
 }
 
