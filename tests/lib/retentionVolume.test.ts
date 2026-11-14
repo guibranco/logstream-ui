@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildVolumeChart,
   bucketAt,
+  diskEstimate,
   formatBytes,
   formatCount,
   markerX,
@@ -201,5 +202,56 @@ describe('spreadLabels', () => {
     spreadLabels(markers, 0, 200);
     expect(markers[0].labelX).toBeNull();
     expect(markers[1].labelX).toBe(10);
+  });
+});
+
+describe('diskEstimate', () => {
+  const storage = {
+    table: 'log_entries', engine: 'InnoDB', data_bytes: 1000, index_bytes: 200,
+    free_bytes: 0, total_bytes: 1200, rows_estimate: 10,
+  };
+  const totals = { count: 10, bytes: 400, due_count: 0, due_bytes: 0 };
+
+  it('splits data by payload share and indexes by entry share', () => {
+    const day = { count: 5, bytes: 100, due_count: 5, due_bytes: 100 };
+    expect(diskEstimate(day, totals, storage)).toEqual({ data: 250, index: 100, stored: 350, due: 350 });
+  });
+
+  it('adds up to the table total over every entry', () => {
+    const a = diskEstimate({ count: 3, bytes: 300, due_count: 0, due_bytes: 0 }, totals, storage);
+    const b = diskEstimate({ count: 7, bytes: 100, due_count: 0, due_bytes: 0 }, totals, storage);
+    expect(a.stored + b.stored).toBe(1200);
+  });
+
+  it('is zero for an empty table', () => {
+    const empty = { count: 0, bytes: 0, due_count: 0, due_bytes: 0 };
+    expect(diskEstimate(empty, empty, storage)).toEqual({ data: 0, index: 0, stored: 0, due: 0 });
+  });
+});
+
+describe('buildVolumeChart on-disk mode', () => {
+  const withStorage = (r: RetentionVolumeReport): RetentionVolumeReport => ({
+    ...r,
+    totals: { count: 70, bytes: 7000, due_count: 35, due_bytes: 3500 },
+    storage: {
+      table: 'log_entries', engine: 'InnoDB', data_bytes: 7000, index_bytes: 700,
+      free_bytes: 0, total_bytes: 7700, rows_estimate: 70,
+    },
+  });
+
+  it('draws data, indexes and the due band only for Size with storage', () => {
+    const disk = buildVolumeChart(withStorage(report([10, 20, 40])), 'bytes', layout);
+    expect(disk.disk).toBe(true);
+    expect(disk.dataPath).not.toBe('');
+    expect(disk.duePath.endsWith('Z')).toBe(true);
+    // Tallest day: 4000 data + 400 index = 4400 → axis rounds up to 6000 (steps of 2000).
+    expect(disk.maxValue).toBe(6000);
+
+    const entries = buildVolumeChart(withStorage(report([10, 20, 40])), 'count', layout);
+    expect(entries.disk).toBe(false);
+    expect(entries.dataPath).toBe('');
+
+    const noStorage = buildVolumeChart(report([10, 20, 40]), 'bytes', layout);
+    expect(noStorage.disk).toBe(false);
   });
 });

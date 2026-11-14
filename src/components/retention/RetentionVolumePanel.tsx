@@ -7,10 +7,10 @@ import {
   DEFAULT_LAYOUT,
   VolumeMetric,
   buildVolumeChart,
-  dueValue,
   formatBytes,
   formatMetric,
-  storedValue,
+  usesDiskSplit,
+  viewValues,
 } from '../../lib/retentionVolume';
 import { cn } from '../../lib/utils';
 import { RetentionVolumeChart } from './RetentionVolumeChart';
@@ -142,11 +142,13 @@ interface RetentionVolumeViewProps {
 export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolumeViewProps>) {
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
 
-  const showsStorage = metric === 'bytes' && !!report.storage;
-  const payloadNote = showsStorage
-    ? 'Chart sizes are message, template and context lengths, not on-disk row sizes (see "On disk" above). '
-    : 'Chart sizes are message, template and context lengths, not on-disk row sizes. ';
-  const sizeNote = report.size_basis === 'payload' ? payloadNote : 'Sizes are the stored JSONL line sizes. ';
+  const showsStorage = usesDiskSplit(report, metric);
+  let sizeNote = 'Sizes are the stored JSONL line sizes. ';
+  if (showsStorage) {
+    sizeNote = 'Sizes are estimated on disk: each day gets the table\'s data in proportion to its payload bytes and the indexes in proportion to its entries, so the days add up to the table total above. ';
+  } else if (report.size_basis === 'payload') {
+    sizeNote = 'Sizes are message, template and context lengths, not on-disk row sizes. ';
+  }
 
   // Marker numbering only depends on policy order, not on width.
   const { markers, inactive } = useMemo(
@@ -154,10 +156,11 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
     [report, metric],
   );
 
-  const totalStored = metric === 'count' ? report.totals.count : report.totals.bytes;
-  const totalDue = metric === 'count' ? report.totals.due_count : report.totals.due_bytes;
-  const olderStored = metric === 'count' ? report.older.count : report.older.bytes;
-  const futureStored = metric === 'count' ? report.future.count : report.future.bytes;
+  const values = viewValues(report, metric);
+  const totalStored = values.stored(report.totals);
+  const totalDue = values.due(report.totals);
+  const olderStored = values.stored(report.older);
+  const futureStored = values.stored(report.future);
 
   return (
     <div className="space-y-4">
@@ -178,17 +181,39 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
 
       {showsStorage && report.storage && <TableStorageBreakdown storage={report.storage} />}
 
-      <div className="flex items-center gap-4 text-xs text-gray-400" aria-label="Legend">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-primary-500/35 border-2 border-primary-400" />
-          <span>Kept</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg width="12" height="12" aria-hidden="true" className="rounded-sm">
-            <rect width="12" height="12" fill="url(#retention-due-hatch)" />
-          </svg>
-          <span>Due for deletion</span>
-        </span>
+      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400" aria-label="Legend">
+        {showsStorage ? (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm bg-primary-500" />
+              <span>Data</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm bg-amber-400" />
+              <span>Indexes</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg width="12" height="12" aria-hidden="true" className="rounded-sm">
+                <rect width="12" height="12" fill="var(--color-gray-500)" />
+                <rect width="12" height="12" fill="url(#retention-due-overlay)" />
+              </svg>
+              <span>Due for deletion (striped)</span>
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded-sm bg-primary-500/35 border-2 border-primary-400" />
+              <span>Kept</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <svg width="12" height="12" aria-hidden="true" className="rounded-sm">
+                <rect width="12" height="12" fill="url(#retention-due-hatch)" />
+              </svg>
+              <span>Due for deletion</span>
+            </span>
+          </>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-[9px] font-bold text-gray-100">n</span>
           <span>Policy cutoff</span>
@@ -263,7 +288,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
             <thead className="sticky top-0 bg-gray-950">
               <tr className="border-b border-gray-800">
                 <th className="px-3 py-1.5 font-semibold">Date</th>
-                <th className="px-3 py-1.5 font-semibold text-right">Stored</th>
+                <th className="px-3 py-1.5 font-semibold text-right">{showsStorage ? 'On disk (est.)' : 'Stored'}</th>
                 <th className="px-3 py-1.5 font-semibold text-right">Due for deletion</th>
               </tr>
             </thead>
@@ -271,8 +296,8 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
               {[...report.buckets].reverse().filter((b) => b.count > 0).map((b) => (
                 <tr key={b.date}>
                   <td className="px-3 py-1">{format(parseISO(b.date), 'yyyy-MM-dd')}</td>
-                  <td className="px-3 py-1 text-right text-gray-200">{formatMetric(storedValue(b, metric), metric)}</td>
-                  <td className="px-3 py-1 text-right">{formatMetric(dueValue(b, metric), metric)}</td>
+                  <td className="px-3 py-1 text-right text-gray-200">{formatMetric(values.stored(b), metric)}</td>
+                  <td className="px-3 py-1 text-right">{formatMetric(values.due(b), metric)}</td>
                 </tr>
               ))}
             </tbody>

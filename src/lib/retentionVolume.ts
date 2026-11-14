@@ -1,4 +1,10 @@
-import { RetentionVolumeBucket, RetentionVolumePolicy, RetentionVolumeReport } from '../types';
+import {
+  RetentionVolumeBucket,
+  RetentionVolumePolicy,
+  RetentionVolumeReport,
+  RetentionVolumeStorage,
+  RetentionVolumeTotals,
+} from '../types';
 
 /**
  * Geometry for the Seq-style retention chart: stored volume by age (oldest on
@@ -50,6 +56,15 @@ export interface VolumeChartModel {
   storedPath: string;
   /** Area for the part no policy deletes yet. */
   keptPath: string;
+  /**
+   * On-disk mode (Size view on a server that reports table storage): the
+   * stacked split of each day's estimated size. dataPath is the bottom layer,
+   * storedPath (data + indexes) the top, and duePath the band between kept and
+   * stored that policies would delete. All empty outside on-disk mode.
+   */
+  disk: boolean;
+  dataPath: string;
+  duePath: string;
   yTicks: VolumeTick[];
   xTicks: VolumeTick[];
   markers: VolumeMarker[];
@@ -64,6 +79,63 @@ export const DEFAULT_LAYOUT: Omit<VolumeChartLayout, 'width'> = {
   bottom: 28,
   left: 56,
 };
+
+/** Estimated on-disk size of a set of entries (a day, or a totals row). */
+export interface DiskEstimate {
+  data: number;
+  index: number;
+  /** data + index */
+  stored: number;
+  /** Share of `stored` that policies would delete now. */
+  due: number;
+}
+
+/**
+ * Splits the table's on-disk size (one figure for the whole table) across a
+ * set of entries. MariaDB has no per-day size, so this is an estimate:
+ *
+ *   data  — the table's DATA_LENGTH × this set's share of payload bytes
+ *   index — the table's INDEX_LENGTH × this set's share of entries
+ *           (each entry adds one key to every index, whatever its size)
+ *
+ * Summed over every stored entry it gives back the table's exact data + indexes.
+ */
+export function diskEstimate(
+  part: RetentionVolumeTotals,
+  totals: RetentionVolumeTotals,
+  storage: RetentionVolumeStorage,
+): DiskEstimate {
+  const dataShare = totals.bytes > 0 ? part.bytes / totals.bytes : 0;
+  const indexShare = totals.count > 0 ? part.count / totals.count : 0;
+  const data = storage.data_bytes * dataShare;
+  const index = storage.index_bytes * indexShare;
+  const dueData = part.bytes > 0 ? data * (part.due_bytes / part.bytes) : 0;
+  const dueIndex = part.count > 0 ? index * (part.due_count / part.count) : 0;
+  return { data, index, stored: data + index, due: dueData + dueIndex };
+}
+
+/** True when the Size view should draw the estimated on-disk data / index split. */
+export function usesDiskSplit(report: RetentionVolumeReport, metric: VolumeMetric): boolean {
+  return metric === 'bytes' && !!report.storage;
+}
+
+/**
+ * Stored and due values for any totals row in the current view: entries,
+ * payload bytes, or (on-disk mode) the estimated on-disk size.
+ */
+export function viewValues(report: RetentionVolumeReport, metric: VolumeMetric) {
+  if (usesDiskSplit(report, metric)) {
+    const storage = report.storage as RetentionVolumeStorage;
+    return {
+      stored: (t: RetentionVolumeTotals) => diskEstimate(t, report.totals, storage).stored,
+      due: (t: RetentionVolumeTotals) => diskEstimate(t, report.totals, storage).due,
+    };
+  }
+  return {
+    stored: (t: RetentionVolumeTotals) => (metric === 'count' ? t.count : t.bytes),
+    due: (t: RetentionVolumeTotals) => (metric === 'count' ? t.due_count : t.due_bytes),
+  };
+}
 
 export function storedValue(bucket: RetentionVolumeBucket, metric: VolumeMetric): number {
   return metric === 'count' ? bucket.count : bucket.bytes;
@@ -139,19 +211,43 @@ export function buildVolumeChart(
   const n = Math.max(1, buckets.length);
   const bucketWidth = plot.width / n;
 
-  const peak = buckets.reduce((m, b) => Math.max(m, storedValue(b, metric)), 0);
+  const disk = usesDiskSplit(report, metric);
+  const values = viewValues(report, metric);
+  const estimates = disk
+    ? buckets.map((b) => diskEstimate(b, report.totals, report.storage as RetentionVolumeStorage))
+    : [];
+
+  const peak = buckets.reduce((m, b) => Math.max(m, values.stored(b)), 0);
   const scale = niceScale(peak, 4, metric === 'count' ? 1 : 0);
   const y = (v: number) => plot.y + plot.height - (v / scale.max) * plot.height;
 
-  const stepArea = (valueOf: (b: RetentionVolumeBucket) => number): string => {
+  const stepArea = (valueOf: (b: RetentionVolumeBucket, i: number) => number): string => {
     if (buckets.length === 0) return '';
     const baseline = plot.y + plot.height;
     let d = `M${plot.x},${baseline}`;
     buckets.forEach((b, i) => {
-      const top = y(valueOf(b));
+      const top = y(valueOf(b, i));
       d += ` L${plot.x + i * bucketWidth},${top} L${plot.x + (i + 1) * bucketWidth},${top}`;
     });
     return `${d} L${plot.x + buckets.length * bucketWidth},${baseline} Z`;
+  };
+
+  /** Stepped band between two series (upper ≥ lower), e.g. the due part on top of the kept part. */
+  const stepBand = (
+    upper: (b: RetentionVolumeBucket, i: number) => number,
+    lower: (b: RetentionVolumeBucket, i: number) => number,
+  ): string => {
+    if (buckets.length === 0) return '';
+    let d = '';
+    buckets.forEach((b, i) => {
+      const top = y(upper(b, i));
+      d += `${i === 0 ? 'M' : ' L'}${plot.x + i * bucketWidth},${top} L${plot.x + (i + 1) * bucketWidth},${top}`;
+    });
+    for (let i = buckets.length - 1; i >= 0; i--) {
+      const bottom = y(lower(buckets[i], i));
+      d += ` L${plot.x + (i + 1) * bucketWidth},${bottom} L${plot.x + i * bucketWidth},${bottom}`;
+    }
+    return `${d} Z`;
   };
 
   const yTicks: VolumeTick[] = [];
@@ -187,8 +283,11 @@ export function buildVolumeChart(
     plot,
     bucketWidth,
     maxValue: scale.max,
-    storedPath: stepArea((b) => storedValue(b, metric)),
-    keptPath: stepArea((b) => storedValue(b, metric) - dueValue(b, metric)),
+    storedPath: stepArea((b) => values.stored(b)),
+    keptPath: stepArea((b) => values.stored(b) - values.due(b)),
+    disk,
+    dataPath: disk ? stepArea((_, i) => estimates[i].data) : '',
+    duePath: disk ? stepBand((_, i) => estimates[i].stored, (_, i) => estimates[i].stored - estimates[i].due) : '',
     yTicks,
     xTicks,
     markers,

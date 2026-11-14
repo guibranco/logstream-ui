@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { RetentionVolumeReport } from '../../types';
+import { RetentionVolumeReport, RetentionVolumeStorage } from '../../types';
 import {
   DEFAULT_LAYOUT,
   VolumeMetric,
   bucketAt,
   buildVolumeChart,
-  dueValue,
+  diskEstimate,
   formatMetric,
-  storedValue,
+  viewValues,
 } from '../../lib/retentionVolume';
 
 interface RetentionVolumeChartProps {
@@ -52,6 +52,12 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
   const { plot } = model;
   const baseline = plot.y + plot.height;
   const hoveredBucket = hovered !== null ? report.buckets[hovered] : null;
+  const values = viewValues(report, metric);
+  let measureLabel = 'entries';
+  if (metric === 'bytes') measureLabel = model.disk ? 'size on disk, split into data and indexes,' : 'size';
+  const hoveredDisk = hoveredBucket && model.disk
+    ? diskEstimate(hoveredBucket, report.totals, report.storage as RetentionVolumeStorage)
+    : null;
 
   const handleMove = (event: React.MouseEvent<SVGRectElement>) => {
     const svg = event.currentTarget.ownerSVGElement;
@@ -72,13 +78,17 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
         height={DEFAULT_LAYOUT.height}
         viewBox={`0 0 ${width} ${DEFAULT_LAYOUT.height}`}
         role="img"
-        aria-label={`Stored log ${metric === 'count' ? 'entries' : 'size'} for the last ${report.days} days, with ${model.markers.length} retention policy markers`}
+        aria-label={`Stored log ${measureLabel} for the last ${report.days} days, with ${model.markers.length} retention policy markers`}
         className="block"
       >
         <defs>
           <pattern id="retention-due-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="6" height="6" fill="var(--color-gray-700)" />
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--color-gray-500)" strokeWidth="2" />
+          </pattern>
+          {/* Stripes only, so the data / index colours show through the due band */}
+          <pattern id="retention-due-overlay" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--color-gray-950)" strokeOpacity={0.7} strokeWidth="2.5" />
           </pattern>
         </defs>
 
@@ -92,11 +102,22 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
           </g>
         ))}
 
-        {/* Stored = kept (solid) + due for deletion (hatched on top) */}
-        <path d={model.storedPath} fill="url(#retention-due-hatch)" data-testid="volume-stored" />
-        {/* Opaque base so the hatch never shows through the kept area */}
-        <path d={model.keptPath} fill="var(--color-gray-900)" />
-        <path d={model.keptPath} fill="var(--color-primary-500)" fillOpacity={0.35} stroke="var(--color-primary-400)" strokeWidth={2} strokeLinejoin="round" data-testid="volume-kept" />
+        {model.disk ? (
+          <>
+            {/* Estimated on-disk size per day: indexes stacked on data, due part striped */}
+            <path d={model.storedPath} fill="var(--color-amber-400)" fillOpacity={0.85} data-testid="volume-index" />
+            <path d={model.dataPath} fill="var(--color-primary-500)" data-testid="volume-data" />
+            <path d={model.duePath} fill="url(#retention-due-overlay)" data-testid="volume-due" />
+          </>
+        ) : (
+          <>
+            {/* Stored = kept (solid) + due for deletion (hatched on top) */}
+            <path d={model.storedPath} fill="url(#retention-due-hatch)" data-testid="volume-stored" />
+            {/* Opaque base so the hatch never shows through the kept area */}
+            <path d={model.keptPath} fill="var(--color-gray-900)" />
+            <path d={model.keptPath} fill="var(--color-primary-500)" fillOpacity={0.35} stroke="var(--color-primary-400)" strokeWidth={2} strokeLinejoin="round" data-testid="volume-kept" />
+          </>
+        )}
 
         {/* X axis */}
         <line x1={plot.x} x2={plot.x + plot.width} y1={baseline} y2={baseline} stroke="var(--color-gray-700)" strokeWidth={1} />
@@ -182,13 +203,21 @@ export function RetentionVolumeChart({ report, metric, activeMarker = null, onMa
             </span>
           </div>
           <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-gray-400">
-            <span>Stored</span>
-            <span className="text-right font-mono text-gray-200">{formatMetric(storedValue(hoveredBucket, metric), metric)}</span>
+            {hoveredDisk && (
+              <>
+                <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-sm bg-primary-500" />Data</span>
+                <span className="text-right font-mono text-gray-200">{formatMetric(hoveredDisk.data, metric)}</span>
+                <span className="flex items-center gap-1.5"><span className="inline-block w-2 h-2 rounded-sm bg-amber-400" />Indexes</span>
+                <span className="text-right font-mono text-gray-200">{formatMetric(hoveredDisk.index, metric)}</span>
+              </>
+            )}
+            <span>{hoveredDisk ? 'On disk (est.)' : 'Stored'}</span>
+            <span className="text-right font-mono text-gray-200">{formatMetric(values.stored(hoveredBucket), metric)}</span>
             <span>Due for deletion</span>
-            <span className="text-right font-mono text-gray-200">{formatMetric(dueValue(hoveredBucket, metric), metric)}</span>
+            <span className="text-right font-mono text-gray-200">{formatMetric(values.due(hoveredBucket), metric)}</span>
             <span>Kept</span>
             <span className="text-right font-mono text-gray-200">
-              {formatMetric(storedValue(hoveredBucket, metric) - dueValue(hoveredBucket, metric), metric)}
+              {formatMetric(values.stored(hoveredBucket) - values.due(hoveredBucket), metric)}
             </span>
           </div>
         </div>
