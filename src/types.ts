@@ -132,7 +132,10 @@ export interface RetentionVolumeStorage {
   data_bytes: number;
   /** INDEX_LENGTH: every secondary and full-text index. */
   index_bytes: number;
-  /** DATA_FREE: allocated but unused, reclaimable by OPTIMIZE TABLE. */
+  /**
+   * DATA_FREE: allocated but unused. With a shared tablespace this is the
+   * tablespace's free space, not this table's, so it is shown apart from the split.
+   */
   free_bytes: number;
   /** data_bytes + index_bytes. */
   total_bytes: number;

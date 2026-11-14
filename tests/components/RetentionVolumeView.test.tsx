@@ -153,8 +153,9 @@ describe('RetentionVolumeView', () => {
     expect(within(breakdown).getByTestId('storage-data')).toHaveTextContent('75%');
     expect(within(breakdown).getByTestId('storage-index')).toHaveTextContent('1.0 MB');
     expect(within(breakdown).getByTestId('storage-index')).toHaveTextContent('25%');
-    // No free space: no "Free" segment
+    // No free space: no free-space note
     expect(within(breakdown).queryByTestId('storage-free')).toBeNull();
+    expect(breakdown).toHaveTextContent('InnoDB statistics, so approximate');
     expect(screen.getByTestId('storage-bar-data')).toHaveStyle({ width: '75%' });
   });
 
@@ -170,5 +171,29 @@ describe('RetentionVolumeView', () => {
 
     render(<RetentionVolumeView report={{ ...report, storage: null }} metric="bytes" />);
     expect(screen.queryByRole('region', { name: 'On-disk size: data and indexes' })).toBeNull();
+  });
+
+  it('keeps free space out of the split and names a non-InnoDB engine', () => {
+    const withStorage: RetentionVolumeReport = {
+      ...report,
+      storage: {
+        table: 'log_entries',
+        engine: 'Aria',
+        data_bytes: 3 * 1024 * 1024,
+        index_bytes: 1024 * 1024,
+        free_bytes: 100 * 1024 * 1024,
+        total_bytes: 4 * 1024 * 1024,
+        rows_estimate: 65,
+      },
+    };
+
+    render(<RetentionVolumeView report={withStorage} metric="bytes" />);
+
+    const breakdown = screen.getByRole('region', { name: 'On-disk size: data and indexes' });
+    expect(within(breakdown).getByTestId('storage-data')).toHaveTextContent('75%');
+    expect(screen.getByTestId('storage-bar-data')).toHaveStyle({ width: '75%' });
+    expect(within(breakdown).getByTestId('storage-free')).toHaveTextContent('100 MB allocated but unused');
+    expect(breakdown).toHaveTextContent('Aria statistics, which may be approximate');
+    expect(breakdown).not.toHaveTextContent('InnoDB');
   });
 });

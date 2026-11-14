@@ -65,14 +65,19 @@ function percentOf(part: number, whole: number): string {
   return pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`;
 }
 
-/** Data vs. indexes (vs. free space) of the log table on disk, as one stacked bar. */
+/** Data vs. indexes of the log table on disk, as one stacked bar. */
 export function TableStorageBreakdown({ storage }: Readonly<{ storage: RetentionVolumeStorage }>) {
-  const allocated = storage.data_bytes + storage.index_bytes + storage.free_bytes;
+  // DATA_FREE is left out of the bar and percentages: in a shared tablespace it
+  // is free space of the whole tablespace, not of this table.
+  const total = storage.data_bytes + storage.index_bytes;
   const segments = [
     { key: 'data', label: 'Data', bytes: storage.data_bytes, swatch: 'bg-primary-500', hint: 'rows, incl. primary key' },
     { key: 'index', label: 'Indexes', bytes: storage.index_bytes, swatch: 'bg-amber-400', hint: 'secondary + full-text' },
-    { key: 'free', label: 'Free', bytes: storage.free_bytes, swatch: 'bg-gray-700', hint: 'allocated, unused' },
-  ].filter((s) => s.key !== 'free' || s.bytes > 0);
+  ];
+  const isInnoDb = storage.engine?.toLowerCase() === 'innodb';
+  const statsNote = isInnoDb
+    ? 'InnoDB statistics, so approximate'
+    : `${storage.engine ?? 'storage engine'} statistics, which may be approximate`;
 
   return (
     <section aria-label="On-disk size: data and indexes" className="border border-gray-800 rounded-lg p-3 space-y-2">
@@ -84,18 +89,18 @@ export function TableStorageBreakdown({ storage }: Readonly<{ storage: Retention
           </span>
         </div>
         <div className="text-sm font-mono text-gray-200" data-testid="storage-total">
-          {formatBytes(storage.total_bytes)}
+          {formatBytes(total)}
           <span className="text-[11px] text-gray-500 ml-1.5">data + indexes</span>
         </div>
       </div>
 
       <div className="flex h-2.5 w-full rounded-full overflow-hidden bg-gray-800" aria-hidden="true">
-        {allocated > 0 && segments.map((s) => (
+        {total > 0 && segments.map((s) => (
           <div
             key={s.key}
             data-testid={`storage-bar-${s.key}`}
             className={s.swatch}
-            style={{ width: `${(s.bytes / allocated) * 100}%` }}
+            style={{ width: `${(s.bytes / total) * 100}%` }}
           />
         ))}
       </div>
@@ -106,13 +111,18 @@ export function TableStorageBreakdown({ storage }: Readonly<{ storage: Retention
             <span className={cn('inline-block w-2.5 h-2.5 rounded-sm', s.swatch)} />
             <dt className="text-gray-400">{s.label}</dt>
             <dd className="font-mono text-gray-200">{formatBytes(s.bytes)}</dd>
-            <dd className="text-gray-500">{percentOf(s.bytes, allocated)} · {s.hint}</dd>
+            <dd className="text-gray-500">{percentOf(s.bytes, total)} · {s.hint}</dd>
           </div>
         ))}
       </dl>
 
       <p className="text-[11px] text-gray-600">
-        From information_schema for the whole table (~{storage.rows_estimate.toLocaleString()} rows); InnoDB statistics, so approximate and not split by day.
+        From information_schema for the whole table (~{storage.rows_estimate.toLocaleString()} rows); {statsNote}, and not split by day.
+        {storage.free_bytes > 0 && (
+          <span data-testid="storage-free">
+            {' '}{formatBytes(storage.free_bytes)} allocated but unused — not counted above, as it may be shared with other tables in the tablespace.
+          </span>
+        )}
       </p>
     </section>
   );
