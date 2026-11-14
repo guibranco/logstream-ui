@@ -8,7 +8,13 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 
 ## Live demo
 
-Open <https://guilherme.stracini.com.br/logstream-ui/> and, on the **Connection Settings** screen, enter:
+**[Open the demo, already connected →](https://guilherme.stracini.com.br/logstream-ui/#server=https%3A%2F%2Flogstream-demo.onrender.com&secret=lsu_Cj4qmrHvWkH3BfMyUn4HELyBsldiprEGZfB0VAOR2S0)**
+
+The link uses a [connection link](#sharing-a-connection-link): the settings screen opens pre-filled with the
+demo server and its UI secret, so just click **Validate and Connect**.
+
+To set it up by hand instead, open <https://guilherme.stracini.com.br/logstream-ui/> and, on the
+**Connection Settings** screen, enter:
 
 | Field | Value |
 |-------|-------|
