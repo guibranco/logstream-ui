@@ -83,6 +83,10 @@ Taken with sample events against a mocked server, in the default (Green, dark) t
 
 ![Events filtered by one trace ID](docs/screenshots/desktop-trace.png)
 
+**Copy several events**: tick the checkboxes, Ctrl/⌘+click or Shift+click a range (long-press on a phone), or Ctrl/⌘+A for every loaded event, then copy them oldest first as log lines (Ctrl/⌘+C), Markdown or JSON. The live feed holds while you select; Esc clears:
+
+![Four events selected with the copy bar at the bottom](docs/screenshots/desktop-selection.png)
+
 **Paused**, new events held above the list until you resume:
 
 ![The live feed paused with four new events waiting](docs/screenshots/desktop-paused.png)
@@ -665,7 +669,7 @@ python scripts/screenshots.py          # everything
 python scripts/screenshots.py themes   # only the theme gallery
 ```
 
-The argument picks a group: `existing` (events and phone shots), `screens` (all but the themes), `applications`, `retention`, `themes` or `all` (default). Run the images through a PNG optimiser (`pngquant`, `oxipng`) before committing.
+The argument picks a group: `existing` (events and phone shots), `selection` (events picked for copying), `screens` (all but the themes), `applications`, `retention`, `themes` or `all` (default). Run the images through a PNG optimiser (`pngquant`, `oxipng`) before committing.
 
 ### Pointing at a local backend
 

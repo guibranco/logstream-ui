@@ -1,6 +1,6 @@
 """Screenshots of logstream-ui against a mocked logstream-server (HTTP + WebSocket).
 
-Usage: python scripts/screenshots.py [all|existing|screens|applications|retention|retention-size|themes]
+Usage: python scripts/screenshots.py [all|existing|selection|screens|applications|retention|retention-size|themes]
 Writes into docs/screenshots.
 Needs the dev server running (LOGSTREAM_UI_URL, default http://127.0.0.1:5173/logstream-ui/)
 and Playwright for Python. Set CHROME_PATH to use an installed Chrome instead of Playwright's Chromium.
@@ -349,9 +349,18 @@ def shoot_themes(browser):
             expand_first(page, CHARGE_FAILED)
             snap(page, f"themes/{tid}-{mode}"); ctx.close()
 
+def shoot_selection(browser):
+    # Several events picked for copying, with the action bar
+    ctx, page, _ = new_page(browser, filters={"level": ["error", "critical", "warning"]})
+    rows = page.get_by_test_id("row-select")
+    rows.nth(0).locator("input").click(); time.sleep(0.15)
+    rows.nth(3).locator("input").click(modifiers=["Shift"]); time.sleep(0.6)
+    snap(page, "desktop-selection"); ctx.close()
+
 GROUPS = {
     "existing": [shoot_existing],
-    "screens": [shoot_existing, shoot_pickers, shoot_applications, shoot_retention, shoot_retention_size],
+    "selection": [shoot_selection],
+    "screens": [shoot_existing, shoot_pickers, shoot_selection, shoot_applications, shoot_retention, shoot_retention_size],
     "applications": [shoot_applications],
     "retention": [shoot_retention, shoot_retention_size],
     "retention-size": [shoot_retention_size],

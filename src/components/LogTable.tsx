@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { LogEntry } from '../types';
 import { LogRow } from './LogRow';
 import { Skeleton } from './Skeleton';
+import { SelectionBar, CopyResult } from './SelectionBar';
+import { useLogSelection } from '../hooks/useLogSelection';
+import { CopyFormat, logsToText } from '../lib/logLines';
+import { cn } from '../lib/utils';
 import { AlertCircle, Inbox, ArrowUp, Loader2, Eraser, Zap } from 'lucide-react';
 
 interface LogTableProps {
@@ -35,14 +39,39 @@ interface LogTableProps {
   onRetry: () => void;
 }
 
+/** A form field keeps its own Ctrl/⌘+A and Ctrl/⌘+C. */
+const isEditable = (el: Element | null): boolean =>
+  el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
+  || (el instanceof HTMLElement && el.isContentEditable);
+
+/** Header checkbox: selects every loaded event, or clears; shows "some" as indeterminate. */
+const SelectAllBox: React.FC<{ all: boolean; some: boolean; onChange: () => void }> = ({ all, some, onChange }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = some && !all;
+  }, [all, some]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={all}
+      onChange={onChange}
+      aria-label="Select all loaded events"
+      title="Select all loaded events (Ctrl/⌘+A)"
+      className="w-3.5 h-3.5 cursor-pointer accent-secondary-500"
+    />
+  );
+};
+
 /** Within this distance of the top the list follows new events. */
 const TOP_THRESHOLD = 8;
 /** Start fetching older events this far before the bottom. */
 const LOAD_OLDER_THRESHOLD = 600;
 
 /** Why new events are being held, or null while following. */
-function holdReasonOf(isPaused: boolean, hasExpanded: boolean, isAtTop: boolean): string | null {
+function holdReasonOf(isPaused: boolean, isSelecting: boolean, hasExpanded: boolean, isAtTop: boolean): string | null {
   if (isPaused) return 'Paused';
+  if (isSelecting) return 'Paused while selecting';
   if (hasExpanded) return 'Paused while an event is expanded';
   if (!isAtTop) return 'Paused while scrolled down';
   return null;
@@ -207,7 +236,51 @@ export const LogTable: React.FC<LogTableProps> = ({
     [expandedIds, logs],
   );
   const heldByExpanded = hasExpanded && !followWhileOpen;
-  const hold = isPaused || heldByExpanded || !isAtTop;
+  const selection = useLogSelection(logs);
+  const { isSelecting, selectedLogs, select, selectAll, clear: clearSelection } = selection;
+  // Rows must not move under the pointer while picking them.
+  const hold = isPaused || isSelecting || heldByExpanded || !isAtTop;
+
+  const [lastCopy, setLastCopy] = useState<CopyResult | null>(null);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }, []);
+
+  /** Copies the selection; the bar shows "Copied N" or "Copy failed" for a moment. */
+  const copySelected = useCallback((fmt: CopyFormat) => {
+    const count = selectedLogs.length;
+    if (count === 0) return;
+    const done = (ok: boolean) => {
+      setLastCopy({ format: fmt, ok, count });
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setLastCopy(null), 2000);
+    };
+    navigator.clipboard.writeText(logsToText(selectedLogs, fmt)).then(() => done(true), () => done(false));
+  }, [selectedLogs]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      const active = document.activeElement;
+      if (e.key === 'Escape' && isSelecting) {
+        clearSelection();
+        return;
+      }
+      if (!mod || e.altKey || isEditable(active)) return;
+      const key = e.key.toLowerCase();
+      // Copying highlighted text, e.g. part of an expanded message, keeps working as usual.
+      if (key === 'c' && isSelecting && !window.getSelection()?.toString()) {
+        e.preventDefault();
+        copySelected('lines');
+      } else if (key === 'a' && logs.length > 0 && containerRef.current?.contains(active)) {
+        e.preventDefault();
+        selectAll();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isSelecting, clearSelection, copySelected, selectAll, logs.length]);
 
   useEffect(() => {
     if (!hasExpanded) setFollowWhileOpen(false);
@@ -248,6 +321,8 @@ export const LogTable: React.FC<LogTableProps> = ({
 
   /** Follow new events again: back to the top, open events stay open, held events show. */
   const resumeLive = () => {
+    // Selecting holds the feed too; following again ends it.
+    clearSelection();
     setFollowWhileOpen(true);
     if (containerRef.current) containerRef.current.scrollTop = 0;
     setIsAtTop(true);
@@ -257,7 +332,7 @@ export const LogTable: React.FC<LogTableProps> = ({
 
   if (error && logs.length === 0) return <LoadFailed error={error} onRetry={onRetry} />;
 
-  const holdReason = holdReasonOf(isPaused, heldByExpanded, isAtTop);
+  const holdReason = holdReasonOf(isPaused, isSelecting, heldByExpanded, isAtTop);
 
   let body: React.ReactNode;
   if (isLoading && logs.length === 0) {
@@ -282,6 +357,9 @@ export const LogTable: React.FC<LogTableProps> = ({
             isLive={isLiveEnabled}
             isExpanded={expandedIds.has(log.id)}
             onToggle={toggleExpanded}
+            isSelected={selection.selectedIds.has(log.id)}
+            isSelecting={isSelecting}
+            onSelect={select}
             onFilterBatch={onFilterBatch}
             onFilterTrace={onFilterTrace}
             onFilterContext={onFilterContext}
@@ -304,6 +382,15 @@ export const LogTable: React.FC<LogTableProps> = ({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="hidden md:flex bg-gray-950 border-b border-gray-900 items-center px-4 h-10 text-[10px] font-bold uppercase tracking-widest text-gray-600 select-none">
+        <div className="w-6 flex-shrink-0 flex items-center">
+          {logs.length > 0 && (
+            <SelectAllBox
+              all={selection.allSelected}
+              some={isSelecting}
+              onChange={selection.allSelected ? clearSelection : selectAll}
+            />
+          )}
+        </div>
         <div className="w-32 flex-shrink-0">Timestamp</div>
         <div className="w-24 flex-shrink-0">Level</div>
         <div className="w-32 flex-shrink-0 px-2">App Key</div>
@@ -318,13 +405,27 @@ export const LogTable: React.FC<LogTableProps> = ({
         <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={resumeLive} />
       )}
 
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        data-testid="log-scroller"
-        className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain relative"
-      >
-        {body}
+      <div className="flex-1 min-h-0 relative flex flex-col">
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          // Focusable so Ctrl/⌘+A selects events once the list was clicked, not the whole page.
+          tabIndex={-1}
+          data-testid="log-scroller"
+          className={cn(
+            'flex-1 overflow-y-auto overflow-x-hidden overscroll-contain relative outline-none',
+            // Room to scroll the last events out from under the selection bar.
+            isSelecting && 'pb-20',
+          )}
+        >
+          {body}
+        </div>
+        <SelectionBar
+          count={selectedLogs.length}
+          lastCopy={lastCopy}
+          onCopy={copySelected}
+          onClear={clearSelection}
+        />
       </div>
 
       <div className="bg-gray-950 border-t border-gray-900 px-3 md:px-4 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-500">
