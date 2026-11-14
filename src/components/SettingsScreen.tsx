@@ -3,13 +3,16 @@ import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown } from 'lucide-
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 import { ThemePicker } from './ThemePicker';
+import { deriveWsUrl, editPairedUrl, initialPairedUrls } from '../lib/serverUrl';
 
 /** `footer` sits at the bottom of the full-screen overlay (versions and credit). */
 export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const { config, updateConfig, signOut, isConfigured, closeSettings } = useAuth();
   
-  const [apiUrl, setApiUrl] = useState(config?.apiUrl || '');
-  const [wsUrl, setWsUrl] = useState(config?.wsUrl || '');
+  // The two URLs pre-fill each other while the other one is empty or was
+  // auto-filled; a value the user typed is never overwritten.
+  const [urls, setUrls] = useState(() => initialPairedUrls(config?.apiUrl || '', config?.wsUrl || ''));
+  const { apiUrl, wsUrl } = urls;
   const [uiSecret, setUiSecret] = useState(config?.uiSecret || '');
   const [showSecret, setShowSecret] = useState(false);
   const [showOverrides, setShowOverrides] = useState(false);
@@ -34,21 +37,16 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const activeOverrides = [clientMgmtOverride, retentionOverride, websocketOverride]
     .filter((v) => v !== 'default').length;
 
-  const deriveWsUrl = (url: string) => {
-    try {
-      const parsed = new URL(url);
-      const protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${protocol}//${parsed.host}/ws`;
-    } catch (e) {
-      return '';
-    }
-  };
-
   const suggestedWsUrl = deriveWsUrl(apiUrl);
 
   const handleApiUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setApiUrl(value);
+    setUrls((prev) => editPairedUrl(prev, 'apiUrl', value));
+  };
+
+  const handleWsUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setUrls((prev) => editPairedUrl(prev, 'wsUrl', value));
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -202,14 +200,14 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                 <input
                   type="url"
                   value={wsUrl}
-                  onChange={(e) => setWsUrl(e.target.value)}
+                  onChange={handleWsUrlChange}
                   placeholder="wss://logs.yourdomain.com/ws"
                   className={`w-full bg-gray-800 border ${errors.wsUrl ? 'border-red-500' : 'border-gray-700'} rounded-xl px-4 py-2.5 text-sm text-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all`}
                 />
                 {suggestedWsUrl && suggestedWsUrl !== wsUrl && (
                   <button
                     type="button"
-                    onClick={() => setWsUrl(suggestedWsUrl)}
+                    onClick={() => setUrls((prev) => ({ ...prev, wsUrl: suggestedWsUrl, wsAuto: true }))}
                     className="mt-1 flex items-center gap-1.5 text-[10px] text-primary-400 hover:text-primary-300 transition-colors bg-primary-400/10 px-2 py-0.5 rounded"
                   >
                     Use {suggestedWsUrl} ↗
