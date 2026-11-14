@@ -36,6 +36,12 @@ describe('deriveWsUrl / deriveApiUrl', () => {
     expect(deriveApiUrl('ws://localhost:8080/ws')).toBe('http://localhost:8080');
   });
 
+  it('keeps a deployment path prefix', () => {
+    expect(deriveWsUrl('https://example.com/logstream/')).toBe('wss://example.com/logstream/ws');
+    expect(deriveApiUrl('wss://example.com/logstream/ws')).toBe('https://example.com/logstream');
+    expect(deriveApiUrl('wss://example.com/stream')).toBe('https://example.com/stream');
+  });
+
   it('returns empty for incomplete or wrong-scheme input', () => {
     expect(deriveWsUrl('')).toBe('');
     expect(deriveWsUrl('https:')).toBe('');
@@ -82,5 +88,15 @@ describe('initialPairedUrls', () => {
     expect(initialPairedUrls('https://a.com', 'wss://a.com/ws').wsAuto).toBe(true);
     expect(initialPairedUrls('https://a.com', 'wss://other.com/ws').wsAuto).toBe(false);
     expect(initialPairedUrls('https://a.com', 'wss://a.com/ws').apiAuto).toBe(false);
+  });
+
+  it('pre-fills a saved empty field from the other one', () => {
+    expect(initialPairedUrls('https://a.com', '')).toMatchObject({ wsUrl: 'wss://a.com/ws', wsAuto: true });
+    expect(initialPairedUrls('', 'wss://a.com/ws')).toMatchObject({ apiUrl: 'https://a.com', apiAuto: true });
+  });
+
+  it('treats non-string saved values as empty', () => {
+    expect(initialPairedUrls(42, null)).toEqual({ apiUrl: '', wsUrl: '', apiAuto: true, wsAuto: true });
+    expect(initialPairedUrls('https://a.com', { bad: true }).wsUrl).toBe('wss://a.com/ws');
   });
 });

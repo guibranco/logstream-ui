@@ -11,7 +11,7 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   
   // The two URLs pre-fill each other while the other one is empty or was
   // auto-filled; a value the user typed is never overwritten.
-  const [urls, setUrls] = useState(() => initialPairedUrls(config?.apiUrl || '', config?.wsUrl || ''));
+  const [urls, setUrls] = useState(() => initialPairedUrls(config?.apiUrl, config?.wsUrl));
   const { apiUrl, wsUrl } = urls;
   const [uiSecret, setUiSecret] = useState(config?.uiSecret || '');
   const [showSecret, setShowSecret] = useState(false);

@@ -29,9 +29,17 @@ export function apiEndpoint(apiUrl: string, path: string, params?: URLSearchPara
   return url.toString();
 }
 
+/** The URL's path without trailing slashes ('' for the root), so a deployment prefix carries over. */
+function basePath(url: URL): string {
+  let path = url.pathname;
+  while (path.endsWith('/')) path = path.slice(0, -1);
+  return path;
+}
+
 /**
  * The WebSocket URL a given API base URL most likely pairs with:
- * `https://foo.com` → `wss://foo.com/ws`, `http://localhost:8080` → `ws://localhost:8080/ws`.
+ * `https://foo.com` → `wss://foo.com/ws`, `https://foo.com/logstream` → `wss://foo.com/logstream/ws`,
+ * `http://localhost:8080` → `ws://localhost:8080/ws`.
  * Returns '' while the input isn't a complete http(s) URL yet.
  */
 export function deriveWsUrl(apiUrl: string): string {
@@ -39,7 +47,7 @@ export function deriveWsUrl(apiUrl: string): string {
     const url = new URL(apiUrl.trim());
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return '';
     if (!url.host) return '';
-    return `${url.protocol === 'https:' ? 'wss:' : 'ws:'}//${url.host}/ws`;
+    return `${url.protocol === 'https:' ? 'wss:' : 'ws:'}//${url.host}${basePath(url)}/ws`;
   } catch {
     return '';
   }
@@ -47,15 +55,17 @@ export function deriveWsUrl(apiUrl: string): string {
 
 /**
  * The API base URL a given WebSocket URL most likely pairs with:
- * `wss://foo.com/ws` → `https://foo.com`. Returns '' while the input isn't a
- * complete ws(s) URL yet.
+ * `wss://foo.com/ws` → `https://foo.com`, `wss://foo.com/logstream/ws` → `https://foo.com/logstream`.
+ * Returns '' while the input isn't a complete ws(s) URL yet.
  */
 export function deriveApiUrl(wsUrl: string): string {
   try {
     const url = new URL(wsUrl.trim());
     if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return '';
     if (!url.host) return '';
-    return `${url.protocol === 'wss:' ? 'https:' : 'http:'}//${url.host}`;
+    let path = basePath(url);
+    if (path.endsWith('/ws')) path = path.slice(0, -3);
+    return `${url.protocol === 'wss:' ? 'https:' : 'http:'}//${url.host}${path}`;
   } catch {
     return '';
   }
@@ -74,9 +84,19 @@ export interface PairedUrls {
 /**
  * Initial state from saved settings. A field counts as auto-fillable when it is
  * empty, or (for the WebSocket URL) when it is exactly what would be derived
- * from the API URL, so a default pairing keeps following the API field.
+ * from the API URL, so a default pairing keeps following the API field. A saved
+ * empty field is pre-filled from the other one right away. Non-string values
+ * (a hand-edited or corrupted localStorage entry) are treated as empty.
  */
-export function initialPairedUrls(apiUrl: string, wsUrl: string): PairedUrls {
+export function initialPairedUrls(savedApiUrl: unknown, savedWsUrl: unknown): PairedUrls {
+  const apiUrl = typeof savedApiUrl === 'string' ? savedApiUrl : '';
+  const wsUrl = typeof savedWsUrl === 'string' ? savedWsUrl : '';
+  if (apiUrl.trim() && !wsUrl.trim()) {
+    return { apiUrl, wsUrl: deriveWsUrl(apiUrl), apiAuto: false, wsAuto: true };
+  }
+  if (wsUrl.trim() && !apiUrl.trim()) {
+    return { apiUrl: deriveApiUrl(wsUrl), wsUrl, apiAuto: true, wsAuto: false };
+  }
   const wsAuto = !wsUrl.trim() || (!!apiUrl.trim() && wsUrl.trim() === deriveWsUrl(apiUrl));
   return { apiUrl, wsUrl, apiAuto: !apiUrl.trim(), wsAuto };
 }
