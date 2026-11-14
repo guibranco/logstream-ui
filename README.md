@@ -27,6 +27,8 @@ starts, so there are events, traces and every log level to explore right away. T
 **<https://logstream-demo.onrender.com/demo>**: run a scenario (a checkout, a declined card, a gateway timeout…)
 up to 50 times, backfill the last few hours, or turn on continuous mode while the page is open.
 
+![The demo server's /demo page: scenario buttons, backfill and continuous mode, and the activity list](docs/screenshots/desktop-demo-traffic.png)
+
 To send your own entries instead, use the write key
 `API_SECRET=lsa_fFWu1hWJ19kr_1g9maLswqk4tNCh-24qhv8s2eSMbVs`:
 
