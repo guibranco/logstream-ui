@@ -2,12 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { AlertCircle, BarChart3 } from 'lucide-react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useRetentionVolume } from '../../hooks/useRetentionVolume';
-import { RetentionVolumeReport } from '../../types';
+import { RetentionVolumeReport, RetentionVolumeStorage } from '../../types';
 import {
   DEFAULT_LAYOUT,
   VolumeMetric,
   buildVolumeChart,
   dueValue,
+  formatBytes,
   formatMetric,
   storedValue,
 } from '../../lib/retentionVolume';
@@ -58,6 +59,75 @@ function Stat({ label, value, hint }: Readonly<{ label: string; value: string; h
   );
 }
 
+function percentOf(part: number, whole: number): string {
+  if (whole <= 0) return '0%';
+  const pct = (part / whole) * 100;
+  return pct > 0 && pct < 1 ? '<1%' : `${Math.round(pct)}%`;
+}
+
+/** Data vs. indexes of the log table on disk, as one stacked bar. */
+export function TableStorageBreakdown({ storage }: Readonly<{ storage: RetentionVolumeStorage }>) {
+  // DATA_FREE is left out of the bar and percentages: in a shared tablespace it
+  // is free space of the whole tablespace, not of this table.
+  const total = storage.data_bytes + storage.index_bytes;
+  const segments = [
+    { key: 'data', label: 'Data', bytes: storage.data_bytes, swatch: 'bg-primary-500', hint: 'rows, incl. primary key' },
+    { key: 'index', label: 'Indexes', bytes: storage.index_bytes, swatch: 'bg-amber-400', hint: 'secondary + full-text' },
+  ];
+  const isInnoDb = storage.engine?.toLowerCase() === 'innodb';
+  const statsNote = isInnoDb
+    ? 'InnoDB statistics, so approximate'
+    : `${storage.engine ?? 'storage engine'} statistics, which may be approximate`;
+
+  return (
+    <section aria-label="On-disk size: data and indexes" className="border border-gray-800 rounded-lg p-3 space-y-2">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
+          <span>On disk</span>
+          <span className="normal-case tracking-normal font-normal ml-1.5 font-mono">
+            {storage.table}{storage.engine ? ` · ${storage.engine}` : ''}
+          </span>
+        </div>
+        <div className="text-sm font-mono text-gray-200" data-testid="storage-total">
+          {formatBytes(total)}
+          <span className="text-[11px] text-gray-500 ml-1.5">data + indexes</span>
+        </div>
+      </div>
+
+      <div className="flex h-2.5 w-full rounded-full overflow-hidden bg-gray-800" aria-hidden="true">
+        {total > 0 && segments.map((s) => (
+          <div
+            key={s.key}
+            data-testid={`storage-bar-${s.key}`}
+            className={s.swatch}
+            style={{ width: `${(s.bytes / total) * 100}%` }}
+          />
+        ))}
+      </div>
+
+      <dl className="flex flex-wrap gap-x-6 gap-y-1 text-xs">
+        {segments.map((s) => (
+          <div key={s.key} className="flex items-center gap-1.5" data-testid={`storage-${s.key}`}>
+            <span className={cn('inline-block w-2.5 h-2.5 rounded-sm', s.swatch)} />
+            <dt className="text-gray-400">{s.label}</dt>
+            <dd className="font-mono text-gray-200">{formatBytes(s.bytes)}</dd>
+            <dd className="text-gray-500">{percentOf(s.bytes, total)} · {s.hint}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="text-[11px] text-gray-600">
+        From information_schema for the whole table (~{storage.rows_estimate.toLocaleString()} rows); {statsNote}, and not split by day.
+        {storage.free_bytes > 0 && (
+          <span data-testid="storage-free">
+            {' '}{formatBytes(storage.free_bytes)} allocated but unused — not counted above, as it may be shared with other tables in the tablespace.
+          </span>
+        )}
+      </p>
+    </section>
+  );
+}
+
 function cutoffLabel(olderThanDays: number | null): string {
   if (olderThanDays === null) return 'any age';
   return `after ${olderThanDays} day${olderThanDays === 1 ? '' : 's'}`;
@@ -71,6 +141,12 @@ interface RetentionVolumeViewProps {
 /** Chart, legend, numbered policy list and data table for a loaded report. */
 export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolumeViewProps>) {
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
+
+  const showsStorage = metric === 'bytes' && !!report.storage;
+  const payloadNote = showsStorage
+    ? 'Chart sizes are message, template and context lengths, not on-disk row sizes (see "On disk" above). '
+    : 'Chart sizes are message, template and context lengths, not on-disk row sizes. ';
+  const sizeNote = report.size_basis === 'payload' ? payloadNote : 'Sizes are the stored JSONL line sizes. ';
 
   // Marker numbering only depends on policy order, not on width.
   const { markers, inactive } = useMemo(
@@ -99,6 +175,8 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
           <Stat label="Dated in the future" value={formatMetric(futureStored, metric)} hint="timestamps after today, not shown on the chart" />
         )}
       </div>
+
+      {showsStorage && report.storage && <TableStorageBreakdown storage={report.storage} />}
 
       <div className="flex items-center gap-4 text-xs text-gray-400" aria-label="Legend">
         <span className="flex items-center gap-1.5">
@@ -203,9 +281,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
       </details>
 
       <p className="text-[11px] text-gray-600">
-        {report.size_basis === 'payload'
-          ? 'Sizes are message, template and context lengths, not on-disk row sizes. '
-          : 'Sizes are the stored JSONL line sizes. '}
+        {sizeNote}
         Computed {formatDistanceToNow(parseISO(report.generated_at), { addSuffix: true })}; the server refreshes it every few minutes.
       </p>
     </div>

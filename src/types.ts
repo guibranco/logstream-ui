@@ -121,6 +121,27 @@ export interface RetentionVolumePolicy {
   matched_share: number;
 }
 
+/**
+ * On-disk size of the log table from information_schema.TABLES (MariaDB/MySQL
+ * only). InnoDB statistics, so estimates; table-wide, not per day.
+ */
+export interface RetentionVolumeStorage {
+  table: string;
+  engine: string | null;
+  /** DATA_LENGTH: rows, including InnoDB's clustered primary key. */
+  data_bytes: number;
+  /** INDEX_LENGTH: every secondary and full-text index. */
+  index_bytes: number;
+  /**
+   * DATA_FREE: allocated but unused. With a shared tablespace this is the
+   * tablespace's free space, not this table's, so it is shown apart from the split.
+   */
+  free_bytes: number;
+  /** data_bytes + index_bytes. */
+  total_bytes: number;
+  rows_estimate: number;
+}
+
 export interface RetentionVolumeReport {
   generated_at: string;
   days: number;
@@ -132,6 +153,8 @@ export interface RetentionVolumeReport {
   future: RetentionVolumeTotals;
   policies: RetentionVolumePolicy[];
   totals: RetentionVolumeTotals;
+  /** Data vs. index split of the table on disk; null in file storage, absent on older servers. */
+  storage?: RetentionVolumeStorage | null;
 }
 
 export interface Client {

@@ -74,7 +74,7 @@ Registers the services allowed to send logs and manages their API tokens. Shown 
 
 ### Retention
 
-Storage by age, with a marker for each policy's cutoff, the share of stored entries each policy matches and what is due for deletion:
+Storage by age, with a marker for each policy's cutoff, the share of stored entries each policy matches and what is due for deletion. In the **Size** view on a MariaDB server, an **On disk** bar splits the log table's real size into data and indexes (from `information_schema`):
 
 ![Retention page with the storage-by-age chart and policy markers](docs/screenshots/desktop-retention.png)
 
