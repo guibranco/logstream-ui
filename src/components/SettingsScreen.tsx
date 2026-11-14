@@ -1,19 +1,43 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown } from 'lucide-react';
+import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown, Link2, Check } from 'lucide-react';
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 import { ThemePicker } from './ThemePicker';
 import { deriveWsUrl, editPairedUrl, initialPairedUrls } from '../lib/serverUrl';
+import { buildShareLink, SharedConnection } from '../lib/shareLink';
+
+/**
+ * Starting values: a shared link's settings over the saved ones. A link that
+ * names a different server without a secret starts with an empty secret, so
+ * the saved key isn't sent to a server it wasn't meant for.
+ */
+export function initialConnection(
+  config: LogStreamConfig | null,
+  shared: SharedConnection | null,
+): { apiUrl: string; wsUrl: string; uiSecret: string } {
+  const saved = { apiUrl: config?.apiUrl ?? '', wsUrl: config?.wsUrl ?? '', uiSecret: config?.uiSecret ?? '' };
+  if (!shared) return saved;
+  const sameServer = shared.apiUrl === undefined || shared.apiUrl === saved.apiUrl;
+  return {
+    apiUrl: shared.apiUrl ?? saved.apiUrl,
+    // A new server without its own ws URL gets the derived one (left empty here, filled by initialPairedUrls).
+    wsUrl: shared.wsUrl ?? (sameServer ? saved.wsUrl : ''),
+    uiSecret: shared.uiSecret ?? (sameServer ? saved.uiSecret : ''),
+  };
+}
 
 /** `footer` sits at the bottom of the full-screen overlay (versions and credit). */
 export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
-  const { config, updateConfig, signOut, isConfigured, closeSettings } = useAuth();
-  
+  const { config, updateConfig, signOut, isConfigured, closeSettings, sharedConnection } = useAuth();
+  const [initial] = useState(() => initialConnection(config, sharedConnection));
+
   // The two URLs pre-fill each other while the other one is empty or was
   // auto-filled; a value the user typed is never overwritten.
-  const [urls, setUrls] = useState(() => initialPairedUrls(config?.apiUrl, config?.wsUrl));
+  const [urls, setUrls] = useState(() => initialPairedUrls(initial.apiUrl, initial.wsUrl));
   const { apiUrl, wsUrl } = urls;
-  const [uiSecret, setUiSecret] = useState(config?.uiSecret || '');
+  const [uiSecret, setUiSecret] = useState(initial.uiSecret);
+  const [shareIncludesSecret, setShareIncludesSecret] = useState(true);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [showSecret, setShowSecret] = useState(false);
   const [showOverrides, setShowOverrides] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -47,6 +71,20 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
   const handleWsUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUrls((prev) => editPairedUrl(prev, 'wsUrl', value));
+  };
+
+  const canShare = apiUrl.trim() !== '' && wsUrl.trim() !== '';
+
+  const handleCopyShareLink = async () => {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const link = buildShareLink(base, { apiUrl, wsUrl, uiSecret }, shareIncludesSecret);
+    try {
+      await navigator.clipboard.writeText(link);
+      setShareStatus('copied');
+    } catch {
+      setShareStatus('failed');
+    }
+    window.setTimeout(() => setShareStatus('idle'), 2500);
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -166,6 +204,22 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
             These settings are stored in your browser only.
           </p>
 
+          {sharedConnection && (
+            <div
+              role="status"
+              data-testid="shared-link-notice"
+              className="mb-6 flex items-start gap-3 rounded-xl border border-primary-500/30 bg-primary-500/10 px-4 py-3 text-sm text-gray-200"
+            >
+              <Link2 className="w-4 h-4 mt-0.5 shrink-0 text-primary-400" />
+              <p>
+                Connection settings were loaded from a shared link
+                {sharedConnection.apiUrl ? <> for <span className="font-semibold break-all">{sharedConnection.apiUrl}</span></> : null}.
+                Review them and click <span className="font-semibold">Validate and Connect</span> to use them
+                {isConfigured ? ', or Close to keep your current settings' : ''}.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSave} className="space-y-6">
             {/* Connection Setup */}
             <div className="space-y-5 bg-gray-950/20 p-5 rounded-2xl border border-gray-800/40">
@@ -240,6 +294,34 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                 </div>
                 <p className="text-[11px] text-gray-500 leading-relaxed">Required to view & search logs. Never sent over the API query parameters.</p>
                 {errors.uiSecret && <p className="text-xs text-red-400 mt-1">{errors.uiSecret}</p>}
+              </div>
+
+              {/* Share link */}
+              <div className="pt-3 border-t border-gray-800/60 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={shareIncludesSecret}
+                      onChange={(e) => setShareIncludesSecret(e.target.checked)}
+                      className="accent-primary-500"
+                    />
+                    Include UI secret in the link
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleCopyShareLink}
+                    disabled={!canShare}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary-300 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/20 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {shareStatus === 'copied' ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                    {shareStatus === 'copied' ? 'Link copied' : shareStatus === 'failed' ? 'Copy failed' : 'Copy share link'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  Opens this UI with these connection settings pre-filled. They travel after the <code>#</code>, which browsers
+                  never send to the web server. Anyone with a link that includes the secret can read your logs.
+                </p>
               </div>
             </div>
 
