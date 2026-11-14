@@ -1,6 +1,6 @@
 """Screenshots of logstream-ui against a mocked logstream-server (HTTP + WebSocket).
 
-Usage: python scripts/screenshots.py [all|existing|screens|applications|retention|themes]
+Usage: python scripts/screenshots.py [all|existing|screens|applications|retention|retention-size|themes]
 Writes into docs/screenshots.
 Needs the dev server running (LOGSTREAM_UI_URL, default http://127.0.0.1:5173/logstream-ui/)
 and Playwright for Python. Set CHROME_PATH to use an installed Chrome instead of Playwright's Chromium.
@@ -137,10 +137,16 @@ def volume(days):
         pols.append({"name": p["name"], "older_than_days": p["older_than_days"], "active": True,
                      "matched_count": mc, "matched_bytes": mc * 610, "due_count": int(mc * 0.35), "due_bytes": int(mc * 0.35) * 610,
                      "matched_share": share})
+    older = {"count": 81234, "bytes": 81234 * 610, "due_count": 40000, "due_bytes": 40000 * 610}
+    all_count, all_bytes = tot["count"] + older["count"], tot["bytes"] + older["bytes"]
+    # On-disk table size as MariaDB's information_schema reports it (data vs indexes).
+    data, index = int(all_bytes * 1.9), int(all_count * 420)
+    storage = {"table": "log_entries", "engine": "InnoDB", "data_bytes": data, "index_bytes": index,
+               "free_bytes": 64 * 1024 * 1024, "total_bytes": data + index, "rows_estimate": all_count}
     return {"generated_at": iso(NOW), "days": days, "size_basis": "payload", "buckets": buckets,
-            "older": {"count": 81234, "bytes": 81234 * 610, "due_count": 40000, "due_bytes": 40000 * 610},
+            "older": older,
             "future": {"count": 0, "bytes": 0, "due_count": 0, "due_bytes": 0},
-            "policies": pols, "totals": tot}
+            "policies": pols, "totals": {k: tot[k] + older[k] for k in tot}, "storage": storage}
 
 RUN = {"ran_at": iso(NOW), "total_pruned": 51873, "policies": [
     {"policy": "drop-debug", "pruned": 18210, "files_removed": 0, "files_rewritten": 0, "dry_run": True, "duration_ms": 184, "summary": "18,210 debug entries older than 7 days would be deleted"},
@@ -193,8 +199,8 @@ class WSHub:
             try: ws.send(json.dumps({"type": "log", "data": entry}))
             except Exception: pass
 
-def new_page(browser, *, mobile=False, theme=("green", "dark"), configured=True, scale=2, view="events", filters=None):
-    vp = {"width": 390, "height": 844} if mobile else {"width": 1440, "height": 900}
+def new_page(browser, *, mobile=False, theme=("green", "dark"), configured=True, scale=2, view="events", filters=None, height=900):
+    vp = {"width": 390, "height": 844} if mobile else {"width": 1440, "height": height}
     ctx = browser.new_context(viewport=vp, device_scale_factor=scale, is_mobile=mobile, has_touch=mobile, color_scheme="dark")
     hub = WSHub()
     ctx.route(re.compile(r"^https://logs\.example\.com/.*"), handle)
@@ -322,6 +328,19 @@ def shoot_retention(browser):
     ctx, page, _ = new_page(browser, mobile=True, view="applications")
     snap(page, "mobile-applications"); ctx.close()
 
+def shoot_retention_size(browser):
+    # Storage by age in Size mode: per-day data / index split, with a day's tooltip
+    # Tall viewport so the whole panel fits above the fixed footer
+    ctx, page, _ = new_page(browser, view="retention", height=2000)
+    page.get_by_role("button", name="Size", exact=True).click(); time.sleep(0.8)
+    panel = page.locator("div.rounded-xl", has=page.get_by_role("heading", name="Storage by age")).first
+    panel.scroll_into_view_if_needed(); time.sleep(0.4)
+    hit = page.get_by_test_id("volume-hit-area")
+    box = hit.bounding_box()
+    hit.hover(position={"x": box["width"] * 0.62, "y": box["height"] * 0.6}); time.sleep(0.5)
+    panel.screenshot(path=f"{OUT}/desktop-retention-size.png")
+    print("saved", "desktop-retention-size"); ctx.close()
+
 def shoot_themes(browser):
     ids = ["blue", "green", "red", "orange", "pink", "violet", "indigo", "ocean", "graphite", "sepia", "lime", "catppuccin", "solarized", "nord", "dracula", "high-contrast"]
     for tid in ids:
@@ -332,9 +351,10 @@ def shoot_themes(browser):
 
 GROUPS = {
     "existing": [shoot_existing],
-    "screens": [shoot_existing, shoot_pickers, shoot_applications, shoot_retention],
+    "screens": [shoot_existing, shoot_pickers, shoot_applications, shoot_retention, shoot_retention_size],
     "applications": [shoot_applications],
-    "retention": [shoot_retention],
+    "retention": [shoot_retention, shoot_retention_size],
+    "retention-size": [shoot_retention_size],
     "themes": [shoot_themes],
 }
 GROUPS["all"] = GROUPS["screens"] + GROUPS["themes"]
