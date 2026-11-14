@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
@@ -25,7 +25,16 @@ interface LogRowProps {
   /** Controlled expansion; when omitted the row keeps its own state. */
   isExpanded?: boolean;
   onToggle?: (id: string) => void;
+  /** Selected for copying together with other events. */
+  isSelected?: boolean;
+  /** Some event is selected: a click selects instead of expanding. */
+  isSelecting?: boolean;
+  /** Toggle this event's selection; `range` extends it from the last event clicked. */
+  onSelect?: (id: string, range: boolean) => void;
 }
+
+/** Holding a row this long on a touch screen starts selecting. */
+const LONG_PRESS_MS = 500;
 
 /** Dot before the message for the levels that need attention, as in Seq. */
 const LEVEL_DOT: Partial<Record<LogLevel, { className: string; label: string }>> = {
@@ -59,10 +68,44 @@ export const LogRow: React.FC<LogRowProps> = ({
   onFilterCategory,
   isExpanded: expandedProp,
   onToggle,
+  isSelected = false,
+  isSelecting = false,
+  onSelect,
 }) => {
   const [expandedState, setExpandedState] = useState(false);
   const isExpanded = expandedProp ?? expandedState;
   const toggle = () => (onToggle ? onToggle(log.id) : setExpandedState(v => !v));
+  const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+
+  const cancelLongPress = () => {
+    if (longPress.current) clearTimeout(longPress.current);
+    longPress.current = null;
+  };
+
+  /** Touch screens have no hover or modifier keys: a long press selects the event. */
+  const handlePointerDown = (e: React.PointerEvent) => {
+    longPressed.current = false;
+    if (!onSelect || e.pointerType !== 'touch') return;
+    cancelLongPress();
+    longPress.current = setTimeout(() => {
+      longPressed.current = true;
+      onSelect(log.id, false);
+    }, LONG_PRESS_MS);
+  };
+
+  /** Ctrl/⌘+click or Shift+click selects; while selecting, a plain click does too. */
+  const handleRowClick = (e: React.MouseEvent) => {
+    if (longPressed.current) {
+      longPressed.current = false;
+      return;
+    }
+    if (onSelect && (isSelecting || e.shiftKey || e.metaKey || e.ctrlKey)) {
+      onSelect(log.id, e.shiftKey);
+      return;
+    }
+    toggle();
+  };
   const [copied, setCopied] = useState<string | null>(null);
   const [copyFailed, setCopyFailed] = useState<string | null>(null);
 
@@ -93,9 +136,11 @@ export const LogRow: React.FC<LogRowProps> = ({
     <div
       // Off-screen rows skip layout and paint, so long feeds stay cheap without windowing.
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 48px' }}
+      data-selected={isSelected || undefined}
       className={cn(
-      "border-b border-gray-900 transition-colors",
-      isExpanded ? "bg-gray-900/50" : "hover:bg-gray-900/30",
+      "group/row border-b border-gray-900 transition-colors",
+      isSelected && "bg-secondary-900/30 hover:bg-secondary-900/40",
+      !isSelected && (isExpanded ? "bg-gray-900/50" : "hover:bg-gray-900/30"),
       isLive && "border-l-2",
       isLive && {
         debug: 'border-l-gray-400',
@@ -108,8 +153,37 @@ export const LogRow: React.FC<LogRowProps> = ({
     )}>
       <div 
         className="flex flex-wrap md:flex-nowrap items-center gap-x-2 md:gap-x-0 gap-y-1 px-3 md:px-4 py-2 md:py-0 md:h-12 cursor-pointer select-none"
-        onClick={toggle}
+        onClick={handleRowClick}
+        onPointerDown={handlePointerDown}
+        onPointerUp={cancelLongPress}
+        onPointerLeave={cancelLongPress}
+        onPointerCancel={cancelLongPress}
+        onContextMenu={e => {
+          // A long press on touch opens the context menu otherwise.
+          if (longPressed.current) e.preventDefault();
+        }}
       >
+        {onSelect && (
+          <div
+            className={cn('w-6 flex-shrink-0 items-center', isSelecting ? 'flex' : 'hidden md:flex')}
+            data-testid="row-select"
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => {}}
+              onClick={e => {
+                e.stopPropagation();
+                onSelect(log.id, e.shiftKey);
+              }}
+              aria-label="Select event"
+              className={cn(
+                'w-3.5 h-3.5 cursor-pointer accent-secondary-500 transition-opacity focus-visible:opacity-100',
+                isSelecting || isSelected ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100',
+              )}
+            />
+          </div>
+        )}
         <div className="md:w-32 flex-shrink-0 text-xs text-gray-500 group relative">
           <span title={log.timestamp}>
             {formatDistanceToNow(timestamp, { addSuffix: true })}
