@@ -6,6 +6,35 @@ The companion frontend for [logstream-server](https://github.com/guibranco/logst
 
 ---
 
+## Live demo
+
+Open <https://guilherme.stracini.com.br/logstream-ui/> and, on the **Connection Settings** screen, enter:
+
+| Field | Value |
+|-------|-------|
+| **API Base URL** | `https://logstream-demo.onrender.com` |
+| **WebSocket URL** | `wss://logstream-demo.onrender.com/ws` |
+| **UI Secret** | `lsu_Cj4qmrHvWkH3BfMyUn4HELyBsldiprEGZfB0VAOR2S0` |
+
+The demo server starts empty. To send it some entries, use the write key
+`API_SECRET=lsa_fFWu1hWJ19kr_1g9maLswqk4tNCh-24qhv8s2eSMbVs`:
+
+```bash
+curl -X POST https://logstream-demo.onrender.com/api/logs \
+  -H "Authorization: Bearer lsa_fFWu1hWJ19kr_1g9maLswqk4tNCh-24qhv8s2eSMbVs" \
+  -H "Content-Type: application/json" \
+  -d '{"app_key":"demo","app_id":"readme","level":"info","category":"test","message":"Hello from the README"}'
+```
+
+With the UI open, the entry shows up live.
+
+> ⚠️ **Demo only.** The server runs on Render's free plan: it spins down after 15 minutes without traffic,
+> and the first request after that takes about a minute to wake it — if the UI can't connect, wait and
+> reload. Logs are lost on every redeploy, restart or spin-down, and entries older than 1 day are deleted.
+> The keys are public — **don't send real or personal data**.
+
+---
+
 ## Features
 
 - **Real-time log stream** — new entries appear instantly via WebSocket, with a live/buffered toggle and slide-in animation
