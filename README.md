@@ -22,7 +22,12 @@ To set it up by hand instead, open <https://guilherme.stracini.com.br/logstream-
 | **WebSocket URL** | `wss://logstream-demo.onrender.com/ws` |
 | **UI Secret** | `lsu_Cj4qmrHvWkH3BfMyUn4HELyBsldiprEGZfB0VAOR2S0` |
 
-The demo server starts empty. To send it some entries, use the write key
+The demo server fills itself with fake traffic from *ShopFast*, a made-up shop of six services, every time it
+starts, so there are events, traces and every log level to explore right away. To generate more, open
+**<https://logstream-demo.onrender.com/demo>**: run a scenario (a checkout, a declined card, a gateway timeout…)
+up to 50 times, backfill the last few hours, or turn on continuous mode while the page is open.
+
+To send your own entries instead, use the write key
 `API_SECRET=lsa_fFWu1hWJ19kr_1g9maLswqk4tNCh-24qhv8s2eSMbVs`:
 
 ```bash
