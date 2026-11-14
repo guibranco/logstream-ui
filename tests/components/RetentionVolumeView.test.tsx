@@ -196,4 +196,39 @@ describe('RetentionVolumeView', () => {
     expect(breakdown).toHaveTextContent('Aria statistics, which may be approximate');
     expect(breakdown).not.toHaveTextContent('InnoDB');
   });
+
+  it('stacks estimated data and indexes per day in Size mode', () => {
+    const MB = 1024 * 1024;
+    const withStorage: RetentionVolumeReport = {
+      ...report,
+      storage: {
+        table: 'log_entries', engine: 'InnoDB',
+        data_bytes: 65 * MB, index_bytes: 6.5 * MB, free_bytes: 0,
+        total_bytes: 71.5 * MB, rows_estimate: 65,
+      },
+    };
+
+    render(<RetentionVolumeView report={withStorage} metric="bytes" />);
+
+    expect(screen.getByTestId('volume-data')).toBeInTheDocument();
+    expect(screen.getByTestId('volume-index')).toBeInTheDocument();
+    expect(screen.getByTestId('volume-due')).toBeInTheDocument();
+    expect(screen.queryByTestId('volume-kept')).toBeNull();
+    const legend = screen.getByLabelText('Legend');
+    expect(legend).toHaveTextContent('Data');
+    expect(legend).toHaveTextContent('Indexes');
+
+    const svg = screen.getByRole('img') as unknown as SVGSVGElement;
+    svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 960, height: 240, right: 960, bottom: 240, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.mouseMove(screen.getByTestId('volume-hit-area'), { clientX: 100, clientY: 100 });
+
+    // Day 1: 4000 of 6500 payload bytes → 40 MB data; 40 of 65 entries → 4.0 MB indexes;
+    // a quarter due on both → 11 MB due, 33 MB kept.
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toHaveTextContent('Data40.0 MB');
+    expect(tooltip).toHaveTextContent('Indexes4.0 MB');
+    expect(tooltip).toHaveTextContent('On disk (est.)44.0 MB');
+    expect(tooltip).toHaveTextContent('Due for deletion11.0 MB');
+    expect(tooltip).toHaveTextContent('Kept33.0 MB');
+  });
 });
