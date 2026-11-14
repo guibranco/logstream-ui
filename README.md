@@ -37,7 +37,8 @@ With the UI open, the entry shows up live.
 > ⚠️ **Demo only.** The server runs on Render's free plan: it spins down after 15 minutes without traffic,
 > and the first request after that takes about a minute to wake it — if the UI can't connect, wait and
 > reload. Logs are lost on every redeploy, restart or spin-down, and entries older than 1 day are deleted.
-> The keys are public — **don't send real or personal data**.
+> The keys are public, and the `UI_SECRET` also manages retention, so anyone can edit the demo's policies or delete
+> its logs — **don't send real or personal data**.
 
 ---
 
@@ -51,7 +52,7 @@ With the UI open, the entry shows up live.
 - **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
-- **Auth-aware** — separate read key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
+- **Auth-aware** — separate UI key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
 - **Themes** — 16 themes (Blue, Green, Red, Orange, Pink, Violet, Indigo, Ocean, Graphite, Sepia, Lime, Catppuccin, Solarized, Nord, Dracula and High contrast), each with a light and a dark variant (or following the system), picked from the 🎨 button and remembered per browser; new themes are one file each
 
 ---
@@ -187,7 +188,7 @@ The settings screen appears automatically on first visit and can be re-opened at
 |-------|-------------|---------|
 | **API Base URL** | The logstream-server HTTP address | `https://logs.straccini.com` |
 | **WebSocket URL** | The WebSocket endpoint | `wss://logs.straccini.com/ws` |
-| **UI Secret** | The read-only bearer token (`UI_SECRET` from the server's `.env`) | `your-ui-secret-here` |
+| **UI Secret** | The UI bearer token (`UI_SECRET` from the server's `.env`); not read-only, see [Authentication model](#authentication-model) | `your-ui-secret-here` |
 
 The two URLs pre-fill each other: typing the API URL fills in the WebSocket URL (`https://foo.com` → `wss://foo.com/ws`, keeping any path prefix such as `/logstream`), and typing the WebSocket URL fills in the API URL (`wss://foo.com/ws` → `https://foo.com`). A field is only filled automatically while it is empty or still holds an auto-filled value — once you type in it yourself, it is kept as you wrote it. Clearing a field makes it auto-fill again.
 
@@ -205,12 +206,12 @@ https://guilherme.stracini.com.br/logstream-ui/#server=logs.example.com&secret=l
 |-----------|-------------|
 | `server` (or `domain`, `api`) | API base URL, or a bare domain (`https://` is assumed) |
 | `ws` | WebSocket URL — only needed when it isn't the one derived from `server` (`wss://<server>/ws`) |
-| `secret` | The UI secret (read key) |
+| `secret` | The UI secret (`UI_SECRET`) |
 
 - Put the parameters after `#` (the fragment): browsers never send it to the web server, so the secret stays out of access logs and `Referer` headers. The same parameters in the query string (`?server=…`) also work, but are not recommended for the secret.
 - Opening the link shows the settings screen pre-filled, with a notice. Nothing is saved until you click **Validate and Connect**; **Close** keeps your current settings. A link that names a different server without a `secret` does not reuse your saved secret.
 - The parameters are removed from the address bar as soon as the page loads; filters in the query string are kept.
-- To make a link, open ⚙ **Settings** → **Copy share link**. Untick **Include UI secret in the link** to share only the server. Anyone with a link that includes the secret can read your logs.
+- To make a link, open ⚙ **Settings** → **Copy share link**. Untick **Include UI secret in the link** to share only the server. Anyone with a link that includes the secret can read your logs and change or run your retention policies.
 
 ### Clearing settings
 
@@ -222,12 +223,14 @@ Alternatively, click **Disconnect** in the header to clear and return to the set
 
 ## Authentication model
 
-The backend enforces two separate keys — the UI only ever uses the read key:
+The backend enforces two separate keys — the UI only ever uses the UI key, never the write key:
 
 | Key | Who uses it | What it protects |
 |-----|-------------|-----------------|
 | `API_SECRET` (write key) | Your backend services | `POST /api/logs` |
-| `UI_SECRET` (read key) | This UI | `GET /api/logs`, `GET /api/logs/:id`, WebSocket |
+| `UI_SECRET` (UI key) | This UI | `GET /api/logs`, `GET /api/logs/:id`, WebSocket, and retention and client management (`/api/retention/*`, `/api/clients/*`) |
+
+The `UI_SECRET` is **not read-only**: anyone holding it can edit and run retention policies (which delete logs) and manage client tokens. Keep it as private as the write key, and only share a link that includes it with people you trust.
 
 The health endpoint (`GET /api/health`) is public and requires no token.
 
