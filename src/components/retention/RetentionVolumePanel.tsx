@@ -78,7 +78,7 @@ export function TableStorageBreakdown({ storage }: Readonly<{ storage: Retention
     <section aria-label="On-disk size: data and indexes" className="border border-gray-800 rounded-lg p-3 space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">
-          On disk
+          <span>On disk</span>
           <span className="normal-case tracking-normal font-normal ml-1.5 font-mono">
             {storage.table}{storage.engine ? ` · ${storage.engine}` : ''}
           </span>
@@ -132,6 +132,12 @@ interface RetentionVolumeViewProps {
 export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolumeViewProps>) {
   const [activeMarker, setActiveMarker] = useState<number | null>(null);
 
+  const showsStorage = metric === 'bytes' && !!report.storage;
+  const payloadNote = showsStorage
+    ? 'Chart sizes are message, template and context lengths, not on-disk row sizes (see "On disk" above). '
+    : 'Chart sizes are message, template and context lengths, not on-disk row sizes. ';
+  const sizeNote = report.size_basis === 'payload' ? payloadNote : 'Sizes are the stored JSONL line sizes. ';
+
   // Marker numbering only depends on policy order, not on width.
   const { markers, inactive } = useMemo(
     () => buildVolumeChart(report, metric, { ...DEFAULT_LAYOUT, width: 960 }),
@@ -160,7 +166,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
         )}
       </div>
 
-      {metric === 'bytes' && report.storage && <TableStorageBreakdown storage={report.storage} />}
+      {showsStorage && report.storage && <TableStorageBreakdown storage={report.storage} />}
 
       <div className="flex items-center gap-4 text-xs text-gray-400" aria-label="Legend">
         <span className="flex items-center gap-1.5">
@@ -265,9 +271,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
       </details>
 
       <p className="text-[11px] text-gray-600">
-        {report.size_basis === 'payload'
-          ? `Chart sizes are message, template and context lengths, not on-disk row sizes${metric === 'bytes' && report.storage ? ' (see "On disk" above)' : ''}. `
-          : 'Sizes are the stored JSONL line sizes. '}
+        {sizeNote}
         Computed {formatDistanceToNow(parseISO(report.generated_at), { addSuffix: true })}; the server refreshes it every few minutes.
       </p>
     </div>
