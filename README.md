@@ -154,7 +154,7 @@ The settings screen appears automatically on first visit and can be re-opened at
 | **WebSocket URL** | The WebSocket endpoint | `wss://logs.straccini.com/ws` |
 | **UI Secret** | The read-only bearer token (`UI_SECRET` from the server's `.env`) | `your-ui-secret-here` |
 
-The WebSocket URL is auto-suggested as you type the API URL (`https://foo.com` → `wss://foo.com/ws`).
+The two URLs pre-fill each other: typing the API URL fills in the WebSocket URL (`https://foo.com` → `wss://foo.com/ws`, keeping any path prefix such as `/logstream`), and typing the WebSocket URL fills in the API URL (`wss://foo.com/ws` → `https://foo.com`). A field is only filled automatically while it is empty or still holds an auto-filled value — once you type in it yourself, it is kept as you wrote it. Clearing a field makes it auto-fill again.
 
 > **Security note:** The UI secret is stored in `localStorage` so it survives browser restarts. It is sent as a `Bearer` token in `Authorization` headers for HTTP requests and as a `?token=` query parameter on the WebSocket connection URL (browser WebSocket APIs do not support custom headers). It is never included in the visible browser address bar.
 
