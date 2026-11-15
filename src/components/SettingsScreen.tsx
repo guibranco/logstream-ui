@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown, Link2, Check } from 'lucide-react';
+import { Lock, Eye, EyeOff, Settings, Globe, Trash2, ChevronDown, Link2, Check, BookOpen, ExternalLink } from 'lucide-react';
+import { SERVER_DOCS_URL, UI_DOCS_URL } from '../lib/docs';
 import { LogStreamConfig } from '../store/configStore';
 import { useAuth } from '../context/AuthContext';
 import { ThemePicker } from './ThemePicker';
@@ -228,6 +229,40 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                 <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wider">
                   Connection Config
                 </h2>
+              </div>
+
+              {/* Documentation */}
+              <div
+                role="note"
+                data-testid="docs-info"
+                className="flex items-start gap-3 rounded-xl border border-primary-500/20 bg-primary-500/5 px-4 py-3 text-xs text-gray-300"
+              >
+                <BookOpen className="w-4 h-4 mt-0.5 shrink-0 text-primary-400" />
+                <div className="space-y-1.5">
+                  <p className="leading-relaxed">
+                    Need a server to connect to, or help setting one up? See the documentation:
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <a
+                      href={SERVER_DOCS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-semibold text-primary-400 hover:text-primary-300 hover:underline transition-colors"
+                    >
+                      LogStream Server docs
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                    </a>
+                    <a
+                      href={UI_DOCS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-semibold text-primary-400 hover:text-primary-300 hover:underline transition-colors"
+                    >
+                      LogStream UI docs
+                      <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                    </a>
+                  </div>
+                </div>
               </div>
 
               {/* API URL */}

@@ -137,7 +137,11 @@ function LogStreamApp() {
 
   // While the server is unreachable the footer shows a dash, not the last version it reported.
   const footer = (
-    <Footer uiVersion={UI_VERSION} serverVersion={isServerInfoError ? undefined : serverInfo?.version} />
+    <Footer
+      uiVersion={UI_VERSION}
+      serverVersion={isServerInfoError ? undefined : serverInfo?.version}
+      apiUrl={config?.apiUrl}
+    />
   );
 
   if (isSettingsOpen || !isConfigured) {
