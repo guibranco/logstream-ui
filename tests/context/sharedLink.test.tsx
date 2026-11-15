@@ -48,12 +48,12 @@ describe('shared connection link', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).uiSecret).toBe('lsu_shared');
   });
 
-  it('points to the server and UI docs on GitHub Pages', () => {
+  it('points to the server docs and the UI README', () => {
     renderApp();
     const box = screen.getByTestId('docs-info');
     expect(box).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /LogStream Server docs/ })).toHaveAttribute('href', SERVER_DOCS_URL);
-    expect(screen.getByRole('link', { name: /LogStream UI docs/ })).toHaveAttribute('href', UI_DOCS_URL);
+    expect(screen.getByRole('link', { name: /LogStream UI README/ })).toHaveAttribute('href', UI_DOCS_URL);
   });
 
   it('opens settings over a saved config, and Close keeps the saved one', () => {

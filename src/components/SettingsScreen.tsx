@@ -258,7 +258,7 @@ export function SettingsScreen({ footer }: { footer?: React.ReactNode } = {}) {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 font-semibold text-primary-400 hover:text-primary-300 hover:underline transition-colors"
                     >
-                      LogStream UI docs
+                      LogStream UI README
                       <ExternalLink className="w-3 h-3" aria-hidden="true" />
                     </a>
                   </div>
