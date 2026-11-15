@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, Check, AlertCircle, Loader2, Pencil, Sparkles } from 'lucide-react';
 import { useCreateClient, useUpdateClient } from '../../hooks/useClients';
 import { Client } from '../../types';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { suggestAppKey } from '../../lib/suggestAppKey';
 
 interface ClientFormProps {
   client: Client | null;
@@ -14,7 +15,14 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSuccess }) => {
   const isEditing = !!client;
   const [name, setName] = useState(client?.name || '');
-  const [appKey, setAppKey] = useState(client?.app_key || '');
+  const [customAppKey, setCustomAppKey] = useState(client?.app_key || '');
+  // New apps start with the key following the display name; typing in the
+  // key field (or pressing "Type my own") switches to a custom key.
+  const [useSuggested, setUseSuggested] = useState(!isEditing);
+  const appKeyInputRef = useRef<HTMLInputElement>(null);
+
+  const suggestedAppKey = suggestAppKey(name);
+  const appKey = isEditing ? client.app_key : useSuggested ? suggestedAppKey : customAppKey;
   const [active, setActive] = useState(client?.active ?? true);
   
   const createMutation = useCreateClient();
@@ -24,6 +32,19 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
 
   const appKeyRegex = /^[a-z0-9][a-z0-9\-]*$/;
   const isAppKeyValid = appKeyRegex.test(appKey);
+
+  const handleAppKeyChange = (value: string) => {
+    setCustomAppKey(value.toLowerCase());
+    setUseSuggested(false);
+  };
+
+  const handleTypeOwn = () => {
+    setCustomAppKey(appKey);
+    setUseSuggested(false);
+    appKeyInputRef.current?.focus();
+  };
+
+  const handleUseSuggested = () => setUseSuggested(true);
 
   const handleSubmit = async () => {
     if (!name || (!isEditing && !isAppKeyValid)) return;
@@ -82,12 +103,32 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
 
           {/* App Key */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400">App Key</label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="client-app-key" className="text-sm font-medium text-gray-400">
+                App Key
+                {!isEditing && useSuggested && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded bg-primary-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-400">
+                    <Sparkles size={10} /> Suggested
+                  </span>
+                )}
+              </label>
+              {!isEditing && useSuggested && (
+                <button
+                  type="button"
+                  onClick={handleTypeOwn}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-100 transition-colors"
+                >
+                  <Pencil size={12} /> Type my own
+                </button>
+              )}
+            </div>
             <div className="relative">
               <input
+                id="client-app-key"
+                ref={appKeyInputRef}
                 type="text"
                 value={appKey}
-                onChange={(e) => setAppKey(e.target.value.toLowerCase())}
+                onChange={(e) => handleAppKeyChange(e.target.value)}
                 disabled={isEditing}
                 placeholder="e.g. billing-api"
                 className={cn(
@@ -107,8 +148,29 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
             </div>
             {!isEditing && (
               <p className={cn("text-xs", isAppKeyValid ? "text-gray-500" : "text-red-400")}>
-                {isAppKeyValid ? 'Unique identifier for your application' : 'Lowercase letters, numbers, and hyphens only'}
+                {isAppKeyValid
+                  ? useSuggested
+                    ? 'Generated from the display name — unique identifier for your application'
+                    : 'Unique identifier for your application'
+                  : useSuggested && !appKey
+                    ? 'Type a display name to get a suggestion, or type your own key'
+                    : 'Lowercase letters, numbers, and hyphens only'}
               </p>
+            )}
+
+            {!isEditing && !useSuggested && suggestedAppKey && suggestedAppKey !== appKey && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-800 bg-gray-950 px-3 py-2">
+                <p className="min-w-0 truncate text-xs text-gray-500">
+                  Suggested: <span className="font-mono text-gray-300">{suggestedAppKey}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={handleUseSuggested}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md bg-primary-600/20 px-2 py-1 text-xs font-medium text-primary-300 hover:bg-primary-600/30 transition-colors"
+                >
+                  <Sparkles size={12} /> Use suggested
+                </button>
+              </div>
             )}
             
             <div className="mt-4 p-3 bg-gray-950 rounded border border-gray-800 space-y-1">

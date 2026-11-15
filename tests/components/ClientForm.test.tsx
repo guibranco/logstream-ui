@@ -79,6 +79,67 @@ describe('ClientForm', () => {
     );
   });
 
+  it('suggests the app key from the display name while typing', () => {
+    render(<ClientForm client={null} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Billing service'), { target: { value: 'Billing Serviço' } });
+    expect(screen.getByPlaceholderText('e.g. billing-api')).toHaveValue('billing-servico');
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Billing service'), { target: { value: 'Billing Serviço API' } });
+    expect(screen.getByPlaceholderText('e.g. billing-api')).toHaveValue('billing-servico-api');
+  });
+
+  it('submits the suggested key', () => {
+    const mockMutate = vi.fn();
+    (useClientsHooks.useCreateClient as any).mockReturnValue({ mutate: mockMutate, isPending: false, error: null });
+
+    render(<ClientForm client={null} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Billing service'), { target: { value: 'My App' } });
+    fireEvent.click(screen.getByText('Register App'));
+
+    expect(mockMutate).toHaveBeenCalledWith({ name: 'My App', app_key: 'my-app' }, expect.any(Object));
+  });
+
+  it('stops following the name once the user types their own key, and can switch back', () => {
+    render(<ClientForm client={null} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+    const nameInput = screen.getByPlaceholderText('e.g. Billing service');
+    const keyInput = screen.getByPlaceholderText('e.g. billing-api');
+
+    fireEvent.change(nameInput, { target: { value: 'Billing' } });
+    fireEvent.change(keyInput, { target: { value: 'pay-api' } });
+    fireEvent.change(nameInput, { target: { value: 'Billing Service' } });
+    expect(keyInput).toHaveValue('pay-api');
+    expect(screen.getByText('billing-service')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Use suggested'));
+    expect(keyInput).toHaveValue('billing-service');
+    expect(screen.queryByText('Use suggested')).not.toBeInTheDocument();
+  });
+
+  it('"Type my own" keeps the current suggestion as a starting point', () => {
+    render(<ClientForm client={null} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+    const nameInput = screen.getByPlaceholderText('e.g. Billing service');
+    const keyInput = screen.getByPlaceholderText('e.g. billing-api');
+
+    fireEvent.change(nameInput, { target: { value: 'Billing' } });
+    fireEvent.click(screen.getByText('Type my own'));
+    expect(screen.queryByText('Type my own')).not.toBeInTheDocument();
+
+    fireEvent.change(nameInput, { target: { value: 'Billing Worker' } });
+    expect(keyInput).toHaveValue('billing');
+    expect(screen.getByText('Use suggested')).toBeInTheDocument();
+  });
+
+  it('does not offer suggestions when editing', () => {
+    const existingClient = { name: 'Existing App', app_key: 'existing-key', active: true, created_at: '2026-01-01', updated_at: '2026-01-01' };
+    render(<ClientForm client={existingClient} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+    fireEvent.change(screen.getByDisplayValue('Existing App'), { target: { value: 'Renamed App' } });
+    expect(screen.getByDisplayValue('existing-key')).toBeInTheDocument();
+    expect(screen.queryByText('Type my own')).not.toBeInTheDocument();
+    expect(screen.queryByText('Use suggested')).not.toBeInTheDocument();
+  });
+
   it('renders edit form with pre-filled data and disabled app key', () => {
     const existingClient = {
       name: 'Existing App',
