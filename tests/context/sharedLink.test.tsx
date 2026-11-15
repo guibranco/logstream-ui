@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { AuthProvider, resetSharedConnectionForTests, useAuth } from '@/src/context/AuthContext';
 import { SettingsScreen, initialConnection } from '@/src/components/SettingsScreen';
 import { ThemeProvider } from '@/src/context/ThemeContext';
+import { SERVER_DOCS_URL, UI_DOCS_URL } from '@/src/lib/docs';
 
 const STORAGE_KEY = 'logservice:config';
 
@@ -45,6 +46,14 @@ describe('shared connection link', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Validate and Connect' }));
     expect(screen.getByTestId('connected')).toHaveTextContent('https://logs.example.com');
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).uiSecret).toBe('lsu_shared');
+  });
+
+  it('points to the server and UI docs on GitHub Pages', () => {
+    renderApp();
+    const box = screen.getByTestId('docs-info');
+    expect(box).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /LogStream Server docs/ })).toHaveAttribute('href', SERVER_DOCS_URL);
+    expect(screen.getByRole('link', { name: /LogStream UI docs/ })).toHaveAttribute('href', UI_DOCS_URL);
   });
 
   it('opens settings over a saved config, and Close keeps the saved one', () => {
