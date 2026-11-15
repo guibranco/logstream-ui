@@ -17,7 +17,7 @@ describe('Footer', () => {
     expect(screen.getByTestId('server-version')).toHaveTextContent('Server —');
   });
 
-  it('links the UI version to the UI docs on GitHub Pages', () => {
+  it('links the UI version to the UI README', () => {
     render(<Footer uiVersion="1.4.0" />);
     const link = screen.getByTestId('ui-version');
     expect(link.tagName).toBe('A');

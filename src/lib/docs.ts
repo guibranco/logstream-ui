@@ -1,5 +1,5 @@
-/** LogStream UI documentation, published on GitHub Pages. */
-export const UI_DOCS_URL = 'https://guilherme.stracini.com.br/logstream-ui/';
+/** LogStream UI documentation: the repository README on GitHub (the UI has no docs site). */
+export const UI_DOCS_URL = 'https://github.com/guibranco/logstream-ui#readme';
 
 /** LogStream server documentation, published on GitHub Pages. */
 export const SERVER_DOCS_URL = 'https://guilherme.stracini.com.br/logstream-server/';
