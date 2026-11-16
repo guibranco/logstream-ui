@@ -1,5 +1,6 @@
 import React from 'react';
 import { WSStatus } from '../types';
+import logoUrl from '../assets/logo.svg';
 import { cn } from '../lib/utils';
 import { Activity, Eraser, RefreshCw, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon, BarChart3 } from 'lucide-react';
 import { useServerInfo } from '../hooks/useServerInfo';
@@ -54,6 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="contents md:flex md:items-center md:gap-8 md:min-w-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
+            <img src={logoUrl} alt="" width={28} height={28} className="w-7 h-7 md:w-8 md:h-8 flex-shrink-0" />
             <h1 className="text-lg md:text-xl font-bold tracking-tight text-gray-100">LogStream</h1>
             <div className={cn("w-2 h-2 rounded-full animate-pulse", statusColor)} />
           </div>

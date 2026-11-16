@@ -2,6 +2,8 @@
 
 🖥️🔍 Real-time log viewer and search dashboard built with React, Vite and WebSockets.
 
+![LogStream logo](src/assets/logo.svg)
+
 The companion frontend for [logstream-server](https://github.com/guibranco/logstream-server). Streams live log entries over WebSocket and provides a full-featured search and inspection UI — no build-time configuration required.
 
 ---
@@ -94,7 +96,7 @@ Taken with sample events against a mocked server, in the default (Green, dark) t
 
 ![Four events selected with the copy bar at the bottom](docs/screenshots/desktop-selection.png)
 
-**Export as an image**: **Export image** in the status bar under the list saves every loaded event in the view, and **Image** in the selection bar saves only the selected ones, as **PNG**, **JPEG** or **SVG**. The image is drawn in your current theme (light or dark) and shows one row per event (timestamp, level, app key, category and the first line of the message), with the active filters and the time span at the top. PNG and JPEG hold up to 500 events and SVG up to 5,000; the footer says how many were left out.
+**Export as an image**: **Export image** in the status bar under the list saves every loaded event in the view, and **Image** in the selection bar saves only the selected ones, as **PNG**, **JPEG** or **SVG**. The image is drawn in your current theme (light or dark), carries the LogStream logo, and shows one row per event (timestamp, level, app key, category and the first line of the message), with the active filters and the time span at the top. PNG and JPEG hold up to 500 events and SVG up to 5,000; the footer says how many were left out.
 
 **Paused**, new events held above the list until you resume:
 
