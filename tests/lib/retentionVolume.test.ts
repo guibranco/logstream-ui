@@ -107,7 +107,7 @@ describe('buildVolumeChart', () => {
     expect(model.yTicks.at(-1)?.label).toBe('3.9 KB');
   });
 
-  it('numbers active policies in order and lists inactive ones separately', () => {
+  it('numbers active policies by cutoff, right to left, and lists inactive ones separately', () => {
     const model = buildVolumeChart(
       report([1, 1, 1, 1, 1], [policy('debug', 1), policy('empty', null, false), policy('all', 30), policy('pii', null)]),
       'count',
@@ -115,12 +115,31 @@ describe('buildVolumeChart', () => {
     );
 
     expect(model.markers.map((m) => [m.number, m.policy.name, m.placement])).toEqual([
-      [1, 'debug', 'inside'],
-      [2, 'all', 'beyond'],
-      [3, 'pii', 'any-age'],
+      [1, 'pii', 'any-age'],
+      [2, 'debug', 'inside'],
+      [3, 'all', 'beyond'],
     ]);
-    expect(model.markers[0].x).toBe(70);
+    expect(model.markers[1].x).toBe(70);
     expect(model.inactive.map((p) => p.name)).toEqual(['empty']);
+  });
+
+  it('gives 1 to the shortest cutoff and keeps list order for equal cutoffs', () => {
+    const model = buildVolumeChart(
+      report([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [policy('month', 30), policy('week', 7), policy('nginx', 5), policy('debug', 1), policy('trace', 1)]),
+      'count',
+      layout,
+    );
+
+    expect(model.markers.map((m) => [m.number, m.policy.name])).toEqual([
+      [1, 'debug'],
+      [2, 'trace'],
+      [3, 'nginx'],
+      [4, 'week'],
+      [5, 'month'],
+    ]);
+    const xs = model.markers.filter((m) => m.x !== null).map((m) => m.x as number);
+    // Numbers grow from right to left along the axis.
+    expect(xs).toEqual([...xs].sort((a, b) => b - a));
   });
 
   it('labels every other day on a 7-day window', () => {

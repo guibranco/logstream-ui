@@ -178,6 +178,11 @@ export function niceScale(max: number, ticks = 4, minStep = 0): { max: number; s
   return { max: Math.ceil(max / step) * step, step };
 }
 
+/** Sort key for marker numbering: "any age" sits at the right edge, before every day cutoff. */
+function cutoffRank(olderThanDays: number | null): number {
+  return olderThanDays ?? -1;
+}
+
 /** Position of a policy marker; null when the cutoff falls before the window. */
 export function markerX(
   olderThanDays: number | null,
@@ -267,12 +272,14 @@ export function buildVolumeChart(
   }
 
   const markers: VolumeMarker[] = [];
-  const inactive: RetentionVolumePolicy[] = [];
-  for (const policy of report.policies) {
-    if (!policy.active) {
-      inactive.push(policy);
-      continue;
-    }
+  const inactive = report.policies.filter((policy) => !policy.active);
+  // Numbered by cutoff, matching the axis: 1 is the rightmost (any age, then the
+  // shortest cutoff) and the highest number the leftmost (longest cutoff).
+  // The sort is stable, so policies sharing a cutoff keep their list order.
+  const active = report.policies
+    .filter((policy) => policy.active)
+    .sort((a, b) => cutoffRank(a.older_than_days) - cutoffRank(b.older_than_days));
+  for (const policy of active) {
     const { placement, x } = markerX(policy.older_than_days, buckets.length, plot.x, bucketWidth);
     markers.push({ number: markers.length + 1, policy, placement, x, labelX: x });
   }
