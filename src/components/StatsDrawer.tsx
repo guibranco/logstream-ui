@@ -3,6 +3,9 @@ import { LogEntry, LogLevel } from '../types';
 import { X, BarChart3 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { useServerInfo } from '../hooks/useServerInfo';
+import { useServerHealth } from '../hooks/useServerHealth';
+import { UdpIngestStats } from './UdpIngestStats';
 
 interface StatsDrawerProps {
   isOpen: boolean;
@@ -20,6 +23,10 @@ const LEVEL_COLORS: Record<LogLevel, string> = {
 };
 
 export const StatsDrawer: React.FC<StatsDrawerProps> = ({ isOpen, onClose, logs }) => {
+  const { data: serverInfo } = useServerInfo();
+  const hasUdp = serverInfo?.features?.udp_ingest === true;
+  // Only poll /api/health while the drawer shows it.
+  const health = useServerHealth(isOpen && hasUdp);
   const stats = useMemo(() => {
     const counts: Record<LogLevel, number> = {
       debug: 0, info: 0, notice: 0, warning: 0, error: 0, critical: 0
@@ -109,6 +116,14 @@ export const StatsDrawer: React.FC<StatsDrawerProps> = ({ isOpen, onClose, logs 
                   )}
                 </div>
               </section>
+
+              {hasUdp && (
+                <UdpIngestStats
+                  udp={health.data?.udp}
+                  isLoading={health.isLoading}
+                  isError={health.isError}
+                />
+              )}
 
               <section className="pt-4 border-t border-gray-900">
                 <div className="flex justify-between items-center">

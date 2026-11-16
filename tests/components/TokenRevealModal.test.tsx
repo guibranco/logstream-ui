@@ -50,3 +50,30 @@ describe('TokenRevealModal', () => {
     expect(screen.getAllByText(mockProps.appKey).length).toBeGreaterThan(0);
   });
 });
+
+describe('TokenRevealModal UDP example', () => {
+  const base = { appKey: 'billing-api', token: 'lss_secret-token-value', onClose: vi.fn() };
+
+  it('shows no UDP section when the server has no UDP listener', () => {
+    render(<TokenRevealModal {...base} />);
+    expect(screen.queryByTestId('udp-example')).not.toBeInTheDocument();
+  });
+
+  it('shows the UDP target and signing rule without repeating the full token', () => {
+    render(<TokenRevealModal {...base} udp={{ host: 'logs.example.com', port: 8082 }} />);
+
+    const section = screen.getByTestId('udp-example');
+    expect(section).toHaveTextContent('logs.example.com:8082');
+    expect(section).toHaveTextContent('HMAC-SHA256(token, "{key}:{ts}:{nonce}:{log}")');
+    expect(section).not.toHaveTextContent(base.token);
+    expect(screen.getByRole('link', { name: /packet format/i })).toHaveAttribute(
+      'href',
+      'https://github.com/guibranco/logstream-server#udp-ingestion',
+    );
+  });
+
+  it('brackets an IPv6 host before the port', () => {
+    render(<TokenRevealModal {...base} udp={{ host: '2001:db8::1', port: 8082 }} />);
+    expect(screen.getByTestId('udp-example')).toHaveTextContent('[2001:db8::1]:8082');
+  });
+});

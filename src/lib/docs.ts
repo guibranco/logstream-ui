@@ -9,3 +9,6 @@ export function serverApiDocsUrl(apiUrl: string | undefined): string | undefined
   const base = apiUrl?.trim().replace(/\/+$/, '');
   return base ? `${base}/docs` : undefined;
 }
+
+/** How to sign and send UDP log packets (logstream-server README). */
+export const SERVER_UDP_DOCS_URL = 'https://github.com/guibranco/logstream-server#udp-ingestion';

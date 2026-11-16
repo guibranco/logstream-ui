@@ -56,7 +56,7 @@ With the UI open, the entry shows up live.
 - **Expandable rows** — click any entry to reveal the full message, context as a searchable property list (Find / Exclude per value), user agent, sender IP, and one-click batch/trace navigation
 - **Applications** — register the services that send logs, edit them, rotate or reveal-once their API tokens, deactivate or delete them, and see which ones went silent (servers with client management)
 - **Retention** — storage-by-age chart with a marker per policy, policy editor, and dry or live retention runs with per-policy results
-- **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received
+- **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received; on servers with UDP ingest, the listener's live packet counters
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
 - **Auth-aware** — separate UI key (`UI_SECRET`) and write key (`API_SECRET`) enforced by the backend; 401 responses and WebSocket auth failures redirect to the settings screen without retry loops
@@ -119,6 +119,14 @@ Registers the services allowed to send logs and manages their API tokens. Shown 
 With a server that tracks client health ([logstream-server#62](https://github.com/guibranco/logstream-server/issues/62)), each app shows when it last sent logs and a status pill: **Active**, **Silent** (nothing for longer than its heartbeat timeout — hover for last seen, threshold and how long it has been silent), **Never seen** or **Inactive** (disabled). Silent and disabled apps sort to the top; relative times update every minute and the list refreshes every 30 seconds. The heartbeat timeout is set in the edit drawer — leave it blank to turn monitoring off. Older servers keep the plain Active / Inactive pill.
 
 <img src="docs/screenshots/desktop-client-health.png" alt="Edit drawer with the health monitoring section: last seen and heartbeat timeout" width="420">
+
+When the server accepts UDP packets, the token dialog shown after creating or rotating an app also explains how to send over UDP:
+
+- The address to send to (`host:port`)
+- How each packet is signed: `HMAC-SHA256(token, "{key}:{ts}:{nonce}:{log}")`
+- A link to the [packet format](https://github.com/guibranco/logstream-server#udp-ingestion)
+
+The token signs each packet and is never sent itself.
 
 | Register an application | Token shown once |
 |:---:|:---:|
@@ -574,7 +582,15 @@ Click **Stats ▸** (floating button) to open a side drawer showing:
 - Top 5 `app_key` values seen in the live stream
 - Total live entries received this session
 
-All stats are derived from the in-memory live buffer — they reset on page reload.
+These stats come from the in-memory live buffer, so they reset when you reload the page.
+
+On a server with UDP ingest ([logstream-server#54](https://github.com/guibranco/logstream-server/issues/54)), the drawer also has a **UDP Ingest** section, refreshed from `GET /api/health` every 10 seconds while it is open:
+
+- The UDP port, and whether the listener is running
+- How many packets were received, accepted and dropped
+- Why packets were dropped: bad signature, replayed nonce, outside the time window, source not allowed, and so on
+
+These counters are totals since the server started, so they don't reset when you reload the page.
 
 ---
 
@@ -608,6 +624,7 @@ src/
 │   ├── LogDetail.tsx            Expanded row detail panel
 │   ├── LevelBadge.tsx           Colour-coded level pill
 │   ├── StatsDrawer.tsx          Session stats slide-in panel
+│   ├── UdpIngestStats.tsx       UDP listener counters (in the stats drawer)
 │   ├── ContextProperties.tsx    Context as a searchable property list
 │   ├── ExceptionDetails.tsx     Exception and stack trace panel (context.exception)
 │   ├── Skeleton.tsx             Loading placeholder rows
