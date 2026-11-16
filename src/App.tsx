@@ -151,7 +151,7 @@ function LogStreamApp() {
   const renderScreen = () => {
     switch (currentView) {
       case 'retention':
-        return <RetentionScreen />;
+        return <RetentionScreen appKeyOptions={appKeyOptions} />;
       case 'applications':
         return <ApplicationsScreen />;
       default:
