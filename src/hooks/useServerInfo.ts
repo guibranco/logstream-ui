@@ -12,12 +12,36 @@ export interface ServerInfo {
     multi_value_filters?: boolean;
     /** The server stores its own messages as entries of a reserved app (logstream-server#131). */
     self_logging?: boolean;
+    /** HMAC-signed log packets over UDP; details in `udp` (logstream-server#54). */
+    udp_ingest?: boolean;
   };
   /** The reserved app the server's own messages are stored under. */
   self_logging?: {
     enabled: boolean;
     app_key: string;
   };
+  /** UDP ingest settings a sender needs; `{ enabled: false }` when the listener is off. */
+  udp?: UdpInfo;
+}
+
+/** The `udp` block of GET /api/info. */
+export interface UdpInfo {
+  enabled: boolean;
+  port?: number;
+  protocol_version?: number;
+  max_packet_size?: number;
+  timestamp_window_ms?: number;
+}
+
+/** Where and how to send signed UDP packets, or undefined when the server has no UDP listener. */
+export function udpTarget(info: ServerInfo | undefined, apiUrl: string | undefined): { host: string; port: number } | undefined {
+  if (!info?.features?.udp_ingest || !info.udp?.enabled || !info.udp.port || !apiUrl) return undefined;
+  try {
+    const host = new URL(apiUrl).hostname.replace(/^\[(.*)\]$/, '$1');
+    return host ? { host, port: info.udp.port } : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function useServerInfo() {

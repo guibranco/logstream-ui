@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Copy, Check, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Copy, Check, AlertTriangle, ShieldCheck, Radio, ExternalLink } from 'lucide-react';
+import { SERVER_UDP_DOCS_URL } from '../../lib/docs';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface TokenRevealModalProps {
   appKey: string;
   token: string;
   onClose: () => void;
+  /** Where the server listens for signed UDP packets; omitted when UDP ingest is off. */
+  udp?: { host: string; port: number };
 }
 
-export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, token, onClose }) => {
+export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, token, onClose, udp }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -69,6 +72,31 @@ export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, toke
                 <p>X-Api-Token: <span className="text-gray-200">{token.substring(0, 8)}...</span></p>
               </div>
             </div>
+
+            {udp && (
+              <div className="space-y-2 p-4 bg-gray-950/50 rounded-xl border border-gray-800/50" data-testid="udp-example">
+                <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-600">
+                  <Radio size={12} />
+                  Or send over UDP (signed packets)
+                </label>
+                <div className="font-mono text-xs text-gray-400 space-y-1 break-all">
+                  <p>Target: <span className="text-gray-200">{udp.host}:{udp.port}</span> (UDP)</p>
+                  <p>key: <span className="text-gray-200">{appKey}</span></p>
+                  <p>sig: <span className="text-gray-200">HMAC-SHA256(token, "{'{key}:{ts}:{nonce}:{log}'}")</span></p>
+                </div>
+                <p className="text-[11px] text-gray-500 leading-relaxed">
+                  The token is the signing secret and is never sent. The server doesn't reply to UDP packets, so invalid ones are dropped silently.{' '}
+                  <a
+                    href={SERVER_UDP_DOCS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-primary-400 hover:text-primary-300"
+                  >
+                    Packet format <ExternalLink size={10} />
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

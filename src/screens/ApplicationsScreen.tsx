@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useClients } from '../hooks/useClients';
+import { useServerInfo, udpTarget } from '../hooks/useServerInfo';
+import { getConfig } from '../store/configStore';
 import { ClientTable } from '../components/clients/ClientTable';
 import { ClientForm } from '../components/clients/ClientForm';
 import { TokenRevealModal } from '../components/clients/TokenRevealModal';
@@ -18,6 +20,8 @@ export const ApplicationsScreen: React.FC = () => {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
   const [revealingToken, setRevealingToken] = useState<{ appKey: string; token: string } | null>(null);
   const [rotatedAppKeys, setRotatedAppKeys] = useState<Set<string>>(new Set());
+  const { data: serverInfo } = useServerInfo();
+  const udp = udpTarget(serverInfo, getConfig()?.apiUrl);
 
   const handleCreate = () => {
     setEditingClient(null);
@@ -94,6 +98,7 @@ export const ApplicationsScreen: React.FC = () => {
           <TokenRevealModal
             appKey={revealingToken.appKey}
             token={revealingToken.token}
+            udp={udp}
             onClose={() => setRevealingToken(null)}
           />
         )}
