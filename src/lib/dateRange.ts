@@ -53,9 +53,16 @@ export const RANGE_PRESETS: readonly RangePreset[] = [
   last('365d', 'Last 365 days', 365 * DAY),
   { key: 'week', label: 'This week', start: startOfWeek },
   { key: 'month', label: 'This month', start: startOfMonth },
-  // Only what arrives after the feed (re)loads: a clean live tail.
-  { key: 'now', label: 'From now', start: now => now },
 ];
+
+/**
+ * "From now": a clean live tail starting at the moment it was picked. Unlike
+ * the presets it is stamped as a fixed `date_from`, so reloads, refetches and
+ * shared links keep the same start instead of moving it forward.
+ */
+export function fromNow(now: Date = new Date()): Pick<SearchFilters, 'date_from'> {
+  return { date_from: now.toISOString() };
+}
 
 export const findPreset = (key: string | undefined) => RANGE_PRESETS.find(p => p.key === key);
 

@@ -21,8 +21,20 @@ describe('DateRangePicker', () => {
     for (const label of ['Last 60 days', 'Last 90 days', 'Last 365 days', 'This week', 'This month']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
-    fireEvent.click(screen.getByText('From now'));
-    expect(onChange).toHaveBeenCalledWith({ range: 'now' });
+  });
+
+  it('stamps "From now" as a fixed start at the moment it is clicked', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-16T00:49:12.345Z'));
+    try {
+      const onChange = vi.fn();
+      render(<DateRangePicker value={{}} onChange={onChange} />);
+      fireEvent.click(screen.getByTestId('date-range-button'));
+      fireEvent.click(screen.getByText('From now'));
+      expect(onChange).toHaveBeenCalledWith({ date_from: '2026-11-16T00:49:12.345Z' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('applies a custom from/to range', () => {

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { CalendarClock, ChevronDown, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { RANGE_PRESETS, describeRange, toLocalInput } from '../../lib/dateRange';
+import { RANGE_PRESETS, describeRange, fromNow, toLocalInput } from '../../lib/dateRange';
 
 /** The date part of the filters: a relative range, or absolute from/to. */
 export interface DateRangeValue {
@@ -18,6 +18,13 @@ interface DateRangePickerProps {
 }
 
 const formatShort = (d: Date) => format(d, 'dd MMM HH:mm');
+
+/** A stored date (ISO or `datetime-local`) as a `datetime-local` value; empty if unset or invalid. */
+const asLocalInput = (value: string | undefined) => {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : toLocalInput(date);
+};
 
 const inputClass =
   'w-full bg-gray-950 border border-gray-800 rounded px-2 py-1 text-xs focus:outline-none focus:border-secondary-500 text-gray-300';
@@ -39,8 +46,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ value, onChang
   const { range, date_from: appliedFrom, date_to: appliedTo } = value;
   useEffect(() => {
     if (!open) return;
-    setFrom(range ? '' : appliedFrom ?? '');
-    setTo(range ? '' : appliedTo ?? '');
+    setFrom(range ? '' : asLocalInput(appliedFrom));
+    setTo(range ? '' : asLocalInput(appliedTo));
   }, [open, range, appliedFrom, appliedTo]);
 
   useEffect(() => {
@@ -120,6 +127,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({ value, onChang
                 {preset.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => apply(fromNow())}
+              title="Only events from this moment on; the start stays fixed"
+              className="text-left px-2 py-1.5 rounded text-xs transition-colors text-gray-300 hover:bg-gray-800"
+            >
+              From now
+            </button>
           </div>
 
           <div className="border-t border-gray-800 pt-3 space-y-2">

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  resolveDateRange, toServerTime, describeRange, findPreset, withRememberedRange, rememberRange, startOfWeek, startOfMonth,
+  resolveDateRange, toServerTime, describeRange, findPreset, withRememberedRange, rememberRange, startOfWeek, startOfMonth, fromNow,
 } from '@/src/lib/dateRange';
 
 const NOW = Date.parse('2026-11-09T12:00:00.000Z');
@@ -33,9 +33,11 @@ describe('resolveDateRange', () => {
     expect(resolveDateRange({ range: 'month' }, NOW).date_from).toBe(startOfMonth(new Date(NOW)).toISOString());
   });
 
-  it('starts "from now" at the load time', () => {
-    expect(resolveDateRange({ range: 'now', date_to: '2026-01-01T00:00' }, NOW))
-      .toEqual({ date_from: '2026-11-09T12:00:00.000Z', date_to: undefined });
+  it('stamps "from now" as a fixed start that later loads do not move', () => {
+    const picked = fromNow(new Date(NOW));
+    expect(picked).toEqual({ date_from: '2026-11-09T12:00:00.000Z' });
+    expect(resolveDateRange(picked, NOW + 60 * 60_000).date_from).toBe('2026-11-09T12:00:00.000Z');
+    expect(findPreset('now')).toBeUndefined();
   });
 
   it('ignores an unknown range key', () => {
@@ -81,7 +83,6 @@ describe('describeRange', () => {
     expect(findPreset('365d')?.label).toBe('Last 365 days');
     expect(describeRange({ range: 'week' }, fmt)).toBe('This week');
     expect(describeRange({ range: 'month' }, fmt)).toBe('This month');
-    expect(describeRange({ range: 'now' }, fmt)).toBe('From now');
   });
 });
 
