@@ -126,7 +126,7 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
                   )}
                   {policy.app_id && (
                     <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded text-[10px] text-gray-300 font-medium">
-                      env: {policy.app_id}
+                      app id: {policy.app_id}
                     </span>
                   )}
                   {policy.category && (
