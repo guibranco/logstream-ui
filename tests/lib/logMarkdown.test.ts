@@ -10,6 +10,7 @@ const log: LogEntry = {
   app_id: 'worker',
   user_agent: 'MyBot/2.0',
   sender_ip: '203.0.113.42',
+  transport: 'udp',
   level: 'error',
   category: 'payments',
   message: 'Charge failed for INV-1',
@@ -36,6 +37,7 @@ describe('logToMarkdown', () => {
     expect(md).toContain('| Level | ERROR |');
     expect(md).toContain('| Trace ID | `123e4567-e89b-12d3-a456-426614174000` |');
     expect(md).toContain('| Sender IP | `203.0.113.42` |');
+    expect(md).toContain('| Transport | UDP |');
     expect(md).toContain('### Message\n\n```text\nCharge failed for INV-1\n```');
     expect(md).toContain('### Message template\n\n```text\nCharge failed for {invoice_id}\n```');
     expect(md).not.toContain('Batch ID');

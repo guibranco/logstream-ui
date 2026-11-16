@@ -41,6 +41,7 @@ export function logToMarkdown(log: LogEntry): string {
     ['Batch ID', log.batch_id, true],
     ['Event ID', log.id, true],
     ['Sender IP', log.sender_ip, true],
+    ['Transport', log.transport?.toUpperCase(), false],
     ['User agent', log.user_agent, false],
   ];
 

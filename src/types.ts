@@ -1,5 +1,8 @@
 export type LogLevel = 'debug' | 'info' | 'notice' | 'warning' | 'error' | 'critical';
 
+/** How an entry reached the server: `tcp` (HTTP ingestion) or `udp` (UDP listener). */
+export type Transport = 'tcp' | 'udp';
+
 export interface LogEntry {
   id: string;           // ULID — time-sortable
   trace_id: string;     // UUID
@@ -8,6 +11,8 @@ export interface LogEntry {
   app_id: string;
   user_agent: string | null;
   sender_ip?: string | null; // optional: older servers don't send it
+  /** Set by the server; null for its own logs and older entries, absent on older servers. */
+  transport?: Transport | null;
   level: LogLevel;
   category: string;
   message: string;

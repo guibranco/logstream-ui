@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
+import { TransportBadge } from './TransportBadge';
 import { ContextProperties } from './ContextProperties';
 import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter, Bug, Tag, FileText } from 'lucide-react';
 import { ExceptionDetails } from './ExceptionDetails';
@@ -211,6 +212,7 @@ export const LogRow: React.FC<LogRowProps> = ({
 
         <div className="order-last md:order-none basis-full md:basis-auto flex-1 min-w-0 flex items-center gap-2 md:px-2">
           <LevelDot level={log.level} />
+          <TransportBadge transport={log.transport} />
           <span className="min-w-0 text-sm text-gray-200 font-medium line-clamp-2 md:line-clamp-1 [overflow-wrap:anywhere]">
             <TemplatedMessage message={log.message} template={log.message_template} context={log.context} />
           </span>
@@ -359,6 +361,12 @@ export const LogRow: React.FC<LogRowProps> = ({
                           </button>
                         )}
                       </div>
+                    </div>
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Transport</h4>
+                      <span className="text-xs font-mono text-gray-300 uppercase" data-testid="transport">
+                        {log.transport || 'N/A'}
+                      </span>
                     </div>
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Batch ID</h4>
