@@ -71,4 +71,9 @@ describe('TokenRevealModal UDP example', () => {
       'https://github.com/guibranco/logstream-server#udp-ingestion',
     );
   });
+
+  it('brackets an IPv6 host before the port', () => {
+    render(<TokenRevealModal {...base} udp={{ host: '2001:db8::1', port: 8082 }} />);
+    expect(screen.getByTestId('udp-example')).toHaveTextContent('[2001:db8::1]:8082');
+  });
 });

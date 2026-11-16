@@ -11,6 +11,11 @@ interface TokenRevealModalProps {
   udp?: { host: string; port: number };
 }
 
+/** host:port, with IPv6 hosts bracketed so the port stays unambiguous. */
+function formatHostPort(host: string, port: number): string {
+  return host.includes(':') ? `[${host}]:${port}` : `${host}:${port}`;
+}
+
 export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, token, onClose, udp }) => {
   const [copied, setCopied] = useState(false);
 
@@ -25,7 +30,7 @@ export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, toke
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gray-900 border border-gray-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden"
+        className="bg-gray-900 border border-gray-800 rounded-2xl max-w-lg w-full max-h-[calc(100dvh-2rem)] overflow-y-auto shadow-2xl"
       >
         <div className="p-8 text-center">
           <div className="w-16 h-16 bg-amber-900/40 rounded-full flex items-center justify-center mx-auto mb-6 text-amber-500 animate-pulse">
@@ -79,8 +84,8 @@ export const TokenRevealModal: React.FC<TokenRevealModalProps> = ({ appKey, toke
                   <Radio size={12} />
                   Or send over UDP (signed packets)
                 </label>
-                <div className="font-mono text-xs text-gray-400 space-y-1 break-all">
-                  <p>Target: <span className="text-gray-200">{udp.host}:{udp.port}</span> (UDP)</p>
+                <div className="font-mono text-xs text-gray-400 space-y-1 [overflow-wrap:anywhere]">
+                  <p>Target: <span className="text-gray-200">{formatHostPort(udp.host, udp.port)}</span> (UDP)</p>
                   <p>key: <span className="text-gray-200">{appKey}</span></p>
                   <p>sig: <span className="text-gray-200">HMAC-SHA256(token, "{'{key}:{ts}:{nonce}:{log}'}")</span></p>
                 </div>
