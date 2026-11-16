@@ -5,9 +5,15 @@ import { PolicyForm } from '../components/retention/PolicyForm';
 import { RunPanel } from '../components/retention/RunPanel';
 import { RunResults } from '../components/retention/RunResults';
 import { RetentionVolumePanel } from '../components/retention/RetentionVolumePanel';
+import { AppKeyOption } from '../components/search/AppKeyPicker';
 import { RetentionPolicy, RetentionRunResponse } from '../types';
 
-export function RetentionScreen() {
+interface RetentionScreenProps {
+  /** Registered applications (or app keys seen so far), offered in the policy form. */
+  appKeyOptions?: AppKeyOption[];
+}
+
+export function RetentionScreen({ appKeyOptions = [] }: RetentionScreenProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<RetentionPolicy | null>(null);
   const [lastRunResults, setLastRunResults] = useState<RetentionRunResponse | null>(null);
@@ -70,6 +76,7 @@ export function RetentionScreen() {
       {isFormOpen && (
         <PolicyForm
           policy={editingPolicy}
+          appKeyOptions={appKeyOptions}
           onClose={() => setIsFormOpen(false)}
         />
       )}

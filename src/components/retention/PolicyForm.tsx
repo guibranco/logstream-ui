@@ -4,13 +4,16 @@ import { RetentionPolicy, LogLevel } from '../../types';
 import { useCreatePolicy, useUpdatePolicy } from '../../hooks/useRetentionPolicies';
 import { format, subDays } from 'date-fns';
 import { cn } from '../../lib/utils';
+import { AppKeyPicker, AppKeyOption } from '../search/AppKeyPicker';
 
 interface PolicyFormProps {
   policy: RetentionPolicy | null;
+  /** Registered applications (or app keys seen so far) to pick the app key from. */
+  appKeyOptions?: AppKeyOption[];
   onClose: () => void;
 }
 
-export function PolicyForm({ policy, onClose }: PolicyFormProps) {
+export function PolicyForm({ policy, appKeyOptions = [], onClose }: PolicyFormProps) {
   const isEditing = !!policy;
   const createMutation = useCreatePolicy();
   const updateMutation = useUpdatePolicy();
@@ -45,11 +48,11 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
     const parts = ['Delete'];
     const levelText = formData.level ? ` ${formData.level}` : '';
     const appText = formData.app_key ? ` from ${formData.app_key}` : '';
-    const envText = formData.app_id ? ` (env: ${formData.app_id})` : '';
+    const appIdText = formData.app_id ? `with app ID ${formData.app_id}` : '';
     
     parts.push(`${levelText} entries`.trim());
     if (appText) parts.push(appText);
-    if (envText) parts.push(envText);
+    if (appIdText) parts.push(appIdText);
     parts.push(`older than ${formData.older_than_days} days`);
     
     if (formData.category) parts.push(`matching category "${formData.category}"`);
@@ -192,24 +195,24 @@ export function PolicyForm({ policy, onClose }: PolicyFormProps) {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-gray-300">App Key</label>
-                  <input
-                    type="text"
-                    value={formData.app_key || ''}
-                    onChange={(e) => setFormData({ ...formData, app_key: e.target.value })}
-                    placeholder="e.g. billing-api"
-                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+                  {/* One app per policy: the server matches app_key exactly. */}
+                  <AppKeyPicker
+                    selected={formData.app_key ? [formData.app_key] : []}
+                    options={appKeyOptions}
+                    multiple={false}
+                    onChange={(keys) => setFormData({ ...formData, app_key: keys[0] ?? '' })}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-gray-300">App ID (Env)</label>
+                  <label className="text-sm font-medium text-gray-300">App ID</label>
                   <input
                     type="text"
                     value={formData.app_id || ''}
                     onChange={(e) => setFormData({ ...formData, app_id: e.target.value })}
-                    placeholder="e.g. production"
+                    placeholder="e.g. api-01"
                     className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
                   />
                 </div>
