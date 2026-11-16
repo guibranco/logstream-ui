@@ -54,7 +54,7 @@ With the UI open, the entry shows up live.
 - **Real-time log stream** — new entries appear instantly via WebSocket, with a live/buffered toggle and slide-in animation
 - **Full-text search and filters** — filter by application, environment, level, category, trace ID, batch ID, date range, or message substring, all persisted across page refreshes
 - **Expandable rows** — click any entry to reveal the full message, context as a searchable property list (Find / Exclude per value), user agent, sender IP, and one-click batch/trace navigation
-- **Applications** — register the services that send logs, edit them, rotate or reveal-once their API tokens, and deactivate or delete them (servers with client management)
+- **Applications** — register the services that send logs, edit them, rotate or reveal-once their API tokens, deactivate or delete them, and see which ones went silent (servers with client management)
 - **Retention** — storage-by-age chart with a marker per policy, policy editor, and dry or live retention runs with per-policy results
 - **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
@@ -112,7 +112,11 @@ Taken with sample events against a mocked server, in the default (Green, dark) t
 
 Registers the services allowed to send logs and manages their API tokens. Shown when the server has client management (MariaDB storage).
 
-![Applications page listing registered services with their status](docs/screenshots/desktop-applications.png)
+![Applications page listing registered services with their health status and last-seen time](docs/screenshots/desktop-applications.png)
+
+With a server that tracks client health ([logstream-server#62](https://github.com/guibranco/logstream-server/issues/62)), each app shows when it last sent logs and a status pill: **Active**, **Silent** (nothing for longer than its heartbeat timeout — hover for last seen, threshold and how long it has been silent), **Never seen** or **Inactive** (disabled). Silent and disabled apps sort to the top; relative times update every minute and the list refreshes every 30 seconds. The heartbeat timeout is set in the edit drawer — leave it blank to turn monitoring off. Older servers keep the plain Active / Inactive pill.
+
+<img src="docs/screenshots/desktop-client-health.png" alt="Edit drawer with the health monitoring section: last seen and heartbeat timeout" width="420">
 
 | Register an application | Token shown once |
 |:---:|:---:|

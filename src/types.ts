@@ -157,6 +157,12 @@ export interface RetentionVolumeReport {
   storage?: RetentionVolumeStorage | null;
 }
 
+/** Health reported by the server: from last_seen_at and heartbeat_timeout_min. */
+export type ClientHealthStatus = 'active' | 'silent' | 'never_seen';
+
+/** What the Applications screen shows: health, or `inactive` when the app is disabled. */
+export type ClientDisplayStatus = ClientHealthStatus | 'inactive';
+
 export interface Client {
   name: string;
   app_key: string;
@@ -164,6 +170,10 @@ export interface Client {
   created_at: string;
   updated_at: string;
   api_token?: string; // Only returned on Create or Rotate
+  // Health monitoring — absent on servers without client health support.
+  last_seen_at?: string | null;
+  heartbeat_timeout_min?: number | null;
+  status?: ClientHealthStatus;
 }
 
 export interface ClientListResponse {

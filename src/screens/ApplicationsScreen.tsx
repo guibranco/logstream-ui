@@ -10,7 +10,8 @@ import { Client } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const ApplicationsScreen: React.FC = () => {
-  const { data, isLoading, isError, error } = useClients();
+  // Poll so last-seen times and Silent states show up without a reload.
+  const { data, isLoading, isError, error } = useClients(true, { refetchInterval: 30_000 });
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [rotatingClient, setRotatingClient] = useState<Client | null>(null);

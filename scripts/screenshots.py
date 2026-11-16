@@ -95,14 +95,21 @@ def matches(e, q):
     if q.get("search") and q["search"][0].lower() not in e["message"].lower(): return False
     return True
 
+def seen(minutes):
+    return None if minutes is None else (NOW - timedelta(minutes=minutes)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+def health(minutes, timeout):
+    status = "never_seen" if minutes is None else ("silent" if timeout and minutes > timeout else "active")
+    return {"last_seen_at": seen(minutes), "heartbeat_timeout_min": timeout, "status": status}
+
 CLIENTS = [
-    {"name": "Billing service", "app_key": "billing-api", "active": True, "created_at": "2026-06-02T09:14:00Z", "updated_at": "2026-11-10T08:00:00Z"},
-    {"name": "GitHub webhooks ingress", "app_key": "webhooks", "active": True, "created_at": "2026-06-02T09:20:00Z", "updated_at": "2026-10-01T12:30:00Z"},
-    {"name": "GStraccini-bot", "app_key": "gstraccini-bot", "active": True, "created_at": "2026-06-15T18:02:00Z", "updated_at": "2026-11-01T10:10:00Z"},
-    {"name": "Projects Monitor", "app_key": "projects-monitor", "active": True, "created_at": "2026-07-01T11:45:00Z", "updated_at": "2026-07-01T11:45:00Z"},
-    {"name": "Grimoire API", "app_key": "grimoire-api", "active": True, "created_at": "2026-07-22T16:05:00Z", "updated_at": "2026-09-30T07:40:00Z"},
-    {"name": "API BR Vagas", "app_key": "api-br-vagas", "active": True, "created_at": "2026-08-06T13:12:00Z", "updated_at": "2026-08-06T13:12:00Z"},
-    {"name": "Legacy cron jobs", "app_key": "legacy-cron", "active": False, "created_at": "2026-06-03T08:00:00Z", "updated_at": "2026-09-12T15:22:00Z"},
+    {"name": "Billing service", "app_key": "billing-api", "active": True, "created_at": "2026-06-02T09:14:00Z", "updated_at": "2026-11-10T08:00:00Z", **health(1, 10)},
+    {"name": "GitHub webhooks ingress", "app_key": "webhooks", "active": True, "created_at": "2026-06-02T09:20:00Z", "updated_at": "2026-10-01T12:30:00Z", **health(3, 15)},
+    {"name": "GStraccini-bot", "app_key": "gstraccini-bot", "active": True, "created_at": "2026-06-15T18:02:00Z", "updated_at": "2026-11-01T10:10:00Z", **health(47, 10)},
+    {"name": "Projects Monitor", "app_key": "projects-monitor", "active": True, "created_at": "2026-07-01T11:45:00Z", "updated_at": "2026-07-01T11:45:00Z", **health(125, None)},
+    {"name": "Grimoire API", "app_key": "grimoire-api", "active": True, "created_at": "2026-07-22T16:05:00Z", "updated_at": "2026-09-30T07:40:00Z", **health(12, 60)},
+    {"name": "API BR Vagas", "app_key": "api-br-vagas", "active": True, "created_at": "2026-08-06T13:12:00Z", "updated_at": "2026-08-06T13:12:00Z", **health(None, 30)},
+    {"name": "Legacy cron jobs", "app_key": "legacy-cron", "active": False, "created_at": "2026-06-03T08:00:00Z", "updated_at": "2026-09-12T15:22:00Z", **health(60 * 24 * 9, None)},
 ]
 
 POLICIES = [
@@ -302,6 +309,10 @@ def shoot_applications(browser):
     # Applications
     ctx, page, _ = new_page(browser, view="applications")
     snap(page, "desktop-applications")
+    # Edit drawer of a silent app: health monitoring section
+    page.get_by_role("button", name="GStraccini-bot").click(); time.sleep(0.6)
+    snap(page, "desktop-client-health")
+    page.keyboard.press("Escape"); page.get_by_role("button", name="Cancel").click(); time.sleep(0.5)
     page.get_by_role("button", name=re.compile("Register App")).click(); time.sleep(0.6)
     page.get_by_placeholder("e.g. Billing service").fill("Payslip archiver")
     page.get_by_placeholder("e.g. billing-api").fill("payslip-archiver"); time.sleep(0.3)

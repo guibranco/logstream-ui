@@ -172,4 +172,96 @@ describe('ClientForm', () => {
     
     expect(screen.getByText('Client already exists')).toBeInTheDocument();
   });
+
+  describe('health monitoring section', () => {
+    const monitored = {
+      name: 'Billing',
+      app_key: 'billing-api',
+      active: true,
+      created_at: '2026-01-01',
+      updated_at: '2026-01-01',
+      last_seen_at: new Date(Date.now() - 3 * 60_000).toISOString(),
+      heartbeat_timeout_min: 10,
+      status: 'active' as const,
+    };
+
+    const mockUpdate = () => {
+      const mutate = vi.fn();
+      (useClientsHooks.useUpdateClient as any).mockReturnValue({ mutate, isPending: false, error: null });
+      return mutate;
+    };
+
+    it('shows last seen and the current heartbeat timeout', () => {
+      render(<ClientForm client={monitored} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+      expect(screen.getByText('Health monitoring')).toBeInTheDocument();
+      expect(screen.getByTestId('client-last-seen')).toHaveTextContent('3 min ago');
+      expect(screen.getByLabelText('Heartbeat timeout')).toHaveValue(10);
+      expect(screen.getByText(/Leave blank to disable monitoring/)).toBeInTheDocument();
+    });
+
+    it('shows Never for a client that has not sent logs', () => {
+      render(
+        <ClientForm client={{ ...monitored, last_seen_at: null, status: 'never_seen' }} onClose={mockOnClose} onSuccess={mockOnSuccess} />,
+        { wrapper },
+      );
+
+      expect(screen.getByTestId('client-last-seen')).toHaveTextContent('Never');
+    });
+
+    it('submits the heartbeat timeout', () => {
+      const mutate = mockUpdate();
+      render(<ClientForm client={monitored} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+      fireEvent.change(screen.getByLabelText('Heartbeat timeout'), { target: { value: '30' } });
+      fireEvent.click(screen.getByText('Save Changes'));
+
+      expect(mutate).toHaveBeenCalledWith(
+        { appKey: 'billing-api', data: { name: 'Billing', active: true, heartbeat_timeout_min: 30 } },
+        expect.any(Object),
+      );
+    });
+
+    it('submits null when the timeout is cleared', () => {
+      const mutate = mockUpdate();
+      render(<ClientForm client={monitored} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+      fireEvent.change(screen.getByLabelText('Heartbeat timeout'), { target: { value: '' } });
+      fireEvent.click(screen.getByText('Save Changes'));
+
+      expect(mutate).toHaveBeenCalledWith(
+        { appKey: 'billing-api', data: { name: 'Billing', active: true, heartbeat_timeout_min: null } },
+        expect.any(Object),
+      );
+    });
+
+    it('blocks saving an invalid timeout', () => {
+      const mutate = mockUpdate();
+      render(<ClientForm client={monitored} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+
+      fireEvent.change(screen.getByLabelText('Heartbeat timeout'), { target: { value: '0' } });
+
+      expect(screen.getByText(/Whole minutes from 1 to 43200/)).toBeInTheDocument();
+      expect(screen.getByText('Save Changes').closest('button')).toBeDisabled();
+      fireEvent.click(screen.getByText('Save Changes'));
+      expect(mutate).not.toHaveBeenCalled();
+    });
+
+    it('is hidden when creating and on servers without health, which get no timeout field', () => {
+      const { unmount } = render(<ClientForm client={null} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+      expect(screen.queryByText('Health monitoring')).not.toBeInTheDocument();
+      unmount();
+
+      const mutate = mockUpdate();
+      const legacy = { name: 'Old', app_key: 'old', active: true, created_at: '2026-01-01', updated_at: '2026-01-01' };
+      render(<ClientForm client={legacy} onClose={mockOnClose} onSuccess={mockOnSuccess} />, { wrapper });
+      expect(screen.queryByText('Health monitoring')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Save Changes'));
+      expect(mutate).toHaveBeenCalledWith(
+        { appKey: 'old', data: { name: 'Old', active: true } },
+        expect.any(Object),
+      );
+    });
+  });
 });
