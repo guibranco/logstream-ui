@@ -39,6 +39,19 @@ describe('LogRow', () => {
     expect(screen.queryByLabelText('Copy sender IP')).not.toBeInTheDocument();
   });
 
+  it('labels the row and the details with the transport', () => {
+    renderRow({ ...baseLog, transport: 'udp' });
+    expect(screen.getByTestId('transport-badge')).toHaveTextContent('udp');
+    expect(screen.getByTestId('transport-badge')).toHaveAttribute('title', 'Received over UDP');
+    expect(screen.getByTestId('transport')).toHaveTextContent('udp');
+  });
+
+  it('shows no transport label when the server does not send one', () => {
+    renderRow(baseLog);
+    expect(screen.queryByTestId('transport-badge')).not.toBeInTheDocument();
+    expect(screen.getByTestId('transport')).toHaveTextContent('N/A');
+  });
+
   it('renders URLs in the user agent as links that open in a new tab', () => {
     renderRow({ ...baseLog, user_agent: 'MyBot/2.0 (+https://example.com/bot)' });
     const link = screen.getByRole('link', { name: 'https://example.com/bot' });
