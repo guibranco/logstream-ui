@@ -3,6 +3,7 @@ import {
   DEFAULT_PALETTE,
   describeFilters,
   describeScope,
+  embedLogo,
   escapeXml,
   fitText,
   imageFileName,
@@ -132,6 +133,30 @@ describe('logsToSvg', () => {
   it('still draws an image without events', () => {
     const image = logsToSvg([], { scope: 'view' });
     expect(texts(image.svg)).toContain('No events');
+  });
+});
+
+describe('embedLogo', () => {
+  it('places the logo as a nested SVG with prefixed IDs', () => {
+    const logo = embedLogo(20, 14, 36);
+    const svg = parse(`<svg xmlns="http://www.w3.org/2000/svg">${logo}</svg>`).querySelector('svg svg')!;
+    expect(svg.getAttribute('x')).toBe('20');
+    expect(svg.getAttribute('y')).toBe('14');
+    expect(svg.getAttribute('width')).toBe('36');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 512 512');
+    const ids = Array.from(svg.querySelectorAll('[id]')).map(el => el.id);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids.every(id => id.startsWith('ls-logo-'))).toBe(true);
+    for (const ref of logo.matchAll(/url\(#([^)]+)\)/g)) expect(ids).toContain(ref[1]);
+    expect(logo).not.toContain('<!--');
+  });
+
+  it('is drawn in the image header', () => {
+    const image = logsToSvg([entry(0)], { scope: 'view' });
+    const doc = parse(image.svg);
+    expect(doc.querySelector('parsererror')).toBeNull();
+    expect(doc.querySelectorAll('svg svg')).toHaveLength(1);
+    expect(texts(image.svg)).toContain('LogStream');
   });
 });
 

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { LogEntry, LogLevel, SearchFilters } from '../types';
+import logoSvg from '../assets/logo.svg?raw';
 
 /** Image formats events can be exported to. */
 export type ImageFormat = 'png' | 'jpeg' | 'svg';
@@ -83,6 +84,27 @@ interface Column {
 /** Characters XML does not allow at all (control characters other than tab, LF, CR). */
 // eslint-disable-next-line no-control-regex
 const XML_INVALID = /[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g;
+
+const LOGO_SIZE = 36;
+
+/**
+ * The LogStream logo (the same one as the favicon and the Serilog sink) as a
+ * nested `<svg>` at the given place and size. Its IDs get a prefix so they
+ * can't clash with anything else in the image.
+ */
+export function embedLogo(x: number, y: number, size: number, svg: string = logoSvg): string {
+  const prefix = 'ls-logo-';
+  return svg
+    .replace(/<\?xml[^>]*>\s*/, '')
+    .replaceAll(/<!--[\s\S]*?-->\s*/g, '')
+    .replaceAll(/\bid="([^"]+)"/g, `id="${prefix}$1"`)
+    .replaceAll(/url\(#([^)]+)\)/g, `url(#${prefix}$1)`)
+    .replace(/<svg\b([^>]*)>/, (_, attrs: string) => {
+      const kept = attrs.replaceAll(/\s(?:width|height|x|y)="[^"]*"/g, '');
+      return `<svg${kept} x="${x}" y="${y}" width="${size}" height="${size}">`;
+    })
+    .trim();
+}
 
 /** Text made safe for an SVG text node or attribute. */
 export function escapeXml(text: string): string {
@@ -199,15 +221,17 @@ export function logsToSvg(logs: LogEntry[], options: LogImageOptions): LogImage 
   // Header: title, scope and time span, filters.
   const scopeLine = [describeScope(logs.length, options), spanOf(logs)].filter(Boolean).join(' · ');
   const filterLine = describeFilters(options.filters);
-  const headerChars = charsFor(width - PAD * 2);
   out.push(
     `<rect width="${width}" height="${HEADER_HEIGHT}" fill="${palette.surface}"/>`,
     `<rect x="0" y="${HEADER_HEIGHT - 1}" width="${width}" height="1" fill="${palette.border}"/>`,
-    text(PAD, 26, 'LogStream', `fill="${palette.accent}" font-size="15" font-weight="700"`),
-    text(PAD + 96, 26, fitText(scopeLine, headerChars - 14), `fill="${palette.text}"`),
+    embedLogo(PAD, (HEADER_HEIGHT - LOGO_SIZE) / 2, LOGO_SIZE),
   );
+  const textX = PAD + LOGO_SIZE + 12;
+  const textChars = charsFor(width - textX - PAD);
   out.push(
-    text(PAD, 48, fitText(filterLine ? `Filters: ${filterLine}` : 'No filters', headerChars), `fill="${palette.muted}" font-size="11"`),
+    text(textX, 27, 'LogStream', `fill="${palette.text}" font-size="15" font-weight="700"`),
+    text(textX + 96, 27, fitText(scopeLine, textChars - 14), `fill="${palette.text}"`),
+    text(textX, 47, fitText(filterLine ? `Filters: ${filterLine}` : 'No filters', textChars), `fill="${palette.muted}" font-size="11"`),
   );
 
   // Column headings.
