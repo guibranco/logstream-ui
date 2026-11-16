@@ -1,8 +1,17 @@
-import React from 'react';
-import { Pencil, RefreshCw, Trash2, ShieldCheck, ShieldX, Info } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Pencil, RefreshCw, Trash2, ShieldCheck, Info } from 'lucide-react';
 import { Client } from '../../types';
 import { formatDistanceToNow } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { useNow } from '../../hooks/useNow';
+import {
+  displayStatus,
+  formatAbsolute,
+  formatLastSeen,
+  hasHealth,
+  sortByUrgency,
+  statusTooltip,
+} from '../../lib/clientHealth';
+import { ClientStatusPill } from './ClientStatusPill';
 
 interface ClientTableProps {
   clients: Client[];
@@ -21,6 +30,10 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   onDelete,
   rotatedAppKeys
 }) => {
+  // Re-render every minute so relative times and Silent pills stay current between refetches.
+  const now = useNow(60_000);
+  const sorted = useMemo(() => sortByUrgency(clients, now), [clients, now]);
+
   if (isLoading) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden animate-pulse">
@@ -60,12 +73,13 @@ export const ClientTable: React.FC<ClientTableProps> = ({
               <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">App Key</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Last seen</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Created</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {clients.map((client) => {
+            {sorted.map((client) => {
               const wasRotated = rotatedAppKeys.has(client.app_key);
               return (
                 <tr key={client.app_key} className="hover:bg-gray-800/30 transition-colors group">
@@ -91,16 +105,18 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                     </code>
                   </td>
                   <td className="px-6 py-4">
-                    {client.active ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/30 text-green-400 ring-1 ring-inset ring-green-900/50">
-                        <ShieldCheck size={12} />
-                        Active
+                    <ClientStatusPill
+                      status={displayStatus(client, now)}
+                      title={statusTooltip(client, now)}
+                    />
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                    {hasHealth(client) ? (
+                      <span title={formatAbsolute(client) ?? 'No logs received yet'}>
+                        {formatLastSeen(client, now)}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/30 text-red-400 ring-1 ring-inset ring-red-900/50">
-                        <ShieldX size={12} />
-                        Inactive
-                      </span>
+                      <span title="This server does not report last-seen times">—</span>
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">

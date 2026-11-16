@@ -5,6 +5,14 @@ import { Client } from '../../types';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { suggestAppKey } from '../../lib/suggestAppKey';
+import {
+  formatAbsolute,
+  formatLastSeen,
+  hasHealth,
+  MAX_HEARTBEAT_TIMEOUT_MINUTES,
+  parseHeartbeatTimeout,
+} from '../../lib/clientHealth';
+import { useNow } from '../../hooks/useNow';
 
 interface ClientFormProps {
   client: Client | null;
@@ -24,6 +32,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
   const suggestedAppKey = suggestAppKey(name);
   const appKey = isEditing ? client.app_key : useSuggested ? suggestedAppKey : customAppKey;
   const [active, setActive] = useState(client?.active ?? true);
+  // Health monitoring: only for servers that report it.
+  const showHealth = isEditing && hasHealth(client);
+  const [heartbeatTimeout, setHeartbeatTimeout] = useState(
+    client?.heartbeat_timeout_min != null ? String(client.heartbeat_timeout_min) : '',
+  );
+  const parsedTimeout = parseHeartbeatTimeout(heartbeatTimeout);
+  const isTimeoutValid = !showHealth || parsedTimeout !== undefined;
+  const now = useNow(60_000);
   
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
@@ -47,12 +63,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
   const handleUseSuggested = () => setUseSuggested(true);
 
   const handleSubmit = async () => {
-    if (!name || (!isEditing && !isAppKeyValid)) return;
+    if (!name || (!isEditing && !isAppKeyValid) || !isTimeoutValid) return;
 
     if (isEditing) {
       updateMutation.mutate({
         appKey: client.app_key,
-        data: { name, active },
+        data: showHealth
+          ? { name, active, heartbeat_timeout_min: parsedTimeout ?? null }
+          : { name, active },
       }, {
         onSuccess: (data) => onSuccess(data),
       });
@@ -205,6 +223,65 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
             </div>
           )}
 
+          {/* Health monitoring (only when editing, on servers that report it) */}
+          {showHealth && (
+            <section aria-labelledby="client-health-heading" className="space-y-4">
+              <div className="flex items-center gap-3">
+                <h4 id="client-health-heading" className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Health monitoring
+                </h4>
+                <div className="h-px flex-1 bg-gray-800" />
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Last seen</span>
+                <span
+                  className="text-gray-200"
+                  title={formatAbsolute(client) ?? 'No logs received yet'}
+                  data-testid="client-last-seen"
+                >
+                  {formatLastSeen(client, now)}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="client-heartbeat-timeout" className="text-sm font-medium text-gray-400">
+                  Heartbeat timeout
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="client-heartbeat-timeout"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={MAX_HEARTBEAT_TIMEOUT_MINUTES}
+                    step={1}
+                    value={heartbeatTimeout}
+                    onChange={(e) => setHeartbeatTimeout(e.target.value)}
+                    placeholder="Off"
+                    aria-invalid={!isTimeoutValid}
+                    aria-describedby="client-heartbeat-timeout-help"
+                    className={cn(
+                      "w-28 bg-gray-950 border rounded-lg px-4 py-2.5 text-gray-100 focus:outline-none focus:ring-2 transition-all placeholder:text-gray-600",
+                      isTimeoutValid
+                        ? "border-gray-800 focus:ring-primary-500/40 focus:border-primary-500"
+                        : "border-red-900/50 focus:ring-red-500/20 focus:border-red-500"
+                    )}
+                  />
+                  <span className="text-sm text-gray-400">minutes</span>
+                </div>
+                <p
+                  id="client-heartbeat-timeout-help"
+                  className={cn("text-xs", isTimeoutValid ? "text-gray-500" : "text-red-400")}
+                >
+                  {isTimeoutValid
+                    ? 'Alert if silent longer than this. Leave blank to disable monitoring.'
+                    : `Whole minutes from 1 to ${MAX_HEARTBEAT_TIMEOUT_MINUTES}, or blank to disable monitoring.`}
+                </p>
+              </div>
+            </section>
+          )}
+
           {error && (
             <div className="p-4 bg-red-900/20 border border-red-900/50 rounded-lg flex items-start gap-3">
               <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
@@ -222,7 +299,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ client, onClose, onSucce
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !name || (!isEditing && !isAppKeyValid)}
+            disabled={isLoading || !name || (!isEditing && !isAppKeyValid) || !isTimeoutValid}
             className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-900/20"
           >
             {isLoading && <Loader2 size={18} className="animate-spin" />}

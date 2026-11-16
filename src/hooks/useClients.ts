@@ -27,7 +27,12 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   return response.json();
 }
 
-export function useClients(enabled = true) {
+export interface UseClientsOptions {
+  /** Poll the list (ms), e.g. 30 000 on the Applications screen to pick up new last_seen_at values. */
+  refetchInterval?: number;
+}
+
+export function useClients(enabled = true, options: UseClientsOptions = {}) {
   const config = getConfig();
   const apiUrl = config?.apiUrl;
 
@@ -35,6 +40,7 @@ export function useClients(enabled = true) {
     queryKey: ['clients'],
     queryFn: () => fetchWithAuth(`${apiUrl}/api/clients`),
     enabled: enabled && !!apiUrl,
+    refetchInterval: options.refetchInterval,
   });
 }
 
@@ -72,7 +78,7 @@ export function useUpdateClient() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ appKey, data }: { appKey: string; data: Partial<Pick<Client, 'name' | 'active'>> }) =>
+    mutationFn: ({ appKey, data }: { appKey: string; data: Partial<Pick<Client, 'name' | 'active' | 'heartbeat_timeout_min'>> }) =>
       fetchWithAuth(`${apiUrl}/api/clients/${appKey}`, {
         method: 'PUT',
         body: JSON.stringify(data),
