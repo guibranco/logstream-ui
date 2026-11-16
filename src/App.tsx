@@ -190,6 +190,7 @@ function LogStreamApp() {
                 onFilterTemplate={handleFilterTemplate}
                 onFilterCategory={handleFilterCategory}
                 onRetry={feed.reload}
+                filters={filters}
               />
             </main>
 
