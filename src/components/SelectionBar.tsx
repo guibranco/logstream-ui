@@ -2,6 +2,8 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Braces, Check, Copy, FileText, X } from 'lucide-react';
 import { CopyFormat } from '../lib/logLines';
+import { ImageFormat } from '../lib/logImage';
+import { ExportImageMenu, ExportState } from './ExportImageMenu';
 import { cn } from '../lib/utils';
 
 /** The last copy: which format, and whether the clipboard accepted it. */
@@ -15,6 +17,9 @@ interface SelectionBarProps {
   count: number;
   lastCopy: CopyResult | null;
   onCopy: (format: CopyFormat) => void;
+  /** Download the selected events as a PNG, JPEG or SVG image; no image button without it. */
+  onExportImage?: (format: ImageFormat) => void;
+  exportState?: ExportState;
   onClear: () => void;
 }
 
@@ -31,7 +36,7 @@ const label = (action: (typeof ACTIONS)[number], lastCopy: CopyResult | null): s
 };
 
 /** Floating actions for the selected events; slides in once something is selected. */
-export const SelectionBar: React.FC<SelectionBarProps> = ({ count, lastCopy, onCopy, onClear }) => (
+export const SelectionBar: React.FC<SelectionBarProps> = ({ count, lastCopy, onCopy, onExportImage, exportState = null, onClear }) => (
   <AnimatePresence>
     {count > 0 && (
       <motion.div
@@ -69,6 +74,15 @@ export const SelectionBar: React.FC<SelectionBarProps> = ({ count, lastCopy, onC
             </button>
           );
         })}
+        {onExportImage && (
+          <ExportImageMenu
+            subject="selected events"
+            onExport={onExportImage}
+            state={exportState}
+            testId="export-selected-image"
+            className="px-3 py-1.5 rounded-full font-semibold text-gray-300 hover:bg-gray-800"
+          />
+        )}
         <button
           onClick={onClear}
           title="Clear selection (Esc)"
