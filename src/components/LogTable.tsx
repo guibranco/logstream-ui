@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { LogEntry } from '../types';
+import { LogEntry, SearchFilters } from '../types';
 import { LogRow } from './LogRow';
 import { Skeleton } from './Skeleton';
 import { SelectionBar, CopyResult } from './SelectionBar';
 import { useLogSelection } from '../hooks/useLogSelection';
 import { CopyFormat, logsToText } from '../lib/logLines';
+import { ImageFormat, ImageScope } from '../lib/logImage';
+import { exportLogsImage } from '../lib/exportImage';
+import { UI_VERSION } from '../lib/version';
+import { ExportImageMenu, ExportState } from './ExportImageMenu';
 import { cn } from '../lib/utils';
 import { AlertCircle, Inbox, ArrowUp, Loader2, Eraser, Zap } from 'lucide-react';
 
@@ -37,6 +41,8 @@ interface LogTableProps {
   onFilterTemplate?: (template: string) => void;
   onFilterCategory?: (category: string) => void;
   onRetry: () => void;
+  /** Filters behind the list; printed on exported images. */
+  filters?: SearchFilters;
 }
 
 /** A form field keeps its own Ctrl/⌘+A and Ctrl/⌘+C. */
@@ -222,7 +228,8 @@ export const LogTable: React.FC<LogTableProps> = ({
   onFilterContext,
   onFilterTemplate,
   onFilterCategory,
-  onRetry
+  onRetry,
+  filters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
@@ -258,6 +265,31 @@ export const LogTable: React.FC<LogTableProps> = ({
     };
     navigator.clipboard.writeText(logsToText(selectedLogs, fmt)).then(() => done(true), () => done(false));
   }, [selectedLogs]);
+
+  // One export state per scope, so the view button doesn't show the selection's result.
+  const [exportStates, setExportStates] = useState<Record<ImageScope, ExportState>>({ view: null, selection: null });
+  const exportTimers = useRef<Partial<Record<ImageScope, ReturnType<typeof setTimeout>>>>({});
+  useEffect(() => () => {
+    for (const timer of Object.values(exportTimers.current)) clearTimeout(timer);
+  }, []);
+
+  /** Downloads the loaded view or the selection as an image, drawn in the current theme. */
+  const exportImage = useCallback((scope: ImageScope, fmt: ImageFormat) => {
+    const events = scope === 'selection' ? selectedLogs : logs;
+    if (events.length === 0) return;
+    const setState = (state: ExportState, clearAfter?: number) => {
+      setExportStates(prev => ({ ...prev, [scope]: state }));
+      clearTimeout(exportTimers.current[scope]);
+      if (clearAfter) {
+        exportTimers.current[scope] = setTimeout(() => setExportStates(prev => ({ ...prev, [scope]: null })), clearAfter);
+      }
+    };
+    setState({ status: 'busy' });
+    exportLogsImage(events, fmt, { scope, loadedCount: logs.length, total, filters, version: UI_VERSION }).then(
+      () => setState({ status: 'done' }, 2000),
+      (err: unknown) => setState({ status: 'failed', message: err instanceof Error ? err.message : String(err) }, 4000),
+    );
+  }, [selectedLogs, logs, total, filters]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -424,6 +456,8 @@ export const LogTable: React.FC<LogTableProps> = ({
           count={selectedLogs.length}
           lastCopy={lastCopy}
           onCopy={copySelected}
+          onExportImage={fmt => exportImage('selection', fmt)}
+          exportState={exportStates.selection}
           onClear={clearSelection}
         />
       </div>
@@ -435,7 +469,17 @@ export const LogTable: React.FC<LogTableProps> = ({
             <> of <span className="text-gray-300 font-mono">{total}</span> matching</>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {logs.length > 0 && (
+            <ExportImageMenu
+              subject="events in view"
+              label="Export image"
+              onExport={fmt => exportImage('view', fmt)}
+              state={exportStates.view}
+              testId="export-view-image"
+              className="px-2 py-0.5 rounded border border-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-900"
+            />
+          )}
           <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} onResume={resumeLive} />
         </div>
       </div>
