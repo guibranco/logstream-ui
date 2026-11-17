@@ -21,7 +21,7 @@ interface PolicyFormProps {
 
 const TRANSPORT_LABELS: Record<Transport, string> = { tcp: 'TCP (HTTP)', udp: 'UDP' };
 
-export function PolicyForm({ policy, appKeyOptions = [], transportFilters = false, onClose }: PolicyFormProps) {
+export function PolicyForm({ policy, appKeyOptions = [], transportFilters = false, onClose }: Readonly<PolicyFormProps>) {
   const isEditing = !!policy;
   const createMutation = useCreatePolicy();
   const updateMutation = useUpdatePolicy();

@@ -15,7 +15,7 @@ interface RetentionScreenProps {
   transportFilters?: boolean;
 }
 
-export function RetentionScreen({ appKeyOptions = [], transportFilters = false }: RetentionScreenProps) {
+export function RetentionScreen({ appKeyOptions = [], transportFilters = false }: Readonly<RetentionScreenProps>) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<RetentionPolicy | null>(null);
   const [lastRunResults, setLastRunResults] = useState<RetentionRunResponse | null>(null);

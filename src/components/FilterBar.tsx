@@ -266,13 +266,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           {/* Shown when the server can filter by it, or when a shared link already applies it. */}
           {(transportFilters || selectedTransports.length > 0) && (
             <>
-              <div
-                className="flex flex-wrap gap-2"
-                role="group"
-                aria-label="Transport"
+              <fieldset
+                className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0"
                 title="How the entries reached the server: TCP (HTTP) or UDP"
                 data-testid="transport-filter"
               >
+                <legend className="sr-only">Transport</legend>
                 {TRANSPORTS.map(transport => (
                   <button
                     key={transport}
@@ -289,7 +288,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     {transport}
                   </button>
                 ))}
-              </div>
+              </fieldset>
 
               <div className="h-6 w-px bg-gray-800 hidden lg:block" />
             </>
