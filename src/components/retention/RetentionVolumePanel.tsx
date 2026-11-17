@@ -15,7 +15,7 @@ import {
 import { cn } from '../../lib/utils';
 import { RetentionVolumeChart } from './RetentionVolumeChart';
 
-export const VOLUME_WINDOWS = [7, 30, 90, 180, 365] as const;
+export const VOLUME_WINDOWS = [7, 10, 15, 30, 90, 180, 365] as const;
 
 function SegmentedControl<T extends string | number>({
   label,
