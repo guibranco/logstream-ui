@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BarChart3 } from 'lucide-react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useRetentionVolume } from '../../hooks/useRetentionVolume';
@@ -13,6 +13,7 @@ import {
   viewValues,
 } from '../../lib/retentionVolume';
 import { cn } from '../../lib/utils';
+import { browserStorage, loadVolumePreferences, saveVolumePreferences } from '../../lib/volumePreferences';
 import { RetentionVolumeChart } from './RetentionVolumeChart';
 
 export const VOLUME_WINDOWS = [7, 10, 15, 30, 90, 180, 365] as const;
@@ -315,8 +316,13 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
 
 /** Seq-style storage view: stored volume by age with a marker per retention policy. */
 export function RetentionVolumePanel() {
-  const [days, setDays] = useState<number>(90);
-  const [metric, setMetric] = useState<VolumeMetric>('count');
+  // Restore the last window and measure picked in this browser.
+  const [initial] = useState(() => loadVolumePreferences(browserStorage(), VOLUME_WINDOWS));
+  const [days, setDays] = useState<number>(initial.days);
+  const [metric, setMetric] = useState<VolumeMetric>(initial.metric);
+  useEffect(() => {
+    saveVolumePreferences({ days, metric }, browserStorage());
+  }, [days, metric]);
   const { data, isLoading, isError, error, isFetching } = useRetentionVolume(days);
 
   const unavailable = isError && (error as Error).message === 'SERVICE_UNAVAILABLE';
