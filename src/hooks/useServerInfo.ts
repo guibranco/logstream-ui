@@ -14,6 +14,8 @@ export interface ServerInfo {
     self_logging?: boolean;
     /** HMAC-signed log packets over UDP; details in `udp` (logstream-server#54). */
     udp_ingest?: boolean;
+    /** `transport` is a search filter and a retention policy criterion. */
+    transport_filters?: boolean;
   };
   /** The reserved app the server's own messages are stored under. */
   self_logging?: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { RetentionPolicy, LogLevel } from '../../types';
+import { RetentionPolicy, LogLevel, Transport, TRANSPORTS } from '../../types';
 import { useCreatePolicy, useUpdatePolicy } from '../../hooks/useRetentionPolicies';
 import { format, subDays } from 'date-fns';
 import { cn } from '../../lib/utils';
@@ -10,10 +10,18 @@ interface PolicyFormProps {
   policy: RetentionPolicy | null;
   /** Registered applications (or app keys seen so far) to pick the app key from. */
   appKeyOptions?: AppKeyOption[];
+  /**
+   * The server accepts a transport criterion (features.transport_filters).
+   * Older servers ignore it, which would widen the policy to every transport,
+   * so it is only offered when supported.
+   */
+  transportFilters?: boolean;
   onClose: () => void;
 }
 
-export function PolicyForm({ policy, appKeyOptions = [], onClose }: PolicyFormProps) {
+const TRANSPORT_LABELS: Record<Transport, string> = { tcp: 'TCP (HTTP)', udp: 'UDP' };
+
+export function PolicyForm({ policy, appKeyOptions = [], transportFilters = false, onClose }: Readonly<PolicyFormProps>) {
   const isEditing = !!policy;
   const createMutation = useCreatePolicy();
   const updateMutation = useUpdatePolicy();
@@ -25,6 +33,7 @@ export function PolicyForm({ policy, appKeyOptions = [], onClose }: PolicyFormPr
     app_key: '',
     app_id: '',
     category: '',
+    transport: undefined,
     message_regex: '',
     message_glob: ''
   });
@@ -47,10 +56,11 @@ export function PolicyForm({ policy, appKeyOptions = [], onClose }: PolicyFormPr
   const summary = useMemo(() => {
     const parts = ['Delete'];
     const levelText = formData.level ? ` ${formData.level}` : '';
+    const transportText = formData.transport ? ` received over ${formData.transport.toUpperCase()}` : '';
     const appText = formData.app_key ? ` from ${formData.app_key}` : '';
     const appIdText = formData.app_id ? `with app ID ${formData.app_id}` : '';
     
-    parts.push(`${levelText} entries`.trim());
+    parts.push(`${levelText} entries${transportText}`.trim());
     if (appText) parts.push(appText);
     if (appIdText) parts.push(appIdText);
     parts.push(`older than ${formData.older_than_days} days`);
@@ -227,6 +237,26 @@ export function PolicyForm({ policy, appKeyOptions = [], onClose }: PolicyFormPr
                   />
                 </div>
               </div>
+
+              {(transportFilters || formData.transport) && (
+                <div className="space-y-1.5">
+                  <label htmlFor="policy-transport" className="text-sm font-medium text-gray-300">Transport</label>
+                  <select
+                    id="policy-transport"
+                    value={formData.transport || ''}
+                    onChange={(e) => setFormData({ ...formData, transport: (e.target.value || undefined) as Transport | undefined })}
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none"
+                  >
+                    <option value="">(any)</option>
+                    {TRANSPORTS.map(t => (
+                      <option key={t} value={t}>{TRANSPORT_LABELS[t]}</option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-gray-500 italic">
+                    Entries without a recorded transport (older entries, the server's own logs) never match.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-300">Message Regex</label>

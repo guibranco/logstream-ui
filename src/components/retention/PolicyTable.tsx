@@ -134,12 +134,17 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
                       cat: {policy.category}
                     </span>
                   )}
+                  {policy.transport && (
+                    <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded text-[10px] text-gray-300 font-medium">
+                      transport: {policy.transport.toUpperCase()}
+                    </span>
+                  )}
                   {(policy.message_regex || policy.message_glob) && (
                     <span className="px-2 py-0.5 bg-gray-800 border border-gray-700 rounded text-[10px] text-gray-300 font-medium">
                       msg filter
                     </span>
                   )}
-                  {!policy.level && !policy.app_key && !policy.app_id && !policy.category && !policy.message_regex && !policy.message_glob && (
+                  {!policy.level && !policy.app_key && !policy.app_id && !policy.category && !policy.transport && !policy.message_regex && !policy.message_glob && (
                     <span className="text-xs text-gray-600">No extra filters</span>
                   )}
                 </div>

@@ -3,6 +3,8 @@ export type LogLevel = 'debug' | 'info' | 'notice' | 'warning' | 'error' | 'crit
 /** How an entry reached the server: `tcp` (HTTP ingestion) or `udp` (UDP listener). */
 export type Transport = 'tcp' | 'udp';
 
+export const TRANSPORTS: readonly Transport[] = ['tcp', 'udp'];
+
 export interface LogEntry {
   id: string;           // ULID — time-sortable
   trace_id: string;     // UUID
@@ -37,6 +39,8 @@ export interface SearchFilters {
   user_agent?: string;
   /** One level, or several (any of them matches; needs features.multi_value_filters). */
   level?: LogLevel | LogLevel[];
+  /** One transport, or both (any of them matches; needs features.transport_filters). */
+  transport?: Transport | Transport[];
   category?: string;
   trace_id?: string;
   batch_id?: string;
@@ -72,6 +76,8 @@ export interface RetentionPolicy {
   app_id?: string;
   level?: LogLevel;
   category?: string;
+  /** Only entries that arrived over this transport; needs features.transport_filters. */
+  transport?: Transport;
   message_regex?: string;
   message_glob?: string;
 }

@@ -71,3 +71,16 @@ describe('several levels and app keys in the URL', () => {
     expect(filtersFromQuery(`?${query}`)).toEqual(templated);
   });
 });
+
+describe('transport in the URL', () => {
+  it('round-trips one or both transports', () => {
+    expect(filtersToQuery({ transport: 'udp' })).toBe('transport=udp');
+    expect(filtersFromQuery('?transport=udp')).toEqual({ transport: 'udp' });
+    expect(filtersFromQuery('?transport=tcp&transport=udp')).toEqual({ transport: ['tcp', 'udp'] });
+  });
+
+  it('drops unknown transports', () => {
+    expect(filtersFromQuery('?transport=http&level=error')).toEqual({ level: 'error' });
+    expect(filtersFromQuery('?transport=http')).toBeNull();
+  });
+});

@@ -204,3 +204,39 @@ describe('FilterBar on phones', () => {
     expect(toggle()).toHaveAttribute('aria-expanded', 'false');
   });
 });
+
+describe('FilterBar transport filter', () => {
+  const button = (name: string) => screen.getByRole('button', { name });
+
+  it('is hidden when the server cannot filter by transport', () => {
+    render(<FilterBar filters={{}} onSearch={vi.fn()} />);
+    expect(screen.queryByTestId('transport-filter')).not.toBeInTheDocument();
+  });
+
+  it('applies a transport at once, keeping the other filters', () => {
+    const onSearch = vi.fn();
+    render(<FilterBar filters={{ level: 'error' }} onSearch={onSearch} transportFilters />);
+
+    fireEvent.click(button('udp'));
+
+    expect(onSearch).toHaveBeenCalledWith({ level: 'error', transport: 'udp' });
+  });
+
+  it('adds a second transport and clears it on a second click', () => {
+    const onSearch = vi.fn();
+    const { rerender } = render(<FilterBar filters={{ transport: 'udp' }} onSearch={onSearch} transportFilters />);
+
+    expect(button('udp')).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(button('tcp'));
+    expect(onSearch).toHaveBeenLastCalledWith({ transport: ['udp', 'tcp'] });
+
+    rerender(<FilterBar filters={{ transport: 'udp' }} onSearch={onSearch} transportFilters />);
+    fireEvent.click(button('udp'));
+    expect(onSearch).toHaveBeenLastCalledWith({ transport: undefined });
+  });
+
+  it('still shows a transport applied from a shared link', () => {
+    render(<FilterBar filters={{ transport: 'tcp' }} onSearch={vi.fn()} />);
+    expect(screen.getByTestId('transport-filter')).toBeInTheDocument();
+  });
+});

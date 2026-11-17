@@ -1,5 +1,5 @@
 /** Filters that can hold one value or a list (any of them matches). */
-export const MULTI_VALUE_KEYS = ['app_key', 'level'] as const;
+export const MULTI_VALUE_KEYS = ['app_key', 'level', 'transport'] as const;
 export type MultiValueKey = (typeof MULTI_VALUE_KEYS)[number];
 
 /** The values of a one-or-many filter as a list (empty when unset). */

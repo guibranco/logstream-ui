@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SearchFilters, LogLevel } from '../types';
+import { SearchFilters, LogLevel, Transport, TRANSPORTS } from '../types';
 import { Search, RotateCcw, X, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
@@ -25,6 +25,8 @@ interface FilterBarProps {
   multiValue?: boolean;
   /** Applications offered in the app picker. */
   appKeyOptions?: AppKeyOption[];
+  /** The server filters by transport (features.transport_filters). */
+  transportFilters?: boolean;
 }
 
 const LEVELS: LogLevel[] = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
@@ -38,6 +40,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   storageType,
   multiValue = false,
   appKeyOptions = [],
+  transportFilters = false,
 }) => {
   const [localFilters, setLocalFilters] = useState<SearchFilters>(initialFilters);
   const [contextRows, setContextRows] = useState<ContextRow[]>(() => filtersToRows(initialFilters));
@@ -60,6 +63,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const appliedCount = [
     asList(initialFilters.level).length > 0,
     asList(initialFilters.app_key).length > 0,
+    asList(initialFilters.transport).length > 0,
     !!initialFilters.app_id,
     !!initialFilters.category,
     !!initialFilters.trace_id,
@@ -89,6 +93,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     if (!multiValue) next = next.filter(l => l === level);
     applyNow({ level: fromList(next) });
   };
+
+  const selectedTransports = asList(initialFilters.transport);
+
+  // The server always takes a list of transports, so both can be picked.
+  const toggleTransport = (transport: Transport) =>
+    applyNow({ transport: fromList(toggleValue(selectedTransports, transport)) });
 
   // Reset clears what is searched for, not the time window (as in Seq).
   const handleReset = () => {
@@ -252,6 +262,37 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           <div className="h-6 w-px bg-gray-800 hidden lg:block" />
+
+          {/* Shown when the server can filter by it, or when a shared link already applies it. */}
+          {(transportFilters || selectedTransports.length > 0) && (
+            <>
+              <fieldset
+                className="flex flex-wrap gap-2 border-0 p-0 m-0 min-w-0"
+                title="How the entries reached the server: TCP (HTTP) or UDP"
+                data-testid="transport-filter"
+              >
+                <legend className="sr-only">Transport</legend>
+                {TRANSPORTS.map(transport => (
+                  <button
+                    key={transport}
+                    type="button"
+                    onClick={() => toggleTransport(transport)}
+                    aria-pressed={selectedTransports.includes(transport)}
+                    className={cn(
+                      "px-3 py-1 rounded text-xs font-bold uppercase tracking-wider border transition-all",
+                      selectedTransports.includes(transport)
+                        ? "bg-secondary-900 border-secondary-500 text-secondary-400"
+                        : "bg-gray-950 border-gray-800 text-gray-500 hover:border-gray-700"
+                    )}
+                  >
+                    {transport}
+                  </button>
+                ))}
+              </fieldset>
+
+              <div className="h-6 w-px bg-gray-800 hidden lg:block" />
+            </>
+          )}
 
           <DateRangePicker
             value={{ range: initialFilters.range, date_from: initialFilters.date_from, date_to: initialFilters.date_to }}
