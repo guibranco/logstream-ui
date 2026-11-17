@@ -58,4 +58,32 @@ describe('PolicyForm', () => {
     expect(screen.getByText(/with app ID vinhedo-1/)).toBeInTheDocument();
     expect(screen.queryByText(/env:/)).not.toBeInTheDocument();
   });
+
+  it('hides the transport when the server does not support it', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} onClose={vi.fn()} />);
+    expect(screen.queryByLabelText('Transport')).not.toBeInTheDocument();
+  });
+
+  it('sends the picked transport and describes it in the summary', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} transportFilters onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. remove-old-debug'), { target: { value: 'drop-udp' } });
+    fireEvent.change(screen.getByLabelText('Transport'), { target: { value: 'udp' } });
+
+    expect(screen.getByText(/entries received over UDP/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Create Policy'));
+    expect(createMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'drop-udp', transport: 'udp' }),
+      expect.anything(),
+    );
+  });
+
+  it('sends no transport when left at any', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} transportFilters onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. remove-old-debug'), { target: { value: 'drop-all' } });
+    fireEvent.click(screen.getByText('Create Policy'));
+
+    expect(createMutate.mock.calls[0][0].transport).toBeUndefined();
+  });
 });

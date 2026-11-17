@@ -73,4 +73,13 @@ describe('matchesFilters with lists', () => {
     expect(matchesFilters(templated, { message_template: 'Request failed' })).toBe(false);
     expect(matchesFilters(log, { message_template: 'Request failed with {status}' })).toBe(false);
   });
+
+  it('matches the transport exactly, leaving out entries without one', () => {
+    const udp = { ...log, transport: 'udp' as const };
+    expect(matchesFilters(udp, { transport: 'udp' })).toBe(true);
+    expect(matchesFilters(udp, { transport: 'tcp' })).toBe(false);
+    expect(matchesFilters(udp, { transport: ['tcp', 'udp'] })).toBe(true);
+    expect(matchesFilters({ ...log, transport: null }, { transport: 'tcp' })).toBe(false);
+    expect(matchesFilters(log, { transport: 'udp' })).toBe(false);
+  });
 });

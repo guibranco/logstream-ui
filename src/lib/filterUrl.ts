@@ -1,4 +1,4 @@
-import { LogLevel, SearchFilters } from '../types';
+import { LogLevel, SearchFilters, Transport, TRANSPORTS } from '../types';
 import { appendContextParams } from './contextProperties';
 import { findPreset } from './dateRange';
 import { asList, fromList, MULTI_VALUE_KEYS } from './multiValue';
@@ -12,6 +12,7 @@ const PLAIN_KEYS = [
   'app_id',
   'user_agent',
   'level',
+  'transport',
   'category',
   'trace_id',
   'batch_id',
@@ -41,6 +42,7 @@ const isMultiValue = (key: string): boolean => (MULTI_VALUE_KEYS as readonly str
 function readParam(params: URLSearchParams, key: (typeof PLAIN_KEYS)[number]): string | string[] | undefined {
   let values = params.getAll(key).filter(v => v !== '');
   if (key === 'level') values = values.filter(v => LEVELS.includes(v as LogLevel));
+  if (key === 'transport') values = values.filter(v => TRANSPORTS.includes(v as Transport));
   if (key === 'range') values = values.filter(v => findPreset(v));
   if (values.length === 0) return undefined;
   return isMultiValue(key) ? fromList(values) : values[0];
