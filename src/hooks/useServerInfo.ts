@@ -7,6 +7,8 @@ export interface ServerInfo {
   features: {
     client_management: boolean;
     retention: boolean;
+    /** GET /api/retention/log lists past retention runs. */
+    retention_log?: boolean;
     websocket: boolean;
     /** GET /api/logs accepts app_key[] / level[] lists (logstream-server#115). */
     multi_value_filters?: boolean;
