@@ -66,17 +66,17 @@ export function RetentionScreen({ appKeyOptions = [], transportFilters = false }
           {lastRunResults && <RunResults results={lastRunResults} />}
         </section>
 
-        {/* Past runs (retention_log), last 90 days */}
-        <section>
-          <RetentionHistoryPanel />
-        </section>
-
         {/* Policy List */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Active Policies</h2>
           </div>
           <PolicyTable onEdit={handleEdit} />
+        </section>
+
+        {/* Past runs (retention_log), last 90 days */}
+        <section>
+          <RetentionHistoryPanel />
         </section>
       </div>
 
