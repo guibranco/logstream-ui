@@ -5,6 +5,7 @@ import { PolicyForm } from '../components/retention/PolicyForm';
 import { RunPanel } from '../components/retention/RunPanel';
 import { RunResults } from '../components/retention/RunResults';
 import { RetentionVolumePanel } from '../components/retention/RetentionVolumePanel';
+import { RetentionHistoryPanel } from '../components/retention/RetentionHistoryPanel';
 import { AppKeyOption } from '../components/search/AppKeyPicker';
 import { RetentionPolicy, RetentionRunResponse } from '../types';
 
@@ -63,6 +64,11 @@ export function RetentionScreen({ appKeyOptions = [], transportFilters = false }
         <section className="space-y-4">
           <RunPanel onResults={setLastRunResults} />
           {lastRunResults && <RunResults results={lastRunResults} />}
+        </section>
+
+        {/* Past runs (retention_log), last 90 days */}
+        <section>
+          <RetentionHistoryPanel />
         </section>
 
         {/* Policy List */}

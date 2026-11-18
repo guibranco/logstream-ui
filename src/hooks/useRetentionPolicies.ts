@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { RetentionPolicy, RetentionRunResponse } from '../types';
 import { RETENTION_VOLUME_KEY } from './useRetentionVolume';
+import { RETENTION_LOG_KEY } from './useRetentionLog';
 
 export function useRetentionPolicies() {
   const { config } = useAuth();
@@ -214,6 +215,8 @@ export function useRunRetention() {
     // A real run may delete entries (even one whose response failed), so the
     // chart is out of date unless the run reports it deleted nothing.
     onSettled: (data, error, variables) => {
+      // Every run, dry or not, adds rows to the run history.
+      queryClient.invalidateQueries({ queryKey: RETENTION_LOG_KEY });
       if (!variables.dry_run && (error || prunedCount(data) > 0)) {
         queryClient.invalidateQueries({ queryKey: RETENTION_VOLUME_KEY });
       }

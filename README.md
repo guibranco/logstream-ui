@@ -57,7 +57,7 @@ With the UI open, the entry shows up live.
 - **Full-text search and filters** — filter by application, environment, level, category, trace ID, batch ID, date range, or message substring, all persisted across page refreshes
 - **Expandable rows** — click any entry to reveal the full message, context as a searchable property list (Find / Exclude per value), user agent, sender IP, and one-click batch/trace navigation
 - **Applications** — register the services that send logs, edit them, rotate or reveal-once their API tokens, deactivate or delete them, and see which ones went silent (servers with client management)
-- **Retention** — storage-by-age chart with a marker per policy, policy editor, and dry or live retention runs with per-policy results
+- **Retention** — storage-by-age chart with a marker per policy, policy editor, dry or live retention runs with per-policy results, and a 90-day run history
 - **Stats drawer** — session-level counts by log level, top apps by volume, and total entries received; on servers with UDP ingest, the listener's live packet counters
 - **Row virtualisation** — large result sets (200+ rows) are windowed for smooth scrolling
 - **Zero build-time config** — all connection settings (API URL, WebSocket URL, UI secret) are entered via a settings screen and stored in `localStorage`; no `.env` file required
@@ -149,6 +149,8 @@ In the **Size** view on a MariaDB server, the chart becomes Seq-style: each day 
 |:---:|:---:|
 | <img src="docs/screenshots/desktop-retention-run.png" alt="Retention dry run results per policy" width="420"> | <img src="docs/screenshots/desktop-policy-form.png" alt="New retention policy form" width="420"> |
 | Simulate a run to see how many entries each policy would delete, then run it for real | Age, level, app, environment, category and message regex / glob criteria, with a summary |
+
+**Run history** lists every retention run of the last 90 days (scheduled, from the UI or the CLI, read from the server's `retention_log` via `GET /api/retention/log`): when it ran, the policy, live / dry run / failed, entries deleted, duration, and the summary, error or warnings. Filter by policy or status. Needs a logstream-server with that endpoint; older servers show a notice instead.
 
 ### Settings
 

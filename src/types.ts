@@ -105,6 +105,39 @@ export interface RetentionRunResponse {
   results?: RetentionRunResult[]; // legacy support
 }
 
+/** One recorded run of one policy (GET /api/retention/log). */
+export interface RetentionLogEntry {
+  id: number;
+  policy: string;
+  /** Entries deleted, or for a dry run the entries that would have been. */
+  deleted: number;
+  dry_run: boolean;
+  duration_ms: number;
+  summary: string | null;
+  warnings: string[];
+  /** Why the policy failed; null when it succeeded. */
+  error: string | null;
+  /** RFC 3339, UTC. */
+  ran_at: string;
+}
+
+export interface RetentionLogResponse {
+  days: number;
+  since: string;
+  policy: string | null;
+  /** Newest first. */
+  runs: RetentionLogEntry[];
+  /** More runs matched than the server returned. */
+  truncated: boolean;
+  totals: {
+    runs: number;
+    /** Deleted by real (non-dry) runs. */
+    deleted: number;
+    failed: number;
+    dry_runs: number;
+  };
+}
+
 export interface RetentionVolumeTotals {
   count: number;
   bytes: number;
