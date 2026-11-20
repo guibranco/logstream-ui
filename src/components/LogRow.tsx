@@ -6,6 +6,7 @@ import { TransportBadge } from './TransportBadge';
 import { ContextProperties } from './ContextProperties';
 import { ChevronDown, ChevronRight, Copy, Check, ExternalLink, Package, Filter, Bug, Tag, FileText } from 'lucide-react';
 import { ExceptionDetails } from './ExceptionDetails';
+import { TimestampTooltip } from './TimestampTooltip';
 import { parseException, withoutExceptionStacks } from '../lib/exception';
 import { logToMarkdown } from '../lib/logMarkdown';
 import { TemplatedMessage, TemplateText } from './TemplatedMessage';
@@ -185,13 +186,10 @@ export const LogRow: React.FC<LogRowProps> = ({
             />
           </div>
         )}
-        <div className="md:w-32 flex-shrink-0 text-xs text-gray-500 group relative">
-          <span title={log.timestamp}>
+        <div className="md:w-32 flex-shrink-0 text-xs text-gray-500">
+          <TimestampTooltip label={format(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}>
             {formatDistanceToNow(timestamp, { addSuffix: true })}
-          </span>
-          <div className="absolute hidden group-hover:block bg-gray-800 text-gray-50 p-1 rounded -top-8 left-0 z-10 whitespace-nowrap border border-gray-700">
-            {format(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}
-          </div>
+          </TimestampTooltip>
         </div>
 
         <div className="md:w-24 flex-shrink-0">
