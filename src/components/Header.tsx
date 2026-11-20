@@ -19,7 +19,7 @@ interface HeaderProps {
   onOpenStats: () => void;
   onOpenSettings: () => void;
   onDisconnect: () => void;
-  /** Hide the controls around the list when idle. */
+  /** Hide the search and filter bar when idle. */
   focusMode?: boolean;
   onToggleFocusMode?: () => void;
 }
@@ -181,8 +181,8 @@ export const Header: React.FC<HeaderProps> = ({
               )}
               title={
                 focusMode
-                  ? 'Focus mode on: controls hide after 15 seconds idle; hover the top or bottom edge to show them'
-                  : 'Focus mode off: controls always visible'
+                  ? 'Focus mode on: the search bar hides after 15 seconds idle; hover the strip under the header to show it'
+                  : 'Focus mode off: the search bar is always visible'
               }
               aria-label="Focus mode"
               aria-pressed={focusMode}
