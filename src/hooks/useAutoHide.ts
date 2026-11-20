@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-/** How long the controls stay visible after the pointer and focus leave them. */
+/** How long the search bar stays visible after the pointer and focus leave it. */
 export const AUTO_HIDE_DELAY_MS = 15_000;
 
 /** Handlers and ref for one area of controls that hides with the others. */
@@ -39,7 +39,7 @@ function isInUse(el: HTMLElement): boolean {
 }
 
 /**
- * Hides the controls around the log list once nobody has used them for `delayMs`.
+ * Hides an area of controls (the search and filter bar) once nobody has used it for `delayMs`.
  *
  * Every area spreads `region(name)`; hovering any of them, or moving keyboard focus into one,
  * shows them all again.

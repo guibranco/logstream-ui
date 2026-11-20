@@ -13,8 +13,6 @@ import { cn } from '../lib/utils';
 import { AlertCircle, Inbox, ArrowUp, Loader2, Eraser, Zap } from 'lucide-react';
 
 interface LogTableProps {
-  /** Wraps the column headings and the status bar, e.g. to hide them with the other controls. */
-  wrapChrome?: (part: 'columns' | 'status', node: React.ReactNode) => React.ReactNode;
   logs: LogEntry[];
   /** Live events waiting above the list while the feed is held. */
   pendingCount: number;
@@ -232,7 +230,6 @@ export const LogTable: React.FC<LogTableProps> = ({
   onFilterCategory,
   onRetry,
   filters,
-  wrapChrome = (_part, node) => node,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
@@ -416,27 +413,25 @@ export const LogTable: React.FC<LogTableProps> = ({
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {wrapChrome('columns', (
-        <div className="hidden md:flex bg-gray-950 border-b border-gray-900 items-center px-4 h-10 text-[10px] font-bold uppercase tracking-widest text-gray-600 select-none">
-          <div className="w-6 flex-shrink-0 flex items-center">
-            {logs.length > 0 && (
-              <SelectAllBox
-                all={selection.allSelected}
-                some={isSelecting}
-                onChange={selection.allSelected ? clearSelection : selectAll}
-              />
-            )}
-          </div>
-          <div className="w-32 flex-shrink-0">Timestamp</div>
-          <div className="w-24 flex-shrink-0">Level</div>
-          <div className="w-32 flex-shrink-0 px-2">App Key</div>
-          <div className="w-24 flex-shrink-0 px-2">App ID</div>
-          <div className="w-32 flex-shrink-0 px-2">Category</div>
-          <div className="flex-1 px-2">Message</div>
-          <div className="w-32 flex-shrink-0">Trace ID</div>
-          <div className="w-10 flex-shrink-0"></div>
+      <div className="hidden md:flex bg-gray-950 border-b border-gray-900 items-center px-4 h-10 text-[10px] font-bold uppercase tracking-widest text-gray-600 select-none">
+        <div className="w-6 flex-shrink-0 flex items-center">
+          {logs.length > 0 && (
+            <SelectAllBox
+              all={selection.allSelected}
+              some={isSelecting}
+              onChange={selection.allSelected ? clearSelection : selectAll}
+            />
+          )}
         </div>
-      ))}
+        <div className="w-32 flex-shrink-0">Timestamp</div>
+        <div className="w-24 flex-shrink-0">Level</div>
+        <div className="w-32 flex-shrink-0 px-2">App Key</div>
+        <div className="w-24 flex-shrink-0 px-2">App ID</div>
+        <div className="w-32 flex-shrink-0 px-2">Category</div>
+        <div className="flex-1 px-2">Message</div>
+        <div className="w-32 flex-shrink-0">Trace ID</div>
+        <div className="w-10 flex-shrink-0"></div>
+      </div>
 
       {pendingCount > 0 && (
         <PendingBanner count={pendingCount} overflow={pendingOverflow} holdReason={holdReason} onClick={resumeLive} />
@@ -467,29 +462,27 @@ export const LogTable: React.FC<LogTableProps> = ({
         />
       </div>
 
-      {wrapChrome('status', (
-        <div className="bg-gray-950 border-t border-gray-900 px-3 md:px-4 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-500">
-          <div>
-            <span className="text-gray-300 font-mono">{logs.length}</span> loaded
-            {total > 0 && (
-              <> of <span className="text-gray-300 font-mono">{total}</span> matching</>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {logs.length > 0 && (
-              <ExportImageMenu
-                subject="events in view"
-                label="Export image"
-                onExport={fmt => exportImage('view', fmt)}
-                state={exportStates.view}
-                testId="export-view-image"
-                className="px-2 py-0.5 rounded border border-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-900"
-              />
-            )}
-            <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} onResume={resumeLive} />
-          </div>
+      <div className="bg-gray-950 border-t border-gray-900 px-3 md:px-4 py-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-500">
+        <div>
+          <span className="text-gray-300 font-mono">{logs.length}</span> loaded
+          {total > 0 && (
+            <> of <span className="text-gray-300 font-mono">{total}</span> matching</>
+          )}
         </div>
-      ))}
+        <div className="flex items-center gap-3">
+          {logs.length > 0 && (
+            <ExportImageMenu
+              subject="events in view"
+              label="Export image"
+              onExport={fmt => exportImage('view', fmt)}
+              state={exportStates.view}
+              testId="export-view-image"
+              className="px-2 py-0.5 rounded border border-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-900"
+            />
+          )}
+          <FeedStatus isLiveEnabled={isLiveEnabled} holdReason={holdReason} onResume={resumeLive} />
+        </div>
+      </div>
     </div>
   );
 };
