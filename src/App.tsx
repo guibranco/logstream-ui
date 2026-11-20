@@ -18,6 +18,8 @@ import { useClients } from './hooks/useClients';
 import { AppKeyOption } from './components/search/AppKeyPicker';
 import { buildAppKeyOptions, serverAppKey } from './lib/appKeyOptions';
 import { Footer } from './components/Footer';
+import { AutoHide } from './components/AutoHide';
+import { useAutoHide } from './hooks/useAutoHide';
 import { UI_VERSION } from './lib/version';
 
 import { RetentionScreen } from './screens/RetentionScreen';
@@ -36,6 +38,7 @@ function safeStorage(): Storage | null {
   }
 }
 const VIEW_STORAGE_KEY = 'logservice:view';
+const FOCUS_MODE_STORAGE_KEY = 'logservice:focusMode';
 
 function LogStreamApp() {
   const { config, isConfigured, isSettingsOpen, openSettings, signOut } = useAuth();
@@ -66,6 +69,22 @@ function LogStreamApp() {
   const [isPaused, setIsPaused] = useState(false);
 
   const feed = useEventFeed(filters);
+
+  // Focus mode: the controls around the list hide when idle; on unless turned off.
+  const [focusMode, setFocusMode] = useState(() => safeStorage()?.getItem(FOCUS_MODE_STORAGE_KEY) !== 'off');
+  const toggleFocusMode = useCallback(() => {
+    setFocusMode(on => {
+      try {
+        safeStorage()?.setItem(FOCUS_MODE_STORAGE_KEY, on ? 'off' : 'on');
+      } catch {
+        // Storage unavailable: the choice lasts until reload.
+      }
+      return !on;
+    });
+  }, []);
+  const chrome = useAutoHide(
+    focusMode && currentView === 'events' && !isStatsOpen && !isSettingsOpen && isConfigured,
+  );
 
   const multiValue = serverInfo?.features?.multi_value_filters === true;
   const transportFilters = serverInfo?.features?.transport_filters === true;
@@ -158,14 +177,16 @@ function LogStreamApp() {
       default:
         return (
           <>
-            <FilterBar
-              filters={filters}
-              onSearch={handleSearch}
-              storageType={serverInfo?.storage_type}
-              multiValue={multiValue}
-              appKeyOptions={appKeyOptions}
-              transportFilters={transportFilters}
-            />
+            <AutoHide hidden={chrome.hidden} region={chrome.region('filters')} testId="autohide-filters">
+              <FilterBar
+                filters={filters}
+                onSearch={handleSearch}
+                storageType={serverInfo?.storage_type}
+                multiValue={multiValue}
+                appKeyOptions={appKeyOptions}
+                transportFilters={transportFilters}
+              />
+            </AutoHide>
 
             <main className="flex-1 flex flex-col min-h-0">
               <LogTable
@@ -193,6 +214,11 @@ function LogStreamApp() {
                 onFilterCategory={handleFilterCategory}
                 onRetry={feed.reload}
                 filters={filters}
+                wrapChrome={(part, node) => (
+                  <AutoHide hidden={chrome.hidden} region={chrome.region(part)} testId={`autohide-${part}`}>
+                    {node}
+                  </AutoHide>
+                )}
               />
             </main>
 
@@ -208,24 +234,30 @@ function LogStreamApp() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-sans overflow-hidden">
-      <Header
-        status={status}
-        connections={connections}
-        isLive={!isPaused}
-        setIsLive={handleSetIsLive}
-        pendingCount={feed.pendingCount}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        onReload={feed.reload}
-        onClear={feed.clear}
-        onOpenStats={() => setIsStatsOpen(true)}
-        onOpenSettings={openSettings}
-        onDisconnect={signOut}
-      />
-      
+      <AutoHide hidden={chrome.hidden} region={chrome.region('header')} strip="top" testId="autohide-header">
+        <Header
+          status={status}
+          connections={connections}
+          isLive={!isPaused}
+          setIsLive={handleSetIsLive}
+          pendingCount={feed.pendingCount}
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          onReload={feed.reload}
+          onClear={feed.clear}
+          onOpenStats={() => setIsStatsOpen(true)}
+          onOpenSettings={openSettings}
+          onDisconnect={signOut}
+          focusMode={focusMode}
+          onToggleFocusMode={toggleFocusMode}
+        />
+      </AutoHide>
+
       {renderScreen()}
 
-      {footer}
+      <AutoHide hidden={chrome.hidden} region={chrome.region('footer')} strip="bottom" testId="autohide-footer">
+        {footer}
+      </AutoHide>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { WSStatus } from '../types';
 import logoUrl from '../assets/logo.svg';
 import { cn } from '../lib/utils';
-import { Activity, Eraser, RefreshCw, Zap, ZapOff, Settings, LogOut, Clock, Server as ServerIcon, BarChart3 } from 'lucide-react';
+import { Activity, Eraser, RefreshCw, Zap, ZapOff, Settings, LogOut, Focus, Clock, Server as ServerIcon, BarChart3 } from 'lucide-react';
 import { useServerInfo } from '../hooks/useServerInfo';
 import { ThemePicker } from './ThemePicker';
 
@@ -19,6 +19,9 @@ interface HeaderProps {
   onOpenStats: () => void;
   onOpenSettings: () => void;
   onDisconnect: () => void;
+  /** Hide the controls around the list when idle. */
+  focusMode?: boolean;
+  onToggleFocusMode?: () => void;
 }
 
 function liveLabel(isLive: boolean, pendingCount: number): string {
@@ -38,7 +41,9 @@ export const Header: React.FC<HeaderProps> = ({
   onClear,
   onOpenStats,
   onOpenSettings,
-  onDisconnect
+  onDisconnect,
+  focusMode = false,
+  onToggleFocusMode,
 }) => {
   const statusColor = {
     connected: 'bg-green-500',
@@ -167,6 +172,25 @@ export const Header: React.FC<HeaderProps> = ({
         )}
 
         <div className="flex items-center sm:gap-1">
+          {onToggleFocusMode && currentView === 'events' && (
+            <button
+              onClick={onToggleFocusMode}
+              className={cn(
+                'hidden md:block p-1.5 sm:p-2 rounded transition-all hover:bg-gray-900',
+                focusMode ? 'text-secondary-400 hover:text-secondary-300' : 'text-gray-500 hover:text-gray-200',
+              )}
+              title={
+                focusMode
+                  ? 'Focus mode on: controls hide after 15 seconds idle; hover the top or bottom edge to show them'
+                  : 'Focus mode off: controls always visible'
+              }
+              aria-label="Focus mode"
+              aria-pressed={focusMode}
+              data-testid="focus-mode-toggle"
+            >
+              <Focus size={18} />
+            </button>
+          )}
           <ThemePicker />
 
           <button
