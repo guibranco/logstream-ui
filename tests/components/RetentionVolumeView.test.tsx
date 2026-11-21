@@ -33,18 +33,18 @@ const report: RetentionVolumeReport = {
 };
 
 describe('RetentionVolumePanel', () => {
-  it('offers a 7-day window and loads it when picked', () => {
+  it('offers Seq\'s day-or-longer ranges and loads one when picked', () => {
     render(<RetentionVolumePanel />);
 
     const windows = within(screen.getByRole('group', { name: 'Window' })).getAllByRole('button');
-    expect(windows.map((b) => b.textContent)).toEqual(['7d', '10d', '15d', '30d', '90d', '180d', '365d']);
+    expect(windows.map((b) => b.textContent)).toEqual(['1d', '3d', '7d', '30d', '60d', '90d', '365d']);
 
     fireEvent.click(screen.getByRole('button', { name: '7d' }));
     expect(screen.getByRole('button', { name: '7d' })).toHaveAttribute('aria-pressed', 'true');
     expect(volumeHook.calls.at(-1)).toBe(7);
   });
 
-  it.each([10, 15])('offers a %i-day window and loads it when picked', (days) => {
+  it.each([1, 3, 60])('offers a %i-day window and loads it when picked', (days) => {
     render(<RetentionVolumePanel />);
 
     fireEvent.click(screen.getByRole('button', { name: `${days}d` }));

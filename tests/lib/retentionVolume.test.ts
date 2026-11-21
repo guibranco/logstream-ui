@@ -5,6 +5,7 @@ import {
   diskEstimate,
   formatBytes,
   formatCount,
+  hourMarkerX,
   markerX,
   niceScale,
   spreadLabels,
@@ -79,6 +80,22 @@ describe('markerX', () => {
 
   it('draws any-age policies at today', () => {
     expect(markerX(null, 10, 5, 10)).toEqual({ placement: 'any-age', x: 105 });
+  });
+});
+
+describe('hourMarkerX', () => {
+  it('places an hour cutoff inside today when it is later than midnight', () => {
+    // 10 buckets of 24px; noon today is x = 9.5 * 24 = 228, 6 hours earlier is 222.
+    expect(hourMarkerX(6, 0.5, 10, 0, 24)).toEqual({ placement: 'inside', x: 222 });
+  });
+
+  it('crosses into earlier days for longer hour ages', () => {
+    // Noon minus 36 hours is midnight yesterday: the left edge of age 1 (index 8).
+    expect(hourMarkerX(36, 0.5, 10, 0, 24)).toEqual({ placement: 'inside', x: 192 });
+  });
+
+  it('flags hour cutoffs older than the window', () => {
+    expect(hourMarkerX(48, 0, 1, 0, 24)).toEqual({ placement: 'beyond', x: null });
   });
 });
 

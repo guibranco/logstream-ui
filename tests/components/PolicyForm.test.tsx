@@ -86,4 +86,65 @@ describe('PolicyForm', () => {
 
     expect(createMutate.mock.calls[0][0].transport).toBeUndefined();
   });
+  it('offers Seq-style day presets and sends the picked one', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} onClose={vi.fn()} />);
+
+    const select = screen.getByLabelText('Older than') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(['1d', '3d', '7d', '30d', '60d', '90d', '365d', 'custom']);
+    expect(select.value).toBe('7d');
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. remove-old-debug'), { target: { value: 'drop-old' } });
+    fireEvent.change(select, { target: { value: '30d' } });
+    expect(screen.getByText(/older than 30 days/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Create Policy'));
+    const payload = createMutate.mock.calls[0][0];
+    expect(payload.older_than_days).toBe(30);
+    expect(payload.older_than_hours).toBeUndefined();
+  });
+
+  it('offers hour presets when the server supports them', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} retentionHours onClose={vi.fn()} />);
+
+    const select = screen.getByLabelText('Older than') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value).slice(0, 3)).toEqual(['1h', '4h', '12h']);
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. remove-old-debug'), { target: { value: 'drop-debug' } });
+    fireEvent.change(select, { target: { value: '12h' } });
+    expect(screen.getByText(/older than 12 hours/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Create Policy'));
+    const payload = createMutate.mock.calls[0][0];
+    expect(payload.older_than_hours).toBe(12);
+    expect(payload.older_than_days).toBeUndefined();
+  });
+
+  it('accepts a custom number of hours', () => {
+    render(<PolicyForm policy={null} appKeyOptions={appKeyOptions} retentionHours onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. remove-old-debug'), { target: { value: 'drop-6h' } });
+    fireEvent.change(screen.getByLabelText('Older than'), { target: { value: 'custom' } });
+    fireEvent.change(screen.getByLabelText('Custom age unit'), { target: { value: 'hours' } });
+    fireEvent.change(screen.getByLabelText('Custom age'), { target: { value: '6' } });
+    fireEvent.click(screen.getByText('Create Policy'));
+
+    expect(createMutate.mock.calls[0][0]).toEqual(expect.objectContaining({ name: 'drop-6h', older_than_hours: 6 }));
+  });
+
+  it('opens an existing hour policy on its preset and clears hours when switched to days', () => {
+    const updateMutate = vi.fn();
+    (useRetentionHooks.useUpdatePolicy as any).mockReturnValue({ mutate: updateMutate, isPending: false });
+    render(
+      <PolicyForm policy={{ name: 'debug', older_than_hours: 4 }} appKeyOptions={appKeyOptions} onClose={vi.fn()} />,
+    );
+
+    const select = screen.getByLabelText('Older than') as HTMLSelectElement;
+    expect(select.value).toBe('4h');
+
+    fireEvent.change(select, { target: { value: '3d' } });
+    fireEvent.click(screen.getByText('Save Changes'));
+    const payload = updateMutate.mock.calls[0][0].policy;
+    expect(payload.older_than_days).toBe(3);
+    expect(payload.older_than_hours).toBeUndefined();
+  });
 });

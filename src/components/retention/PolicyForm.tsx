@@ -2,9 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { RetentionPolicy, LogLevel, Transport, TRANSPORTS } from '../../types';
 import { useCreatePolicy, useUpdatePolicy } from '../../hooks/useRetentionPolicies';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { AppKeyPicker, AppKeyOption } from '../search/AppKeyPicker';
+import {
+  AgeUnit,
+  CUSTOM_AGE_KEY,
+  RETENTION_AGE_PRESETS,
+  RetentionAge,
+  ageFields,
+  ageOf,
+  cutoffFor,
+  formatAge,
+  presetFor,
+} from '../../lib/retentionAge';
 
 interface PolicyFormProps {
   policy: RetentionPolicy | null;
@@ -16,19 +27,26 @@ interface PolicyFormProps {
    * so it is only offered when supported.
    */
   transportFilters?: boolean;
+  /**
+   * The server accepts older_than_hours (features.retention_hours). Older
+   * servers ignore it, which would leave the policy with no age at all, so
+   * hour ages are only offered when supported.
+   */
+  retentionHours?: boolean;
   onClose: () => void;
 }
 
+const DEFAULT_AGE: RetentionAge = { value: 7, unit: 'days' };
+
 const TRANSPORT_LABELS: Record<Transport, string> = { tcp: 'TCP (HTTP)', udp: 'UDP' };
 
-export function PolicyForm({ policy, appKeyOptions = [], transportFilters = false, onClose }: Readonly<PolicyFormProps>) {
+export function PolicyForm({ policy, appKeyOptions = [], transportFilters = false, retentionHours = false, onClose }: Readonly<PolicyFormProps>) {
   const isEditing = !!policy;
   const createMutation = useCreatePolicy();
   const updateMutation = useUpdatePolicy();
 
   const [formData, setFormData] = useState<Partial<RetentionPolicy>>({
     name: '',
-    older_than_days: 7,
     level: undefined,
     app_key: '',
     app_id: '',
@@ -38,20 +56,39 @@ export function PolicyForm({ policy, appKeyOptions = [], transportFilters = fals
     message_glob: ''
   });
 
+  const initialAge = (policy && ageOf(policy)) || DEFAULT_AGE;
+  const [age, setAge] = useState<RetentionAge>(initialAge);
+  // A preset key, or "custom" for any other number of hours/days.
+  const [ageChoice, setAgeChoice] = useState<string>(presetFor(initialAge)?.key ?? CUSTOM_AGE_KEY);
+  // Hours stay visible when editing a policy that already uses them.
+  const hoursAvailable = retentionHours || initialAge.unit === 'hours';
+  const agePresets = RETENTION_AGE_PRESETS.filter((p) => hoursAvailable || p.unit === 'days');
+
+  const handleAgeChoice = (key: string) => {
+    setAgeChoice(key);
+    const picked = RETENTION_AGE_PRESETS.find((p) => p.key === key);
+    if (picked) setAge({ value: picked.value, unit: picked.unit });
+  };
+
   const [isSummaryOpen, setIsSummaryOpen] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (policy) {
       setFormData(policy);
+      const policyAge = ageOf(policy) || DEFAULT_AGE;
+      setAge(policyAge);
+      setAgeChoice(presetFor(policyAge)?.key ?? CUSTOM_AGE_KEY);
     }
   }, [policy]);
 
-  const cutoffDate = useMemo(() => {
-    const days = Number(formData.older_than_days) || 0;
-    if (days < 1) return null;
-    return subDays(new Date(), days);
-  }, [formData.older_than_days]);
+  const ageValid = Number.isInteger(age.value) && age.value >= 1;
+
+  const cutoffLabel = useMemo(() => {
+    if (!ageValid) return null;
+    const cutoff = cutoffFor(age);
+    return format(cutoff, age.unit === 'hours' ? 'MMM d, HH:mm' : 'MMM d, yyyy');
+  }, [age, ageValid]);
 
   const summary = useMemo(() => {
     const parts = ['Delete'];
@@ -63,14 +100,14 @@ export function PolicyForm({ policy, appKeyOptions = [], transportFilters = fals
     parts.push(`${levelText} entries${transportText}`.trim());
     if (appText) parts.push(appText);
     if (appIdText) parts.push(appIdText);
-    parts.push(`older than ${formData.older_than_days} days`);
+    parts.push(`older than ${ageValid ? formatAge(age) : '…'}`);
     
     if (formData.category) parts.push(`matching category "${formData.category}"`);
     if (formData.message_regex) parts.push('matching regex');
     if (formData.message_glob) parts.push(`matching glob "${formData.message_glob}"`);
 
     return parts.join(' ');
-  }, [formData]);
+  }, [formData, age, ageValid]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +122,13 @@ export function PolicyForm({ policy, appKeyOptions = [], transportFilters = fals
       setError('Name must be lowercase alphanumeric with hyphens');
       return;
     }
-    if (Number(formData.older_than_days) < 1) {
-      setError('Older than must be at least 1 day');
+    if (!ageValid) {
+      setError(`Older than must be a whole number of ${age.unit}, at least 1`);
       return;
     }
 
-    const payload = {
-      ...formData,
-      older_than_days: Number(formData.older_than_days)
-    };
+    const { cutoff_date: _cutoff, ...fields } = formData;
+    const payload = { ...fields, ...ageFields(age) };
 
     if (isEditing && policy) {
       updateMutation.mutate(
@@ -162,23 +197,54 @@ export function PolicyForm({ policy, appKeyOptions = [], transportFilters = fals
                 )}
               </div>
 
-              {/* Older Than */}
+              {/* Older Than: Seq-style presets, or a custom number of hours/days */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-300">Older than (days)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.older_than_days}
-                    onChange={(e) => setFormData({ ...formData, older_than_days: Number(e.target.value) })}
-                    className="w-24 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
-                  />
-                  {cutoffDate && (
+                <label htmlFor="policy-age" className="text-sm font-medium text-gray-300">Older than</label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    id="policy-age"
+                    value={ageChoice}
+                    onChange={(e) => handleAgeChoice(e.target.value)}
+                    className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none"
+                  >
+                    {agePresets.map((p) => (
+                      <option key={p.key} value={p.key}>{p.label}</option>
+                    ))}
+                    <option value={CUSTOM_AGE_KEY}>Custom…</option>
+                  </select>
+                  {ageChoice === CUSTOM_AGE_KEY && (
+                    <>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        aria-label="Custom age"
+                        value={Number.isNaN(age.value) ? '' : age.value}
+                        onChange={(e) => setAge({ ...age, value: e.target.valueAsNumber })}
+                        className="w-20 bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all"
+                      />
+                      <select
+                        aria-label="Custom age unit"
+                        value={age.unit}
+                        onChange={(e) => setAge({ ...age, unit: e.target.value as AgeUnit })}
+                        className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all appearance-none"
+                      >
+                        {hoursAvailable && <option value="hours">hours</option>}
+                        <option value="days">days</option>
+                      </select>
+                    </>
+                  )}
+                  {cutoffLabel && (
                     <span className="text-xs text-primary-400 font-medium bg-primary-400/10 px-2 py-1 rounded">
-                      Entries before: {format(cutoffDate, 'MMM d, yyyy')}
+                      Entries before: {cutoffLabel}
                     </span>
                   )}
                 </div>
+                <p className="text-[10px] text-gray-500 italic">
+                  {age.unit === 'hours'
+                    ? 'Hours are a rolling window, applied on each scheduled run.'
+                    : 'Days are counted from midnight.'}
+                </p>
               </div>
 
               <div className="h-px bg-gray-900 my-2" />

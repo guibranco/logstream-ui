@@ -5,6 +5,7 @@ import {
   RetentionVolumeStorage,
   RetentionVolumeTotals,
 } from '../types';
+import { RetentionAge, ageInDays, ageOf } from './retentionAge';
 
 /**
  * Geometry for the Seq-style retention chart: stored volume by age (oldest on
@@ -12,7 +13,8 @@ import {
  *
  * A policy with `older_than_days: N` deletes entries dated before today−N, so
  * it removes every bucket with age > N. Its marker therefore sits on the
- * boundary between age N+1 and age N.
+ * boundary between age N+1 and age N. A policy with `older_than_hours: N`
+ * cuts at now − N hours, which can fall inside a day's bucket.
  */
 
 export type VolumeMetric = 'count' | 'bytes';
@@ -179,8 +181,8 @@ export function niceScale(max: number, ticks = 4, minStep = 0): { max: number; s
 }
 
 /** Sort key for marker numbering: "any age" sits at the right edge, before every day cutoff. */
-function cutoffRank(olderThanDays: number | null): number {
-  return olderThanDays ?? -1;
+function cutoffRank(age: RetentionAge | null, now: Date): number {
+  return age ? ageInDays(age, now) : -1;
 }
 
 /** Position of a policy marker; null when the cutoff falls before the window. */
@@ -198,6 +200,30 @@ export function markerX(
   }
   // Bucket index of age N is (count − 1 − N); its left edge is the boundary with age N+1.
   return { placement: 'inside', x: plotX + (bucketCount - 1 - olderThanDays) * bucketWidth };
+}
+
+/**
+ * Position of an hour-based cutoff: now sits `dayFraction` of the way through
+ * today's (rightmost) bucket, and the cutoff N hours before it.
+ */
+export function hourMarkerX(
+  hours: number,
+  dayFraction: number,
+  bucketCount: number,
+  plotX: number,
+  bucketWidth: number,
+): { placement: MarkerPlacement; x: number | null } {
+  const position = bucketCount - 1 + dayFraction - hours / 24;
+  if (position < 0) {
+    return { placement: 'beyond', x: null };
+  }
+  return { placement: 'inside', x: plotX + position * bucketWidth };
+}
+
+/** Fraction of the local day elapsed at `now` (0 at midnight). */
+function dayFractionOf(now: Date): number {
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.min(1, Math.max(0, (now.getTime() - midnight.getTime()) / 86_400_000));
 }
 
 export function buildVolumeChart(
@@ -272,15 +298,20 @@ export function buildVolumeChart(
   }
 
   const markers: VolumeMarker[] = [];
+  // Hour cutoffs are placed relative to when the report was generated.
+  const generated = new Date(report.generated_at);
+  const now = Number.isNaN(generated.getTime()) ? new Date() : generated;
   const inactive = report.policies.filter((policy) => !policy.active);
   // Numbered by cutoff, matching the axis: 1 is the rightmost (any age, then the
   // shortest cutoff) and the highest number the leftmost (longest cutoff).
   // The sort is stable, so policies sharing a cutoff keep their list order.
   const active = report.policies
     .filter((policy) => policy.active)
-    .sort((a, b) => cutoffRank(a.older_than_days) - cutoffRank(b.older_than_days));
+    .sort((a, b) => cutoffRank(ageOf(a), now) - cutoffRank(ageOf(b), now));
   for (const policy of active) {
-    const { placement, x } = markerX(policy.older_than_days, buckets.length, plot.x, bucketWidth);
+    const { placement, x } = policy.older_than_hours
+      ? hourMarkerX(policy.older_than_hours, dayFractionOf(now), buckets.length, plot.x, bucketWidth)
+      : markerX(policy.older_than_days, buckets.length, plot.x, bucketWidth);
     markers.push({ number: markers.length + 1, policy, placement, x, labelX: x });
   }
 
