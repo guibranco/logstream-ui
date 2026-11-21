@@ -70,7 +70,10 @@ export interface WSMessage {
 
 export interface RetentionPolicy {
   name: string;
+  /** Cut at midnight N days ago. At most one of older_than_days / older_than_hours is set. */
   older_than_days?: number;
+  /** Rolling now − N hours; needs features.retention_hours. */
+  older_than_hours?: number;
   cutoff_date?: string;
   app_key?: string;
   app_id?: string;
@@ -155,6 +158,8 @@ export interface RetentionVolumeBucket extends RetentionVolumeTotals {
 export interface RetentionVolumePolicy {
   name: string;
   older_than_days: number | null;
+  /** Rolling age in hours; absent on servers without features.retention_hours. */
+  older_than_hours?: number | null;
   /** False for a policy without criteria, which never deletes anything. */
   active: boolean;
   matched_count: number;

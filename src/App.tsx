@@ -88,6 +88,7 @@ function LogStreamApp() {
 
   const multiValue = serverInfo?.features?.multi_value_filters === true;
   const transportFilters = serverInfo?.features?.transport_filters === true;
+  const retentionHours = serverInfo?.features?.retention_hours === true;
   const hasClientRegistry = serverInfo?.features?.client_management === true;
   const { data: clientList } = useClients(hasClientRegistry);
   // Without a registry (file storage), offer every app key seen in this session,
@@ -171,7 +172,7 @@ function LogStreamApp() {
   const renderScreen = () => {
     switch (currentView) {
       case 'retention':
-        return <RetentionScreen appKeyOptions={appKeyOptions} transportFilters={transportFilters} />;
+        return <RetentionScreen appKeyOptions={appKeyOptions} transportFilters={transportFilters} retentionHours={retentionHours} />;
       case 'applications':
         return <ApplicationsScreen />;
       default:

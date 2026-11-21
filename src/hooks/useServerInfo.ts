@@ -18,6 +18,8 @@ export interface ServerInfo {
     udp_ingest?: boolean;
     /** `transport` is a search filter and a retention policy criterion. */
     transport_filters?: boolean;
+    /** Retention policies accept older_than_hours besides older_than_days. */
+    retention_hours?: boolean;
   };
   /** The reserved app the server's own messages are stored under. */
   self_logging?: {

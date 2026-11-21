@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BarChart3 } from 'lucide-react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
 import { useRetentionVolume } from '../../hooks/useRetentionVolume';
-import { RetentionVolumeReport, RetentionVolumeStorage } from '../../types';
+import { RetentionVolumePolicy, RetentionVolumeReport, RetentionVolumeStorage } from '../../types';
 import {
   DEFAULT_LAYOUT,
   VolumeMetric,
@@ -15,8 +15,10 @@ import {
 import { cn } from '../../lib/utils';
 import { browserStorage, loadVolumePreferences, saveVolumePreferences } from '../../lib/volumePreferences';
 import { RetentionVolumeChart } from './RetentionVolumeChart';
+import { ageOf, formatAge } from '../../lib/retentionAge';
 
-export const VOLUME_WINDOWS = [7, 10, 15, 30, 90, 180, 365] as const;
+/** Chart windows: Seq's relative ranges of a day or more (the chart has one bucket per day). */
+export const VOLUME_WINDOWS = [1, 3, 7, 30, 60, 90, 365] as const;
 
 function SegmentedControl<T extends string | number>({
   label,
@@ -129,9 +131,9 @@ export function TableStorageBreakdown({ storage }: Readonly<{ storage: Retention
   );
 }
 
-function cutoffLabel(olderThanDays: number | null): string {
-  if (olderThanDays === null) return 'any age';
-  return `after ${olderThanDays} day${olderThanDays === 1 ? '' : 's'}`;
+function cutoffLabel(policy: RetentionVolumePolicy): string {
+  const age = ageOf(policy);
+  return age ? `after ${formatAge(age)}` : 'any age';
 }
 
 interface RetentionVolumeViewProps {
@@ -251,7 +253,7 @@ export function RetentionVolumeView({ report, metric }: Readonly<RetentionVolume
                 <div className="min-w-0">
                   <div className="font-mono text-sm font-bold text-primary-400 truncate">{policy.name}</div>
                   <div className="text-xs text-gray-500">
-                    Deletes matches {cutoffLabel(policy.older_than_days)}
+                    Deletes matches {cutoffLabel(policy)}
                     {marker.placement === 'beyond' && ' — beyond this window'}
                   </div>
                 </div>

@@ -14,9 +14,11 @@ interface RetentionScreenProps {
   appKeyOptions?: AppKeyOption[];
   /** The server accepts a transport criterion on policies (features.transport_filters). */
   transportFilters?: boolean;
+  /** The server accepts hour ages on policies (features.retention_hours). */
+  retentionHours?: boolean;
 }
 
-export function RetentionScreen({ appKeyOptions = [], transportFilters = false }: Readonly<RetentionScreenProps>) {
+export function RetentionScreen({ appKeyOptions = [], transportFilters = false, retentionHours = false }: Readonly<RetentionScreenProps>) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState<RetentionPolicy | null>(null);
   const [lastRunResults, setLastRunResults] = useState<RetentionRunResponse | null>(null);
@@ -86,6 +88,7 @@ export function RetentionScreen({ appKeyOptions = [], transportFilters = false }
           policy={editingPolicy}
           appKeyOptions={appKeyOptions}
           transportFilters={transportFilters}
+          retentionHours={retentionHours}
           onClose={() => setIsFormOpen(false)}
         />
       )}

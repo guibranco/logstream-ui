@@ -5,6 +5,7 @@ import { useRetentionPolicies, useDeletePolicy } from '../../hooks/useRetentionP
 import { format, parseISO } from 'date-fns';
 import { cn } from '../../lib/utils';
 import { Skeleton } from '../Skeleton';
+import { ageOf, cutoffFor, formatAge } from '../../lib/retentionAge';
 
 interface PolicyTableProps {
   onEdit: (policy: RetentionPolicy) => void;
@@ -23,14 +24,9 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
         // ignore and fallback
       }
     }
-    if (policy.older_than_days) {
-      try {
-        const d = new Date();
-        d.setDate(d.getDate() - policy.older_than_days);
-        return format(d, 'MMM d, yyyy');
-      } catch (e) {
-        // ignore and fallback
-      }
+    const age = ageOf(policy);
+    if (age) {
+      return format(cutoffFor(age), age.unit === 'hours' ? 'MMM d, HH:mm' : 'MMM d, yyyy');
     }
     return 'N/A';
   };
@@ -106,7 +102,10 @@ export function PolicyTable({ onEdit }: PolicyTableProps) {
               </td>
               <td className="px-4 py-4">
                 <span className="text-sm text-gray-200">
-                  {policy.older_than_days ? `${policy.older_than_days} days` : 'Any age'}
+                  {(() => {
+                    const age = ageOf(policy);
+                    return age ? formatAge(age) : 'Any age';
+                  })()}
                 </span>
               </td>
               <td className="px-4 py-4 text-sm text-gray-400">
