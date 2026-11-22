@@ -254,11 +254,7 @@ export const LogRow: React.FC<LogRowProps> = ({
                       <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Time</dt>
                       <dd className="text-xs font-mono text-gray-300">{format(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS')}</dd>
                     </div>
-                    <div className="min-w-0">
-                      <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">App ID</dt>
-                      <dd className="text-xs font-mono text-gray-300 break-all">{log.app_id || 'N/A'}</dd>
-                    </div>
-                    <div className="min-w-0">
+                    <div className="col-span-2 min-w-0">
                       <dt className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-1">Trace ID</dt>
                       <dd className="flex items-start gap-1">
                         <span className="text-xs font-mono text-gray-300 break-all">{log.trace_id}</span>
@@ -304,6 +300,23 @@ export const LogRow: React.FC<LogRowProps> = ({
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">App ID</h4>
+                      <div className="flex items-center gap-2 group">
+                        <span className="text-xs font-mono text-gray-300 truncate" data-testid="app-id">
+                          {log.app_id || 'N/A'}
+                        </span>
+                        {log.app_id && (
+                          <button
+                            onClick={() => handleCopy(log.app_id, 'app-id')}
+                            className="p-1 hover:bg-gray-800 rounded transition-all"
+                            aria-label="Copy app ID"
+                          >
+                            {copied === 'app-id' ? <Check size={12} className="text-green-500" /> : <Copy size={12} className="text-gray-500" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div>
                       <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-600 mb-2">Category</h4>
                       <div className="flex items-center gap-2 group">

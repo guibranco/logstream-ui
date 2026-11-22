@@ -33,6 +33,19 @@ describe('LogRow', () => {
     expect(screen.getByLabelText('Copy sender IP')).toBeInTheDocument();
   });
 
+  it('shows the app ID in the expanded details', () => {
+    renderRow(baseLog);
+    expect(screen.getByText('App ID')).toBeInTheDocument();
+    expect(screen.getByTestId('app-id')).toHaveTextContent('web');
+    expect(screen.getByLabelText('Copy app ID')).toBeInTheDocument();
+  });
+
+  it('falls back to N/A when the event has no app ID', () => {
+    renderRow({ ...baseLog, app_id: '' });
+    expect(screen.getByTestId('app-id')).toHaveTextContent('N/A');
+    expect(screen.queryByLabelText('Copy app ID')).not.toBeInTheDocument();
+  });
+
   it('falls back to N/A when the server does not send a sender IP', () => {
     renderRow(baseLog);
     expect(screen.getByTestId('sender-ip')).toHaveTextContent('N/A');
