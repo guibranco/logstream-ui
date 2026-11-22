@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LogEntry, LogLevel, SearchFilters } from '../types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { LevelBadge } from './LevelBadge';
@@ -111,18 +111,33 @@ export const LogRow: React.FC<LogRowProps> = ({
   const [copied, setCopied] = useState<string | null>(null);
   const [copyFailed, setCopyFailed] = useState<string | null>(null);
 
+  // One reset timer for all copy buttons, so an earlier copy can't clear a later copy's feedback.
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+  }, []);
+
+  const scheduleCopyReset = (): void => {
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    copyResetTimer.current = setTimeout(() => {
+      setCopied(null);
+      setCopyFailed(null);
+      copyResetTimer.current = null;
+    }, 2000);
+  };
+
   /** Marks the button as copied only once the write succeeds; a denied clipboard shows as failed. */
   const handleCopy = (text: string, type: string): void => {
     navigator.clipboard.writeText(text).then(
       () => {
         setCopyFailed(null);
         setCopied(type);
-        setTimeout(() => setCopied(null), 2000);
+        scheduleCopyReset();
       },
       () => {
         setCopied(null);
         setCopyFailed(type);
-        setTimeout(() => setCopyFailed(null), 2000);
+        scheduleCopyReset();
       },
     );
   };

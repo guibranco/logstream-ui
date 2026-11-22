@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { LogRow } from '@/src/components/LogRow';
 import { LogEntry } from '@/src/types';
 
@@ -241,5 +241,38 @@ describe('LogRow message template', () => {
 
     await waitFor(() => expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copy failed'));
     expect(screen.getByTestId('copy-markdown')).not.toHaveTextContent('Copied!');
+  });
+
+  it('keeps a later copy confirmed when an earlier copy times out', async () => {
+    vi.useFakeTimers();
+    try {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+      renderRow(baseLog);
+
+      await act(async () => {
+        fireEvent.click(screen.getByLabelText('Copy app ID'));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(1500);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('copy-markdown'));
+      });
+      expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copied!');
+
+      // The App ID copy's 2s window ends here; the Markdown copy's must not.
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copied!');
+
+      await act(async () => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByTestId('copy-markdown')).toHaveTextContent('Copy as Markdown');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
