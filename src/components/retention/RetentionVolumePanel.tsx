@@ -17,8 +17,8 @@ import { browserStorage, loadVolumePreferences, saveVolumePreferences } from '..
 import { RetentionVolumeChart } from './RetentionVolumeChart';
 import { ageOf, formatAge } from '../../lib/retentionAge';
 
-/** Chart windows: Seq's relative ranges of a day or more (the chart has one bucket per day). */
-export const VOLUME_WINDOWS = [1, 3, 7, 30, 60, 90, 365] as const;
+/** Chart windows: Seq's relative ranges of a day or more, plus 10d (the chart has one bucket per day). */
+export const VOLUME_WINDOWS = [1, 3, 7, 10, 30, 60, 90, 365] as const;
 
 function SegmentedControl<T extends string | number>({
   label,
